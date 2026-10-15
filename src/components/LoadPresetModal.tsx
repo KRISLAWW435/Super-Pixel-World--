@@ -3,8 +3,8 @@
  * Choose from ready-made adventure levels or import custom JSON files.
  */
 
-import React, { useRef } from 'react';
-import { Download, FileJson, Sparkles, Upload, X } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Download, FileJson, Sparkles, Upload, X, AlertCircle } from 'lucide-react';
 import { PRESET_LEVELS } from '../game/presetLevels';
 import { THEMES } from '../game/constants';
 import { LevelData, ThemeId } from '../types/game';
@@ -23,10 +23,12 @@ export const LoadPresetModal: React.FC<LoadPresetModalProps> = ({
   currentLevel,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError(null);
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -38,10 +40,10 @@ export const LoadPresetModal: React.FC<LoadPresetModalProps> = ({
           onSelectLevel(parsed);
           onClose();
         } else {
-          alert('Некорректный формат файла уровня!');
+          setError('Некорректный формат файла уровня! Проверьте структуру JSON.');
         }
       } catch {
-        alert('Ошибка при чтении файла JSON!');
+        setError('Ошибка при чтении файла JSON! Убедитесь, что файл содержит валидный JSON.');
       }
     };
     reader.readAsText(file);
@@ -112,6 +114,13 @@ export const LoadPresetModal: React.FC<LoadPresetModalProps> = ({
 
         {/* Content */}
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {error && (
+            <div className="p-3 bg-red-950/70 border border-red-500/50 rounded-xl text-xs text-red-200 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Preset Levels Grid */}
           <div className="space-y-2">
             <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">

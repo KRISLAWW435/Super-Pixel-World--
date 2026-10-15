@@ -102,16 +102,19 @@ const STEPS = [
             <strong className="text-amber-400">Блок с вопросом (?)</strong> — ударьте снизу головой в прыжке, чтобы выбить золотую монету!
           </li>
           <li>
-            <strong className="text-orange-400">Кирпичный блок</strong> — разбивается на осколки при ударе головой снизу.
+            <strong className="text-rose-400">4 типа боевых врагов</strong>:
+            <div className="mt-1 ml-2 space-y-1 text-[11px] text-slate-300">
+              <div>• <span className="text-red-400 font-bold">Охотник:</span> замечает персонажа и бежит за ним на высокой скорости!</div>
+              <div>• <span className="text-blue-400 font-bold">Часовой:</span> бдительно патрулирует свои 3–5 клеток вокруг поста.</div>
+              <div>• <span className="text-emerald-400 font-bold">Прыгун:</span> приседает и совершает высокие прыжки в сторону героя.</div>
+              <div>• <span className="text-purple-400 font-bold">Летучий слайм:</span> парит в воздухе и пикирует волной сверху.</div>
+            </div>
+          </li>
+          <li className="p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-200">
+            <strong>⚔️ Боевые правила:</strong> Всех врагов можно победить <b>прыжком сверху</b>! Если враг заденет сбоку, отнимается 1 жизнь, но герой не сбрасывается и <b>продолжает движение вперед</b> с временной защитой.
           </li>
           <li>
-            <strong className="text-red-400">Грибы-враги</strong> — прыгните на голову сверху, чтобы победить врага и отскочить!
-          </li>
-          <li>
-            <strong className="text-rose-400">Шипы и колючки</strong> — опасные ловушки, отнимающие жизнь.
-          </li>
-          <li>
-            <strong className="text-emerald-400">Чекпоинт</strong> — сохраняет место возрождения при касании флага.
+            <strong className="text-emerald-400">Чекпоинт</strong> — сохраняет место возрождения при касании флага (при падении в пропасть).
           </li>
           <li>
             <strong className="text-yellow-300">Финишные ворота</strong> — поставьте их в конце уровня для праздничной победы с салютом и статистикой!

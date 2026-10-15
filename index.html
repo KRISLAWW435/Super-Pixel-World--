@@ -9,6 +9,31 @@
     <meta property="og:description" content="Яркий 2D-платформер с удобным визуальным редактором уровней, плавной физикой, четырьмя красочными мирами и настраиваемыми героями." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function() {
+        try {
+          var _origFetch = typeof window !== 'undefined' && window.fetch ? window.fetch.bind(window) : undefined;
+          var _customFetch = _origFetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return _customFetch;
+            },
+            set: function(val) {
+              _customFetch = val;
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (err) {}
+
+        window.addEventListener('error', function(event) {
+          if (event && event.filename && (event.filename.indexOf('chrome-extension://') !== -1 || event.filename.indexOf('moz-extension://') !== -1)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">

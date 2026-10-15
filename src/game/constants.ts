@@ -2,6 +2,7 @@
  * Super Pixel World - Constants & Catalog
  */
 
+import bgGreenIslands from '../assets/images/bg_green_islands.webp';
 import { HeroConfig, HeroId, PaletteCategory, ThemeConfig, ThemeId, TileId } from '../types/game';
 
 export const CELL_SIZE = 40; // 40px per tile
@@ -14,7 +15,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'green_islands',
     name: 'Зелёные острова',
     subtitle: 'Солнечные холмы, водопады и луга',
-    image: '/src/assets/images/bg_green_islands_1792080621436.jpg',
+    image: bgGreenIslands,
     skyColor: '#63b3ed',
     accentColor: '#48bb78',
     particleColor: '#68d391',
@@ -257,53 +258,37 @@ export const PALETTE_ITEMS: PaletteItemDef[] = [
     hint: 'На уровне может быть только одна точка старта.',
   },
 
-  // --- Enemies (Враги и опасные существа) ---
-  {
-    id: 'enemy_walker',
-    name: 'Гриб-бродяга',
-    category: 'enemies',
-    solid: false,
-    desc: 'Патрулирует всю платформу от края до края',
-    hint: 'Прыгните на шляпку сверху, чтобы победить его!',
-  },
+  // --- Enemies (4 уникальных боевых типа врагов) ---
   {
     id: 'enemy_chaser',
-    name: 'Зверь-охотник (Бегает за нами!)',
+    name: 'Зверь-охотник',
     category: 'enemies',
     solid: false,
-    desc: 'Замечает героя и яростно бежит за ним!',
-    hint: 'Если подойти близко, он бросается в погоню за игроком!',
+    desc: 'Замечает героя и яростно бежит за ним на удвоенной скорости!',
+    hint: 'Атака: Преследование! При приближении героя срывается в бег. Можно убить прыжком сверху.',
   },
   {
     id: 'enemy_patrol',
-    name: 'Охранник (Своя территория)',
+    name: 'Часовой дозора',
     category: 'enemies',
     solid: false,
-    desc: 'Ходит строго на 3 клетки вокруг своей зоны',
-    hint: 'Охраняет свой пост и не уходит далеко от спавна.',
-  },
-  {
-    id: 'enemy_spiky',
-    name: 'Шипастый жук',
-    category: 'enemies',
-    solid: false,
-    desc: 'Колючий панцирь — сверху прыгать нельзя!',
-    hint: 'Опасный противник. Перепрыгивайте через него!',
-  },
-  {
-    id: 'enemy_slime',
-    name: 'Летучий слайм',
-    category: 'enemies',
-    solid: false,
-    desc: 'Парит в воздухе вверх и вниз над пропастью',
-    hint: 'Воздушная преграда. Можно сбить точным прыжком сверху.',
+    desc: 'Патрулирует строго свои 3–5 клеток вокруг места спавна.',
+    hint: 'Атака: Зональный дозор! Держит позицию и не отходит от поста. Можно убить прыжком сверху.',
   },
   {
     id: 'enemy_jumper',
-    name: 'Прыгучая квака',
+    name: 'Прыгун-засадник',
     category: 'enemies',
     solid: false,
-    desc: 'Неожиданно подпрыгивает в сторону героя',
-    hint: 'Выжидает момент и совершает высокий прыжок!',
+    desc: 'Выжидает момент, приседает и совершает высокие прыжки в сторону героя!',
+    hint: 'Атака: Прыжок сверху! Прыгает на игрока дугой. Можно убить прыжком сверху.',
+  },
+  {
+    id: 'enemy_slime',
+    name: 'Летучий пикировщик',
+    category: 'enemies',
+    solid: false,
+    desc: 'Парит в воздухе над платформой и пикирует волной на героя.',
+    hint: 'Атака: Воздушное пике! Атакует с воздуха. Можно сбить точным прыжком сверху.',
   },
 ];

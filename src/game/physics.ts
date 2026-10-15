@@ -8,6 +8,7 @@ import { sound } from '../audio/soundEngine';
 import {
   ActiveBlockBump,
   ActiveEnemy,
+  EnemyTileId,
   GameStats,
   HeroId,
   LevelData,
@@ -133,27 +134,28 @@ export class PhysicsEngine {
 
   private spawnEnemies() {
     this.enemies = [];
-    const enemyTypes = new Set([
-      'enemy_walker',
+    const enemyTypes = new Set<EnemyTileId>([
       'enemy_chaser',
       'enemy_patrol',
-      'enemy_spiky',
-      'enemy_slime',
       'enemy_jumper',
+      'enemy_slime',
     ]);
 
     this.levelData.items.forEach((item) => {
-      if (enemyTypes.has(item.tileId)) {
-        const tId = item.tileId as any;
+      if (enemyTypes.has(item.tileId as EnemyTileId)) {
+        const tId = item.tileId as EnemyTileId;
         const speed =
-          tId === 'enemy_chaser' ? 1.4 : tId === 'enemy_spiky' ? 1.0 : tId === 'enemy_patrol' ? 1.1 : 1.3;
+          tId === 'enemy_chaser' ? 1.4 : tId === 'enemy_patrol' ? 1.25 : tId === 'enemy_jumper' ? 0 : 1.3;
+
+        // Grounded enemies rest on top of ground block (CELL_SIZE - 32 = 8px offset); flying slime hovers at 4px
+        const spawnY = tId === 'enemy_slime' ? item.y * CELL_SIZE + 4 : item.y * CELL_SIZE + (CELL_SIZE - 32);
 
         this.enemies.push({
           id: item.id,
           tileId: tId,
-          x: item.x * CELL_SIZE,
-          y: item.y * CELL_SIZE,
-          vx: -speed,
+          x: item.x * CELL_SIZE + 4,
+          y: spawnY,
+          vx: tId === 'enemy_jumper' ? 0 : -speed,
           vy: 0,
           width: 32,
           height: 32,
@@ -161,11 +163,14 @@ export class PhysicsEngine {
           isSquashed: false,
           squashTimer: 0,
           animTimer: 0,
-          initialX: item.x * CELL_SIZE,
-          patrolRadius: 3.5 * CELL_SIZE, // 3.5 cells patrol zone
+          initialX: item.x * CELL_SIZE + 4,
+          initialY: spawnY,
+          patrolRadius: 4 * CELL_SIZE, // 4 cells = 160 px patrol boundary
           isChasing: false,
-          jumpCooldown: 2.0 + Math.random(),
+          jumpCooldown: 1.5 + Math.random() * 0.8,
           isGrounded: true,
+          pauseTimer: 0,
+          preparingJump: false,
         });
       }
     });
@@ -279,6 +284,10 @@ export class PhysicsEngine {
     this.player.x += this.player.vx;
     this.resolveHorizontalCollision();
 
+    // Capture vertical falling velocity and position before vertical landing resolution
+    const fallingVy = this.player.vy;
+    const playerPreY = this.player.y;
+
     // Vertical Movement Pass
     this.player.y += this.player.vy;
     this.player.isGrounded = false;
@@ -304,7 +313,7 @@ export class PhysicsEngine {
     this.checkInteractiveOverlaps();
 
     // --- Enemies Update & Collisions ---
-    this.updateEnemies(clampedDt);
+    this.updateEnemies(clampedDt, fallingVy, playerPreY);
 
     // --- Block Bumps & Particles ---
     this.updateBlockBumps(clampedDt);
@@ -498,26 +507,138 @@ export class PhysicsEngine {
     this.rebuildCollisionGrids();
   }
 
-  private updateEnemies(dt: number) {
-    this.enemies.forEach((enemy) => {
-      if (enemy.isSquashed) {
-        enemy.squashTimer -= dt;
-        return;
+  private updateEnemies(dt: number, fallingVy: number = 0, playerPreY: number = this.player.y) {
+    const playerCenterX = this.player.x + this.player.width * 0.5;
+    const playerCenterY = this.player.y + this.player.height * 0.5;
+
+    const deadEnemyIds = new Set<string>();
+
+    for (const enemy of this.enemies) {
+      if (enemy.isSquashed || deadEnemyIds.has(enemy.id)) {
+        deadEnemyIds.add(enemy.id);
+        continue;
       }
 
       enemy.animTimer += dt;
+      const dx = playerCenterX - (enemy.x + enemy.width * 0.5);
+      const dy = playerCenterY - (enemy.y + enemy.height * 0.5);
+      const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // Slime flies up and down
+      // --- 1. ENEMY AI & ATTACK LOGIC (4 distinct attack styles) ---
       if (enemy.tileId === 'enemy_slime') {
-        enemy.y += Math.sin(enemy.animTimer * 4) * 1.5;
+        // --- 4. ЛЕТУЧИЙ ПИКИРОВЩИК (Воздушная атака волной) ---
+        // Парит в воздухе и пикирует волной на героя при приближении
+        const isNear = Math.abs(dx) < 280;
         enemy.x += enemy.vx;
+        enemy.direction = enemy.vx > 0 ? 1 : -1;
+
+        if (isNear) {
+          // Динамичное пике вниз на высоту героя с возвратом вверх
+          enemy.y = enemy.initialY + Math.sin(enemy.animTimer * 4.5) * 32 + 20;
+        } else {
+          // Спокойное парение
+          enemy.y = enemy.initialY + Math.sin(enemy.animTimer * 3) * 12;
+        }
+
+        // Разворот на границе зоны патруля
+        if (enemy.x > enemy.initialX + enemy.patrolRadius && enemy.vx > 0) {
+          enemy.vx = -1.3;
+        } else if (enemy.x < enemy.initialX - enemy.patrolRadius && enemy.vx < 0) {
+          enemy.vx = 1.3;
+        }
+      } else if (enemy.tileId === 'enemy_jumper') {
+        // --- 3. ПРЫГУН-ЗАСАДНИК (Атака прыжками) ---
+        // Сидит на платформе, приседает и совершает высокие дуговые прыжки в сторону героя
+        if (enemy.isGrounded) {
+          enemy.vx *= 0.8; // трение на земле
+          enemy.jumpCooldown -= dt;
+
+          if (enemy.jumpCooldown <= 0.45 && enemy.jumpCooldown > 0) {
+            enemy.preparingJump = true;
+            if (Math.abs(dx) < 380) {
+              enemy.direction = dx > 0 ? 1 : -1;
+            }
+          } else if (enemy.jumpCooldown <= 0) {
+            enemy.preparingJump = false;
+            enemy.isGrounded = false;
+            enemy.vy = -11.2;
+            const jDir = Math.abs(dx) < 380 ? (dx > 0 ? 1 : -1) : enemy.direction;
+            enemy.direction = jDir;
+            enemy.vx = jDir * 2.8;
+            enemy.jumpCooldown = 2.0 + Math.random() * 0.7;
+            this.emitDust(enemy.x + enemy.width * 0.5, enemy.y + enemy.height);
+          }
+        } else {
+          // В полете
+          enemy.vy += 22 * dt;
+        }
+
+        enemy.x += enemy.vx;
+        enemy.y += enemy.vy;
+
+        // Приземление на платформы
+        const enemyBottomY = enemy.y + enemy.height;
+        const footCol = Math.floor((enemy.x + enemy.width * 0.5) / CELL_SIZE);
+        const footRow = Math.floor(enemyBottomY / CELL_SIZE);
+        const landingItem = this.solidGrid.get(`${footCol},${footRow}`);
+
+        if (landingItem && enemy.vy > 0 && enemyBottomY - enemy.vy <= footRow * CELL_SIZE + 12) {
+          enemy.y = footRow * CELL_SIZE - enemy.height;
+          enemy.vy = 0;
+          enemy.isGrounded = true;
+        }
+      } else if (enemy.tileId === 'enemy_patrol') {
+        // --- 2. ЧАСОВОЙ (Патруль строго по своим 3–5 клеткам) ---
+        const minX = enemy.initialX - enemy.patrolRadius;
+        const maxX = enemy.initialX + enemy.patrolRadius;
+
+        if (enemy.pauseTimer && enemy.pauseTimer > 0) {
+          enemy.pauseTimer -= dt;
+          enemy.vx = 0;
+        } else {
+          enemy.vx = enemy.direction * 1.25;
+          enemy.x += enemy.vx;
+
+          const frontFootX = enemy.vx > 0 ? enemy.x + enemy.width + 4 : enemy.x - 4;
+          const frontCol = Math.floor(frontFootX / CELL_SIZE);
+          const enemyRow = Math.floor((enemy.y + 16) / CELL_SIZE);
+          const belowRow = Math.floor((enemy.y + enemy.height + 4) / CELL_SIZE);
+
+          const hitBoundary = (enemy.direction > 0 && enemy.x >= maxX) || (enemy.direction < 0 && enemy.x <= minX);
+          const hitWall = !!this.solidGrid.get(`${frontCol},${enemyRow}`);
+          const gapAhead = !this.solidGrid.get(`${frontCol},${belowRow}`);
+
+          if (hitBoundary || hitWall || gapAhead) {
+            enemy.pauseTimer = 0.4; // секундная пауза дозора перед разворотом
+            enemy.direction = enemy.direction > 0 ? -1 : 1;
+            enemy.vx = 0;
+          }
+        }
       } else {
-        // Walker & Spiky: patrol along platform
+        // --- 1. ЗВЕРЬ-ОХОТНИК (enemy_chaser) ---
+        // Охотник замечает героя и бежит за ним на удвоенной скорости!
+        if (dist < 340 && Math.abs(dy) < 140) {
+          enemy.isChasing = true;
+          enemy.direction = dx > 0 ? 1 : -1;
+          enemy.vx = enemy.direction * 2.8; // стремительная погоня!
+
+          // Небольшой подскок если перед охотником ступенька в 1 блок
+          const frontFootX = enemy.vx > 0 ? enemy.x + enemy.width + 4 : enemy.x - 4;
+          const frontCol = Math.floor(frontFootX / CELL_SIZE);
+          const enemyRow = Math.floor((enemy.y + 16) / CELL_SIZE);
+          if (this.solidGrid.get(`${frontCol},${enemyRow}`) && enemy.isGrounded) {
+            enemy.vy = -7.0;
+            enemy.isGrounded = false;
+          }
+        } else {
+          enemy.isChasing = false;
+          enemy.vx = enemy.direction * 1.3;
+        }
+
         enemy.x += enemy.vx;
 
-        // Check platform edge or wall bounce
-        const frontFootX =
-          enemy.vx > 0 ? enemy.x + enemy.width + 4 : enemy.x - 4;
+        // Проверка стен и края платформы
+        const frontFootX = enemy.vx > 0 ? enemy.x + enemy.width + 4 : enemy.x - 4;
         const frontCol = Math.floor(frontFootX / CELL_SIZE);
         const enemyRow = Math.floor((enemy.y + 16) / CELL_SIZE);
         const belowRow = Math.floor((enemy.y + enemy.height + 4) / CELL_SIZE);
@@ -525,38 +646,92 @@ export class PhysicsEngine {
         const wallItem = this.solidGrid.get(`${frontCol},${enemyRow}`);
         const groundItem = this.solidGrid.get(`${frontCol},${belowRow}`);
 
-        // Turn around if wall hit or ledge gap
-        if (wallItem || !groundItem) {
-          enemy.vx *= -1;
-          enemy.direction = enemy.vx > 0 ? 1 : -1;
+        // Разворот у стены или у обрыва (если не в яростной погоне)
+        if (wallItem || (!groundItem && !enemy.isChasing)) {
+          enemy.direction = enemy.direction > 0 ? -1 : 1;
+          enemy.vx = enemy.direction * Math.abs(enemy.vx);
         }
       }
 
-      // Enemy vs Player collision
+      // --- 2. СТОЛКНОВЕНИЕ С ИГРОКОМ ---
       if (this.isAABBIntersect(this.player, { x: enemy.x, y: enemy.y, w: enemy.width, h: enemy.height })) {
-        // Check if player is stomping on enemy from above
-        const isStomp =
-          this.player.vy > 0 &&
-          this.player.y + this.player.height - this.player.vy <= enemy.y + 16;
+        const playerBottom = this.player.y + this.player.height;
+        const playerPreBottom = playerPreY + this.player.height;
+        const enemyTop = enemy.y;
+        const enemyMidY = enemy.y + enemy.height * 0.5;
 
-        if (isStomp && enemy.tileId !== 'enemy_spiky') {
-          // Squash enemy!
-          enemy.isSquashed = true;
-          enemy.squashTimer = 0.4;
-          this.player.vy = -10.5; // bounce up
+        // Надежное определение прыжка сверху ("убить их можно если на них прыгнуть"):
+        // - Игрок опускался вниз (fallingVy > 0 или в воздухе или vy >= 0)
+        // - И находился выше центра врага / падал сверху
+        const isDescending = fallingVy > 0 || this.player.isInAir || this.player.vy >= 0;
+        const cameFromAbove =
+          playerPreBottom <= enemyTop + 20 ||
+          this.player.y + this.player.height * 0.7 <= enemy.y + enemy.height ||
+          playerBottom <= enemyMidY + 20;
+
+        const isStomp = isDescending && cameFromAbove;
+
+        if (isStomp) {
+          // ВРАГ МГНОВЕННО УНИЧТОЖАЕТСЯ И ИСЧЕЗАЕТ!
+          deadEnemyIds.add(enemy.id);
+
+          // Высокий упругий отскок героя вверх
+          this.player.vy = -12.5;
+          this.player.isGrounded = false;
+          this.player.isInAir = true;
+
           sound.playStomp();
           this.stats.enemiesDefeated++;
-          this.stats.score += 200;
+          this.stats.score += 250;
+
+          // Яркие эффекты победы
           this.emitDust(enemy.x + enemy.width * 0.5, enemy.y + enemy.height * 0.5);
-        } else if (!this.player.isHurt) {
-          // Player hurt
-          this.loseLife('Столкновение с врагом!');
+          this.emitSparkles(enemy.x + enemy.width * 0.5, enemy.y + enemy.height * 0.5, '#f59e0b');
+          this.emitCoinPop(enemy.x + enemy.width * 0.5, enemy.y);
+          continue;
+        } else if (!this.player.isHurt && this.player.hurtTimer <= 0) {
+          // Враг задел игрока сбоку или снизу: минус жизнь, но игрок двигается далее!
+          this.takeDamageFromEnemy(enemy);
         }
       }
-    });
+    }
 
-    // Filter out expired squashed enemies
-    this.enemies = this.enemies.filter((e) => !e.isSquashed || e.squashTimer > 0);
+    // Удаление уничтоженных врагов мгновенно из всех списков
+    if (deadEnemyIds.size > 0) {
+      this.enemies = this.enemies.filter((e) => !deadEnemyIds.has(e.id));
+      this.levelData.items = this.levelData.items.filter((it) => !deadEnemyIds.has(it.id));
+      this.rebuildCollisionGrids();
+    }
+  }
+
+  /**
+   * Получение урона от врага: минус жизнь, кратковременная неуязвимость и отскок,
+   * но игрок продолжает движение вперед (без респауна на чекпоинт!)
+   */
+  public takeDamageFromEnemy(enemy: ActiveEnemy) {
+    if (this.player.isHurt || this.player.hurtTimer > 0) return;
+
+    sound.playHurt();
+    this.stats.lives--;
+
+    if (this.stats.lives <= 0) {
+      this.isGameOver = true;
+      sound.playGameOver();
+      return;
+    }
+
+    // Игрок НЕ возвращается на чекпоинт, а двигается далее
+    this.player.isHurt = true;
+    this.player.hurtTimer = 1.8;
+
+    // Легкий отскок от врага в сторону движения
+    const knockDir = this.player.x < enemy.x ? -1 : 1;
+    this.player.vx = knockDir * 4.0;
+    this.player.vy = -4.5;
+    this.player.isGrounded = false;
+    this.player.isInAir = true;
+
+    this.emitStars(this.player.x + this.player.width * 0.5, this.player.y + this.player.height * 0.5);
   }
 
   public loseLife(_reason: string) {
@@ -568,7 +743,7 @@ export class PhysicsEngine {
       return;
     }
 
-    // Respawn at checkpoint
+    // Respawn at checkpoint (только при падении в пропасть или тайм-ауте)
     this.player.x = this.player.checkpointX;
     this.player.y = this.player.checkpointY;
     this.player.vx = 0;

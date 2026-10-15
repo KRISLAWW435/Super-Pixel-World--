@@ -134,13 +134,26 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
       // 1. Draw Parallax Panoramic Background
       if (bgImageRef.current && bgImageRef.current.complete) {
-        // Subtle parallax movement
-        const parallaxFactor = 0.25;
-        const bgWidth = height * (16 / 9);
-        const bgOffsetX = -(cameraX * parallaxFactor) % bgWidth;
+        const naturalW = bgImageRef.current.naturalWidth || 1376;
+        const naturalH = bgImageRef.current.naturalHeight || 768;
+        const imgAspect = naturalW / naturalH;
 
-        for (let x = bgOffsetX - bgWidth; x < width + bgWidth; x += bgWidth) {
-          ctx.drawImage(bgImageRef.current, x, 0, bgWidth, height);
+        if (imgAspect > 2.5) {
+          // Ultra-wide single panorama: span across the full level progression without repeating
+          const maxCam = Math.max(1, totalWorldPx - width);
+          const progress = Math.max(0, Math.min(1, cameraX / maxCam));
+          const bgW = Math.max(width, height * imgAspect);
+          const bgX = -progress * Math.max(0, bgW - width);
+          ctx.drawImage(bgImageRef.current, bgX, 0, bgW, height);
+        } else {
+          // Standard tileable background with subtle parallax repeat
+          const parallaxFactor = 0.25;
+          const bgWidth = height * imgAspect;
+          const bgOffsetX = -(cameraX * parallaxFactor) % bgWidth;
+
+          for (let x = bgOffsetX - bgWidth; x < width + bgWidth; x += bgWidth) {
+            ctx.drawImage(bgImageRef.current, x, 0, bgWidth, height);
+          }
         }
       } else {
         // Fallback sky gradient
@@ -335,7 +348,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         mCtx.fillStyle = '#facc15';
       } else if (it.tileId === 'star') {
         mCtx.fillStyle = '#fbbf24';
-      } else if (it.tileId === 'spikes' || it.tileId === 'enemy_walker') {
+      } else if (it.tileId === 'spikes' || it.tileId.startsWith('enemy_')) {
         mCtx.fillStyle = '#ef4444';
       } else if (it.tileId === 'goal') {
         mCtx.fillStyle = '#3b82f6';

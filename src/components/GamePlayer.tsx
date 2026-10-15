@@ -212,12 +212,26 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
       // 1. Panoramic Parallax Background
       if (bgImageRef.current && bgImageRef.current.complete) {
-        const parallaxFactor = 0.3;
-        const bgW = height * (16 / 9);
-        const bgOffsetX = -(camX * parallaxFactor) % bgW;
+        const naturalW = bgImageRef.current.naturalWidth || 1376;
+        const naturalH = bgImageRef.current.naturalHeight || 768;
+        const imgAspect = naturalW / naturalH;
 
-        for (let x = bgOffsetX - bgW; x < width + bgW; x += bgW) {
-          ctx.drawImage(bgImageRef.current, x, 0, bgW, height);
+        if (imgAspect > 2.5) {
+          // Ultra-wide single panorama: smoothly pan across full level length without seams or repetition
+          const totalLevelPx = (levelData.width || 160) * CELL_SIZE;
+          const maxCam = Math.max(1, totalLevelPx - width);
+          const progress = Math.max(0, Math.min(1, camX / maxCam));
+          const bgW = Math.max(width, height * imgAspect);
+          const bgX = -progress * Math.max(0, bgW - width);
+          ctx.drawImage(bgImageRef.current, bgX, 0, bgW, height);
+        } else {
+          const parallaxFactor = 0.3;
+          const bgW = height * imgAspect;
+          const bgOffsetX = -(camX * parallaxFactor) % bgW;
+
+          for (let x = bgOffsetX - bgW; x < width + bgW; x += bgW) {
+            ctx.drawImage(bgImageRef.current, x, 0, bgW, height);
+          }
         }
       } else {
         const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
@@ -245,6 +259,11 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
         engine.levelData.items.forEach((item) => {
           if (item.x >= startCol && item.x <= endCol) {
+            // Do not draw dynamic enemies or spawn marker as static blocks in game
+            if (item.tileId.startsWith('enemy_') || item.tileId === 'player_spawn') {
+              return;
+            }
+
             // Check if bumping
             const bump = engine.blockBumps.find(
               (b) => b.x === item.x * CELL_SIZE && b.y === item.y * CELL_SIZE
@@ -269,20 +288,57 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
         // 3. Render Enemies
         engine.enemies.forEach((enemy) => {
+          ctx.save();
           if (enemy.isSquashed) {
             // Squashed flat pose
-            ctx.save();
-            ctx.translate(enemy.x, enemy.y + CELL_SIZE * 0.5);
-            ctx.scale(1.2, 0.3);
-            SpriteRenderer.drawTile(ctx, enemy.tileId, 0, 0, CELL_SIZE, {
+            ctx.translate(enemy.x + CELL_SIZE * 0.5, enemy.y + CELL_SIZE * 0.7);
+            ctx.scale(1.3, 0.25);
+            SpriteRenderer.drawTile(ctx, enemy.tileId, -CELL_SIZE * 0.5, -CELL_SIZE * 0.5, CELL_SIZE, {
               animTime: enemy.animTimer,
             });
-            ctx.restore();
           } else {
-            SpriteRenderer.drawTile(ctx, enemy.tileId, enemy.x, enemy.y, CELL_SIZE, {
+            ctx.translate(enemy.x + CELL_SIZE * 0.5, enemy.y + CELL_SIZE * 0.5);
+
+            // Flip horizontally according to movement direction
+            const flip = enemy.direction > 0 ? -1 : 1;
+            ctx.scale(flip, 1);
+
+            // Jumper squish while charging leap
+            if (enemy.preparingJump) {
+              ctx.scale(1.15, 0.85);
+            }
+
+            SpriteRenderer.drawTile(ctx, enemy.tileId, -CELL_SIZE * 0.5, -CELL_SIZE * 0.5, CELL_SIZE, {
               animTime: enemy.animTimer,
             });
+
+            // Status indicator icons above enemy (unflipped)
+            ctx.scale(flip, 1); // restore orientation for UI indicator
+            if (enemy.isChasing) {
+              // Red exclamation alert above Chaser
+              ctx.fillStyle = '#ef4444';
+              ctx.beginPath();
+              ctx.arc(0, -CELL_SIZE * 0.55, 6, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 9px Fredoka, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText('!', 0, -CELL_SIZE * 0.55);
+            } else if (enemy.tileId === 'enemy_patrol' && enemy.pauseTimer && enemy.pauseTimer > 0) {
+              // Blue patrol eye/question badge
+              ctx.fillStyle = '#3b82f6';
+              ctx.beginPath();
+              ctx.arc(0, -CELL_SIZE * 0.55, 5, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 8px Fredoka, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText('•', 0, -CELL_SIZE * 0.55);
+            }
           }
+          ctx.restore();
         });
 
         // 4. Render Particles

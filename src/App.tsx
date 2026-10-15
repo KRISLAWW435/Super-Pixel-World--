@@ -13,26 +13,43 @@ import { TutorialModal } from './components/TutorialModal';
 import { createDefaultLevel } from './game/presetLevels';
 import { HeroId, LevelData, LevelItem, ThemeId, TileId, ToolMode } from './types/game';
 
-const LOCAL_STORAGE_KEY = 'super_pixel_world_level_v1';
+const LOCAL_STORAGE_KEY = 'super_pixel_world_level_v5';
 
 export default function App() {
   // Mode: 'editor' or 'playing'
   const [gameMode, setGameMode] = useState<'editor' | 'playing'>('editor');
 
-  // Level Data
+  // Level Data: strictly empty of pre-placed enemies, coins, stars, and crystals
   const [levelData, setLevelData] = useState<LevelData>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+          parsed.items = parsed.items.filter(
+            (it: LevelItem) =>
+              !it.tileId.startsWith('enemy_') &&
+              (it.tileId as string) !== 'enemy_walker' &&
+              it.tileId !== 'coin' &&
+              it.tileId !== 'star' &&
+              it.tileId !== 'crystal'
+          );
           return parsed;
         }
       }
     } catch {
       // Fallback to default
     }
-    return createDefaultLevel();
+    const def = createDefaultLevel();
+    def.items = def.items.filter(
+      (it: LevelItem) =>
+        !it.tileId.startsWith('enemy_') &&
+        (it.tileId as string) !== 'enemy_walker' &&
+        it.tileId !== 'coin' &&
+        it.tileId !== 'star' &&
+        it.tileId !== 'crystal'
+    );
+    return def;
   });
 
   // Editor Tools & Selections

@@ -239,6 +239,32 @@ class SoundEngine {
     osc.stop(t + 0.3);
   }
 
+  public playGameOver() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const notes = [220, 207.65, 196, 185]; // Sad descending minor chords
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const delay = t + idx * 0.14;
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, delay);
+
+      gain.gain.setValueAtTime(0.18, delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, delay + 0.3);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(delay);
+      osc.stop(delay + 0.35);
+    });
+  }
+
   public playCheckpoint() {
     if (this.isMuted) return;
     this.initContext();

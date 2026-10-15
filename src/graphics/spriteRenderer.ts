@@ -87,17 +87,14 @@ export class SpriteRenderer {
       case 'goal':
         this.drawGoalGate(ctx, size, animTime);
         break;
-      case 'enemy_walker':
-        this.drawEnemyWalker(ctx, size, animTime);
-        break;
       case 'enemy_chaser':
         this.drawEnemyChaser(ctx, size, animTime);
         break;
       case 'enemy_patrol':
         this.drawEnemyPatrol(ctx, size, animTime);
         break;
-      case 'enemy_spiky':
-        this.drawEnemySpiky(ctx, size, animTime);
+      case 'enemy_jumper':
+        this.drawEnemyJumper(ctx, size, animTime);
         break;
       case 'enemy_slime':
         this.drawEnemySlime(ctx, size, animTime);
@@ -708,99 +705,7 @@ export class SpriteRenderer {
     ctx.fill();
   }
 
-  // --- Enemies ---
-
-  private static drawEnemyWalker(ctx: CanvasRenderingContext2D, s: number, animTime: number) {
-    const walkBob = Math.sin(animTime * 10) * 1.5;
-    const footSwing = Math.cos(animTime * 10) * 3;
-
-    ctx.translate(s * 0.5, s * 0.5 + walkBob);
-
-    // Feet
-    ctx.fillStyle = '#451a03';
-    ctx.beginPath();
-    ctx.ellipse(-s * 0.2 + footSwing, s * 0.38, 4, 3, 0, 0, Math.PI * 2);
-    ctx.ellipse(s * 0.2 - footSwing, s * 0.38, 4, 3, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Mushroom cap body (Brown Goomba style)
-    const bodyGrad = ctx.createLinearGradient(0, -s * 0.4, 0, s * 0.3);
-    bodyGrad.addColorStop(0, '#b45309');
-    bodyGrad.addColorStop(1, '#78350f');
-    ctx.fillStyle = bodyGrad;
-
-    ctx.beginPath();
-    ctx.roundRect(-s * 0.38, -s * 0.38, s * 0.76, s * 0.7, [12, 12, 6, 6]);
-    ctx.fill();
-
-    // Stern big cartoon eyes
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.ellipse(-s * 0.15, -s * 0.05, 3.5, 5, 0, 0, Math.PI * 2);
-    ctx.ellipse(s * 0.15, -s * 0.05, 3.5, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Pupils
-    ctx.fillStyle = '#0f172a';
-    ctx.beginPath();
-    ctx.arc(-s * 0.13, -s * 0.05, 2, 0, Math.PI * 2);
-    ctx.arc(s * 0.13, -s * 0.05, 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Angry brow
-    ctx.strokeStyle = '#451a03';
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(-s * 0.24, -s * 0.18);
-    ctx.lineTo(-s * 0.06, -s * 0.12);
-    ctx.moveTo(s * 0.24, -s * 0.18);
-    ctx.lineTo(s * 0.06, -s * 0.12);
-    ctx.stroke();
-  }
-
-  private static drawEnemySpiky(ctx: CanvasRenderingContext2D, s: number, animTime: number) {
-    const walkBob = Math.sin(animTime * 8) * 1;
-    ctx.translate(s * 0.5, s * 0.5 + walkBob);
-
-    // Spiky red shell
-    ctx.fillStyle = '#dc2626';
-    ctx.beginPath();
-    ctx.arc(0, 0, s * 0.36, Math.PI, 0, false);
-    ctx.lineTo(s * 0.36, s * 0.25);
-    ctx.lineTo(-s * 0.36, s * 0.25);
-    ctx.closePath();
-    ctx.fill();
-
-    // Spikes on top!
-    ctx.fillStyle = '#f8fafc';
-    ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 1;
-
-    const spikes = [-s * 0.25, 0, s * 0.25];
-    spikes.forEach((sx) => {
-      ctx.beginPath();
-      ctx.moveTo(sx - 3, -s * 0.2);
-      ctx.lineTo(sx, -s * 0.45);
-      ctx.lineTo(sx + 3, -s * 0.2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    });
-
-    // Yellow snout & feet
-    ctx.fillStyle = '#f59e0b';
-    ctx.beginPath();
-    ctx.arc(-s * 0.28, s * 0.1, 5, 0, Math.PI * 2);
-    ctx.ellipse(-s * 0.2, s * 0.32, 4, 3, 0, 0, Math.PI * 2);
-    ctx.ellipse(s * 0.2, s * 0.32, 4, 3, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Eye
-    ctx.fillStyle = '#0f172a';
-    ctx.beginPath();
-    ctx.arc(-s * 0.28, s * 0.08, 1.8, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  // --- Enemies (4 distinct types) ---
 
   private static drawEnemySlime(ctx: CanvasRenderingContext2D, s: number, animTime: number) {
     const floatY = Math.sin(animTime * 5) * 4;

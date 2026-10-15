@@ -74,6 +74,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
 
   const platformItems = PALETTE_ITEMS.filter((i) => i.category === 'platforms');
   const objectItems = PALETTE_ITEMS.filter((i) => i.category === 'objects');
+  const enemyItems = PALETTE_ITEMS.filter((i) => i.category === 'enemies');
 
   return (
     <aside className="w-full md:w-80 lg:w-[22%] h-full bg-slate-900 border-l border-slate-800 flex flex-col justify-between shrink-0 select-none shadow-xl z-20 overflow-hidden">
@@ -111,36 +112,49 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
       </div>
 
       {/* Tabs */}
-      <div className="grid grid-cols-4 bg-slate-950 border-b border-slate-800 p-1 gap-1">
+      <div className="grid grid-cols-5 bg-slate-950 border-b border-slate-800 p-1 gap-1">
         <button
           onClick={() => {
             setActiveTab('platforms');
             if (activeTool === 'erase') onSelectTool('brush');
           }}
-          className={`py-2 px-1 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
+          className={`py-2 px-0.5 text-[11px] font-bold rounded-lg transition-all text-center cursor-pointer ${
             activeTab === 'platforms'
               ? 'bg-amber-500 text-slate-950 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
           }`}
         >
-          Платформы
+          Блоки
         </button>
         <button
           onClick={() => {
             setActiveTab('objects');
             if (activeTool === 'erase') onSelectTool('brush');
           }}
-          className={`py-2 px-1 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
+          className={`py-2 px-0.5 text-[11px] font-bold rounded-lg transition-all text-center cursor-pointer ${
             activeTab === 'objects'
               ? 'bg-amber-500 text-slate-950 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
           }`}
         >
-          Объекты
+          Бонусы
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('enemies');
+            if (activeTool === 'erase') onSelectTool('brush');
+          }}
+          className={`py-2 px-0.5 text-[11px] font-bold rounded-lg transition-all text-center cursor-pointer ${
+            activeTab === 'enemies'
+              ? 'bg-rose-500 text-white shadow-sm'
+              : 'text-rose-400 hover:text-rose-200 hover:bg-slate-800/60'
+          }`}
+        >
+          Враги
         </button>
         <button
           onClick={() => setActiveTab('backgrounds')}
-          className={`py-2 px-1 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
+          className={`py-2 px-0.5 text-[11px] font-bold rounded-lg transition-all text-center cursor-pointer ${
             activeTab === 'backgrounds'
               ? 'bg-amber-500 text-slate-950 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -150,7 +164,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         </button>
         <button
           onClick={() => setActiveTab('heroes')}
-          className={`py-2 px-1 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
+          className={`py-2 px-0.5 text-[11px] font-bold rounded-lg transition-all text-center cursor-pointer ${
             activeTab === 'heroes'
               ? 'bg-amber-500 text-slate-950 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -246,7 +260,78 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           </div>
         )}
 
-        {/* TAB 3: BACKGROUNDS */}
+        {/* TAB 3: ENEMIES */}
+        {activeTab === 'enemies' && (
+          <div className="space-y-3">
+            <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-2.5 text-[11px] text-rose-200 leading-snug">
+              <span className="font-bold text-rose-300">💡 Боевая система:</span>
+              <p className="mt-0.5 text-slate-300">
+                Всех врагов можно победить <b>прыжком сверху</b>! Если враг заденет персонажа сбоку, отнимается 1 жизнь, но герой продолжает движение.
+              </p>
+            </div>
+
+            <div className="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
+              <span>Кликните для выбора врага:</span>
+              <span className="text-[10px] text-rose-400 font-bold">4 разных типа атаки</span>
+            </div>
+
+            <div className="space-y-2">
+              {enemyItems.map((item) => {
+                const isSelected = activeTool !== 'erase' && selectedTile === item.id;
+                const attackBadge =
+                  item.id === 'enemy_chaser'
+                    ? { label: 'Погоня', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40' }
+                    : item.id === 'enemy_patrol'
+                    ? { label: 'Зона 3–5 клеток', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40' }
+                    : item.id === 'enemy_jumper'
+                    ? { label: 'Атака прыжком', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
+                    : item.id === 'enemy_slime'
+                    ? { label: 'Воздушное пике', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' }
+                    : { label: 'Патруль', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' };
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      onSelectTile(item.id);
+                      onSelectTool('brush');
+                      sound.playPlaceTile();
+                    }}
+                    title={item.hint}
+                    className={`w-full flex items-start gap-3 p-2.5 rounded-xl text-left border transition-all cursor-pointer group ${
+                      isSelected
+                        ? 'bg-rose-500/20 border-rose-400 ring-2 ring-rose-400/40 text-white'
+                        : 'bg-slate-800/70 hover:bg-slate-800 border-slate-700/70 text-slate-200 hover:border-rose-400/50'
+                    }`}
+                  >
+                    <div className="shrink-0 w-11 h-11 rounded-xl bg-slate-950/80 flex items-center justify-center border border-slate-700/80 shadow-inner group-hover:scale-105 transition-transform">
+                      <PaletteTilePreview tileId={item.id} size={36} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-bold leading-tight truncate text-white">
+                          {item.name}
+                        </span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${attackBadge.color} shrink-0`}>
+                          {attackBadge.label}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-300 mt-0.5 leading-snug line-clamp-2">
+                        {item.desc}
+                      </p>
+                      <div className="text-[9px] text-slate-400 mt-1 flex items-center gap-1">
+                        <span className="text-emerald-400">⚔️ Удар сверху:</span>
+                        <span>уничтожение</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: BACKGROUNDS */}
         {activeTab === 'backgrounds' && (
           <div className="space-y-2.5">
             <div className="text-[11px] font-medium text-slate-400">

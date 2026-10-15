@@ -31,13 +31,11 @@ export type TileId =
   | 'spikes'
   | 'checkpoint'
   | 'goal'
-  // Enemies
-  | 'enemy_walker'
+  // Enemies (4 distinct attack types)
   | 'enemy_chaser'
   | 'enemy_patrol'
-  | 'enemy_spiky'
-  | 'enemy_slime'
   | 'enemy_jumper'
+  | 'enemy_slime'
   // Markers
   | 'player_spawn';
 
@@ -99,12 +97,10 @@ export interface Particle {
 }
 
 export type EnemyTileId =
-  | 'enemy_walker'
   | 'enemy_chaser'
   | 'enemy_patrol'
-  | 'enemy_spiky'
-  | 'enemy_slime'
-  | 'enemy_jumper';
+  | 'enemy_jumper'
+  | 'enemy_slime';
 
 export interface ActiveEnemy {
   id: string;
@@ -120,10 +116,13 @@ export interface ActiveEnemy {
   squashTimer: number;
   animTimer: number;
   initialX: number;
-  patrolRadius: number; // e.g. 120px for 3 cells
+  initialY: number;
+  patrolRadius: number; // e.g. 160px for 4 cells
   isChasing: boolean;
   jumpCooldown: number;
   isGrounded?: boolean;
+  pauseTimer?: number;
+  preparingJump?: boolean;
 }
 
 export interface ActiveBlockBump {
