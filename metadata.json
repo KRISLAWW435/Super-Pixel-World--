@@ -1,0 +1,6 @@
+{
+  "name": "SUPER PIXEL WORLD — Конструктор Уровней",
+  "description": "Яркий 2D-платформер с удобным визуальным редактором уровней, плавной физикой, четырьмя красочными мирами и настраиваемыми героями.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
