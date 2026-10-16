@@ -292,3 +292,49 @@ export const PALETTE_ITEMS: PaletteItemDef[] = [
     hint: 'Атака: Воздушное пике! Атакует с воздуха. Можно сбить точным прыжком сверху.',
   },
 ];
+
+export const GROUND_ENEMY_IDS: TileId[] = ['enemy_chaser', 'enemy_patrol', 'enemy_jumper'];
+export const FLYING_ENEMY_IDS: TileId[] = ['enemy_slime'];
+
+export const SOLID_TILE_IDS: Set<TileId> = new Set(
+  PALETTE_ITEMS.filter((p) => p.solid).map((p) => p.id)
+);
+
+export function isGroundEnemy(tileId: string): boolean {
+  return (
+    tileId === 'enemy_chaser' ||
+    tileId === 'enemy_patrol' ||
+    tileId === 'enemy_jumper' ||
+    tileId === 'enemy_hunter' ||
+    tileId === 'enemy_guard'
+  );
+}
+
+export function isFlyingEnemy(tileId: string): boolean {
+  return tileId === 'enemy_slime' || tileId === 'enemy_flyer';
+}
+
+/**
+ * Scans down from startRow in a column to find the first solid block.
+ * Returns the row of the ground block, or null if no solid block is beneath.
+ */
+export function findGroundRowBelow(
+  items: { x: number; y: number; tileId: TileId }[],
+  col: number,
+  startRow: number,
+  maxRows: number = GRID_ROWS
+): number | null {
+  const solidRows = new Set<number>();
+  items.forEach((it) => {
+    if (it.x === col && SOLID_TILE_IDS.has(it.tileId)) {
+      solidRows.add(it.y);
+    }
+  });
+
+  for (let r = Math.max(0, startRow); r < maxRows; r++) {
+    if (solidRows.has(r)) {
+      return r;
+    }
+  }
+  return null;
+}

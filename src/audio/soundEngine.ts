@@ -342,6 +342,40 @@ class SoundEngine {
     });
   }
 
+  // Joyful ringing "Дзынь! Успех!" chime for educational mission completion
+  public playMissionComplete() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const notes = [
+      { f: 783.99, delay: 0.0 },   // G5
+      { f: 1046.50, delay: 0.08 }, // C6
+      { f: 1318.51, delay: 0.16 }, // E6
+      { f: 1567.98, delay: 0.24 }, // G6
+    ];
+
+    notes.forEach(({ f, delay }) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const startT = t + delay;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, startT);
+
+      const vol = 0.22 * this.masterVolume;
+      gain.gain.setValueAtTime(vol, startT);
+      gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.45);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(startT);
+      osc.stop(startT + 0.48);
+    });
+  }
+
   public playVictory() {
     if (this.isMuted) return;
     this.initContext();

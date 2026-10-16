@@ -129,27 +129,68 @@ export default function App() {
     sound.playErase();
   };
 
-  // Keyboard Shortcuts (Ctrl+Z, Ctrl+Y) in editor
+  // Stage 2: Global Editor Keyboard Shortcuts (B, R, E, Ctrl+S, Enter/P, Ctrl+Z/Y)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (screenMode !== 'editor') return;
 
-      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
+      const target = e.target as HTMLElement;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+
+      // Ctrl+S / Cmd+S: Save Game (prevent default browser save page)
+      if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyS' || e.key === 's' || e.key === 'ы')) {
+        e.preventDefault();
+        setIsSaveModalOpen(true);
+        return;
+      }
+
+      // Undo / Redo
+      if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyZ' || e.key === 'z' || e.key === 'я')) {
         e.preventDefault();
         if (e.shiftKey) {
           handleRedo();
         } else {
           handleUndo();
         }
-      } else if ((e.ctrlKey || e.metaKey) && e.code === 'KeyY') {
+        return;
+      } else if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyY' || e.key === 'y' || e.key === 'н')) {
         e.preventDefault();
         handleRedo();
+        return;
+      }
+
+      // Do not trigger single-key tool hotkeys while typing in input fields or modals
+      if (isInput || isSaveModalOpen || isLoadModalOpen || isTutorialOpen) return;
+
+      // B -> Freehand Brush
+      if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setActiveTool('brush');
+        sound.playSelect();
+      }
+      // R -> Rectangle / Area
+      else if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setActiveTool('line');
+        sound.playSelect();
+      }
+      // E -> Eraser
+      else if (e.code === 'KeyE' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setActiveTool('erase');
+        sound.playErase();
+      }
+      // Enter or P -> Playtest
+      else if ((e.code === 'Enter' || e.code === 'KeyP') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        sound.playCoin();
+        handleStartPlay();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  });
+  }, [screenMode, historyIndex, history, isSaveModalOpen, isLoadModalOpen, isTutorialOpen]);
 
   // Fullscreen Toggle
   const handleToggleFullscreen = () => {

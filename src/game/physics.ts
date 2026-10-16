@@ -3,7 +3,7 @@
  * Robust sub-pixel continuous collision, coyote time, jump buffering, and hazard mechanics.
  */
 
-import { CELL_SIZE, GRID_ROWS, HEROES, PALETTE_ITEMS } from './constants';
+import { CELL_SIZE, GRID_ROWS, HEROES, PALETTE_ITEMS, findGroundRowBelow, isGroundEnemy } from './constants';
 import { sound } from '../audio/soundEngine';
 import {
   ActiveBlockBump,
@@ -147,8 +147,16 @@ export class PhysicsEngine {
         const speed =
           tId === 'enemy_chaser' ? 1.4 : tId === 'enemy_patrol' ? 1.25 : tId === 'enemy_jumper' ? 0 : 1.3;
 
-        // Grounded enemies rest on top of ground block (CELL_SIZE - 32 = 8px offset); flying slime hovers at 4px
-        const spawnY = tId === 'enemy_slime' ? item.y * CELL_SIZE + 4 : item.y * CELL_SIZE + (CELL_SIZE - 32);
+        // Calculate proper spawn position: flying slime hovers at 4px, ground enemies stand precisely on solid ground
+        let spawnY = item.y * CELL_SIZE + (CELL_SIZE - 32);
+        if (tId === 'enemy_slime') {
+          spawnY = item.y * CELL_SIZE + 4;
+        } else if (isGroundEnemy(tId)) {
+          const groundRow = findGroundRowBelow(this.levelData.items, item.x, item.y);
+          if (groundRow !== null && groundRow > 0) {
+            spawnY = (groundRow - 1) * CELL_SIZE + (CELL_SIZE - 32);
+          }
+        }
 
         this.enemies.push({
           id: item.id,
@@ -553,6 +561,15 @@ export class PhysicsEngine {
           enemy.vx *= 0.8; // трение на земле
           enemy.jumpCooldown -= dt;
 
+          // Проверяем, есть ли по-прежнему твердая опора под ногами
+          const footRow = Math.floor((enemy.y + enemy.height + 2) / CELL_SIZE);
+          const leftFootCol = Math.floor((enemy.x + 4) / CELL_SIZE);
+          const rightFootCol = Math.floor((enemy.x + enemy.width - 4) / CELL_SIZE);
+          const hasGround = this.solidGrid.get(`${leftFootCol},${footRow}`) || this.solidGrid.get(`${rightFootCol},${footRow}`);
+          if (!hasGround) {
+            enemy.isGrounded = false;
+          }
+
           if (enemy.jumpCooldown <= 0.45 && enemy.jumpCooldown > 0) {
             enemy.preparingJump = true;
             if (Math.abs(dx) < 380) {
@@ -569,23 +586,74 @@ export class PhysicsEngine {
             this.emitDust(enemy.x + enemy.width * 0.5, enemy.y + enemy.height);
           }
         } else {
-          // В полете
-          enemy.vy += 22 * dt;
-        }
+          // В полете: гравитация
+          enemy.vy += 24.0 * dt;
 
-        enemy.x += enemy.vx;
-        enemy.y += enemy.vy;
+          // 1. Горизонтальное движение и проверка столкновения со стенами
+          enemy.x += enemy.vx;
+          const topR = Math.floor((enemy.y + 4) / CELL_SIZE);
+          const botR = Math.floor((enemy.y + enemy.height - 4) / CELL_SIZE);
 
-        // Приземление на платформы
-        const enemyBottomY = enemy.y + enemy.height;
-        const footCol = Math.floor((enemy.x + enemy.width * 0.5) / CELL_SIZE);
-        const footRow = Math.floor(enemyBottomY / CELL_SIZE);
-        const landingItem = this.solidGrid.get(`${footCol},${footRow}`);
+          if (enemy.vx > 0) {
+            const rightC = Math.floor((enemy.x + enemy.width) / CELL_SIZE);
+            for (let r = topR; r <= botR; r++) {
+              if (this.solidGrid.get(`${rightC},${r}`)) {
+                enemy.x = rightC * CELL_SIZE - enemy.width;
+                enemy.vx = -enemy.vx * 0.5;
+                enemy.direction = -1;
+                break;
+              }
+            }
+          } else if (enemy.vx < 0) {
+            const leftC = Math.floor(enemy.x / CELL_SIZE);
+            for (let r = topR; r <= botR; r++) {
+              if (this.solidGrid.get(`${leftC},${r}`)) {
+                enemy.x = (leftC + 1) * CELL_SIZE;
+                enemy.vx = -enemy.vx * 0.5;
+                enemy.direction = 1;
+                break;
+              }
+            }
+          }
 
-        if (landingItem && enemy.vy > 0 && enemyBottomY - enemy.vy <= footRow * CELL_SIZE + 12) {
-          enemy.y = footRow * CELL_SIZE - enemy.height;
-          enemy.vy = 0;
-          enemy.isGrounded = true;
+          // 2. Вертикальное движение и проверка коллизий по оси Y
+          const prevY = enemy.y;
+          enemy.y += enemy.vy;
+
+          if (enemy.vy < 0) {
+            // Прыжок ВВЕРХ: проверка удара головой о потолок / платформу снизу
+            const headR = Math.floor(enemy.y / CELL_SIZE);
+            const headLeftC = Math.floor((enemy.x + 4) / CELL_SIZE);
+            const headRightC = Math.floor((enemy.x + enemy.width - 4) / CELL_SIZE);
+            const ceilingLeft = this.solidGrid.get(`${headLeftC},${headR}`);
+            const ceilingRight = this.solidGrid.get(`${headRightC},${headR}`);
+
+            if (ceilingLeft || ceilingRight) {
+              // Удар о потолок: останавливаем вертикальное движение вверх и начинаем падать вниз
+              enemy.y = (headR + 1) * CELL_SIZE;
+              enemy.vy = 0;
+              this.emitDust(enemy.x + enemy.width * 0.5, enemy.y);
+            }
+          } else {
+            // Падение ВНИЗ: проверка приземления на платформу сверху
+            const landR = Math.floor((enemy.y + enemy.height) / CELL_SIZE);
+            const footLeftC = Math.floor((enemy.x + 4) / CELL_SIZE);
+            const footRightC = Math.floor((enemy.x + enemy.width - 4) / CELL_SIZE);
+            const floorLeft = this.solidGrid.get(`${footLeftC},${landR}`);
+            const floorRight = this.solidGrid.get(`${footRightC},${landR}`);
+
+            if (floorLeft || floorRight) {
+              const platformTop = landR * CELL_SIZE;
+              if (prevY + enemy.height <= platformTop + Math.max(16, enemy.vy + 6)) {
+                enemy.y = platformTop - enemy.height;
+                enemy.vy = 0;
+                enemy.vx = 0;
+                enemy.isGrounded = true;
+                enemy.jumpCooldown = 1.8 + Math.random() * 0.7;
+                this.emitDust(enemy.x + enemy.width * 0.5, enemy.y + enemy.height);
+              }
+            }
+          }
         }
       } else if (enemy.tileId === 'enemy_patrol') {
         // --- 2. ЧАСОВОЙ (Патруль строго по своим 3–5 клеткам) ---
@@ -613,6 +681,28 @@ export class PhysicsEngine {
             enemy.direction = enemy.direction > 0 ? -1 : 1;
             enemy.vx = 0;
           }
+
+          // Apply vertical gravity and landing for patrol
+          const footCol = Math.floor((enemy.x + enemy.width * 0.5) / CELL_SIZE);
+          const footRow = Math.floor((enemy.y + enemy.height + 2) / CELL_SIZE);
+          const currentGround = this.solidGrid.get(`${footCol},${footRow}`);
+
+          if (!currentGround) {
+            enemy.isGrounded = false;
+            enemy.vy += 22 * dt;
+            enemy.y += enemy.vy;
+            const fallingFootRow = Math.floor((enemy.y + enemy.height) / CELL_SIZE);
+            const landingItem = this.solidGrid.get(`${footCol},${fallingFootRow}`);
+            if (landingItem && enemy.vy > 0) {
+              enemy.y = fallingFootRow * CELL_SIZE - enemy.height;
+              enemy.vy = 0;
+              enemy.isGrounded = true;
+            }
+          } else {
+            enemy.isGrounded = true;
+            enemy.vy = 0;
+            enemy.y = footRow * CELL_SIZE - enemy.height;
+          }
         }
       } else {
         // --- 1. ЗВЕРЬ-ОХОТНИК (enemy_chaser) ---
@@ -637,6 +727,29 @@ export class PhysicsEngine {
 
         enemy.x += enemy.vx;
 
+        // Apply vertical gravity and landing for chaser
+        if (!enemy.isGrounded) {
+          enemy.vy += 22 * dt;
+          enemy.y += enemy.vy;
+          const fallingFootCol = Math.floor((enemy.x + enemy.width * 0.5) / CELL_SIZE);
+          const fallingFootRow = Math.floor((enemy.y + enemy.height) / CELL_SIZE);
+          const landingItem = this.solidGrid.get(`${fallingFootCol},${fallingFootRow}`);
+          if (landingItem && enemy.vy > 0) {
+            enemy.y = fallingFootRow * CELL_SIZE - enemy.height;
+            enemy.vy = 0;
+            enemy.isGrounded = true;
+          }
+        } else {
+          const footCol = Math.floor((enemy.x + enemy.width * 0.5) / CELL_SIZE);
+          const footRow = Math.floor((enemy.y + enemy.height + 2) / CELL_SIZE);
+          const groundItem = this.solidGrid.get(`${footCol},${footRow}`);
+          if (!groundItem) {
+            enemy.isGrounded = false;
+          } else {
+            enemy.y = footRow * CELL_SIZE - enemy.height;
+          }
+        }
+
         // Проверка стен и края платформы
         const frontFootX = enemy.vx > 0 ? enemy.x + enemy.width + 4 : enemy.x - 4;
         const frontCol = Math.floor(frontFootX / CELL_SIZE);
@@ -651,6 +764,12 @@ export class PhysicsEngine {
           enemy.direction = enemy.direction > 0 ? -1 : 1;
           enemy.vx = enemy.direction * Math.abs(enemy.vx);
         }
+      }
+
+      // Check for falling into bottom abyss
+      if (enemy.y > (GRID_ROWS + 1) * CELL_SIZE) {
+        deadEnemyIds.add(enemy.id);
+        continue;
       }
 
       // --- 2. СТОЛКНОВЕНИЕ С ИГРОКОМ ---

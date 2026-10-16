@@ -1,13 +1,12 @@
 /**
  * Pixel Studio Pro - Tool & Palette Sidebar (BuilderSidebar)
  *
- * Implements Stage 1 & Stage 2 Redesign:
- * - 3 Unified, accessible tabs: «Платформы», «Интерактив и враги», «Мир и герой» (replaced 5 micro-tabs)
- * - Large clickable targets (>= 36x36px) with clean, high-contrast previews
- * - Explicit tool modes: Brush (Freehand), Area (2D Box), Eraser
- * - Pixel Studio Pro design tokens (#0B0F19 background, #131B2E surface, #F59E0B amber, #10B981 emerald)
- * - Collapsible sidebar to expand viewport when needed
- * - Separated "Сохранить проект" (LocalStorage) and "Готовые миры" (Presets/Import)
+ * Stage 2 Polish:
+ * - Hotkey badges (B, R, E, Ctrl+S) on tool buttons and collapsed rail
+ * - Educational tooltips with shortcut cues
+ * - 3 Unified accessible tabs with 44px+ touch targets
+ * - Strict Pixel Studio Pro color tokens (#0B0F19 background, #131B2E surface, #F59E0B amber, #10B981 emerald)
+ * - Collapsible sidebar rail
  */
 
 import React, { useState } from 'react';
@@ -17,7 +16,6 @@ import {
   Download,
   Eraser,
   HelpCircle,
-  Home,
   Layers,
   Maximize2,
   Minimize2,
@@ -25,11 +23,9 @@ import {
   Palette,
   PenTool,
   Play,
-  Redo2,
   Sparkles,
   Swords,
   Trash2,
-  Undo2,
   Upload,
   User,
   Volume2,
@@ -99,69 +95,88 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   const interactiveItems = PALETTE_ITEMS.filter((i) => i.category === 'objects');
   const enemyItems = PALETTE_ITEMS.filter((i) => i.category === 'enemies');
 
-  // If collapsed, render slim vertical tool rail
+  // If collapsed, render slim vertical tool rail with shortcut badges
   if (isCollapsed) {
     return (
-      <aside className="w-12 h-full bg-[#131B2E] border-l border-slate-800 flex flex-col justify-between items-center py-2 shrink-0 select-none z-20">
+      <aside className="w-14 h-full bg-[#131B2E] border-l border-slate-800 flex flex-col justify-between items-center py-2.5 shrink-0 select-none z-20">
         <button
           onClick={() => setIsCollapsed(false)}
           title="Развернуть панель инструментов"
-          className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center transition-colors cursor-pointer"
+          className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <div className="flex flex-col gap-2">
+        {/* Collapsed Tool Buttons with Hotkey Badges */}
+        <div className="flex flex-col gap-2.5 w-full items-center">
+          {/* Brush */}
           <button
             onClick={() => {
               onSelectTool('brush');
               sound.playSelect();
             }}
-            title="Кисть"
-            className={`w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-colors ${
+            title="Свободная кисть (B)"
+            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all ${
               activeTool === 'brush'
-                ? 'bg-amber-500 text-slate-950 font-bold'
-                : 'bg-slate-800 text-slate-300'
+                ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
             <PenTool className="w-4 h-4" />
+            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-[#F8FAFC]">
+              B
+            </kbd>
           </button>
+
+          {/* Area / Rect */}
           <button
             onClick={() => {
               onSelectTool('line');
               sound.playSelect();
             }}
-            title="Область (прямоугольник)"
-            className={`w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-colors ${
+            title="Область / Прямоугольник (R)"
+            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all ${
               activeTool === 'line'
-                ? 'bg-amber-500 text-slate-950 font-bold'
-                : 'bg-slate-800 text-slate-300'
+                ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
             <Move className="w-4 h-4" />
+            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-[#F8FAFC]">
+              R
+            </kbd>
           </button>
+
+          {/* Eraser */}
           <button
             onClick={() => {
               onSelectTool('erase');
               sound.playErase();
             }}
-            title="Ластик"
-            className={`w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-colors ${
+            title="Ластик (E)"
+            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all ${
               activeTool === 'erase'
-                ? 'bg-rose-500 text-white font-bold'
-                : 'bg-slate-800 text-rose-400'
+                ? 'bg-rose-500 text-white font-bold shadow-md shadow-rose-500/20'
+                : 'bg-slate-800 text-rose-400 hover:bg-slate-700'
             }`}
           >
             <Eraser className="w-4 h-4" />
+            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-[#F8FAFC]">
+              E
+            </kbd>
           </button>
         </div>
 
+        {/* Playtest button */}
         <button
           onClick={onPlay}
-          title="Тест уровня"
-          className="w-9 h-9 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center font-bold cursor-pointer shadow-md shadow-emerald-500/30"
+          title="Запустить тест уровня (P или Enter)"
+          className="w-10 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center font-bold cursor-pointer shadow-lg shadow-emerald-500/30 relative"
         >
           <Play className="w-4 h-4 fill-slate-950" />
+          <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-[#0F172A] border border-emerald-400/60 rounded text-[9px] font-mono text-emerald-300">
+            P
+          </kbd>
         </button>
       </aside>
     );
@@ -169,7 +184,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
 
   return (
     <aside className="w-full md:w-80 lg:w-[280px] xl:w-[320px] h-full bg-[#131B2E] border-l border-slate-800 flex flex-col justify-between shrink-0 select-none shadow-2xl z-20 overflow-hidden">
-      {/* 1. Header Toolbar (Title, Collapse, Settings) */}
+      {/* 1. Header Toolbar (Title, Collapse, Utilities) */}
       <div className="px-3 py-2.5 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <button
@@ -212,7 +227,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         </div>
       </div>
 
-      {/* 2. Three Unified Studio Tabs (13px, Large targets) */}
+      {/* 2. Three Unified Studio Tabs (Platforms, Interactive, World) */}
       <div className="grid grid-cols-3 bg-[#0B0F19] border-b border-slate-800 p-1.5 gap-1 shrink-0">
         <button
           onClick={() => {
@@ -339,23 +354,30 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               </div>
             </div>
 
-            {/* Enemies Section */}
+            {/* Enemies Section with Ground Requirement Note */}
             <div className="space-y-1.5 pt-2 border-t border-slate-800">
-              <div className="text-[11px] font-semibold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Swords className="w-3.5 h-3.5" />
-                <span>Противники:</span>
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-semibold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Swords className="w-3.5 h-3.5" />
+                  <span>Противники:</span>
+                </div>
+                <span className="text-[10px] text-slate-400">
+                  Наземные / Летающие
+                </span>
               </div>
+
               <div className="grid grid-cols-1 gap-2">
                 {enemyItems.map((item) => {
                   const isSelected = activeTool !== 'erase' && selectedTile === item.id;
+                  const isGround = item.id !== 'enemy_slime';
                   const roleLabel =
                     item.id === 'enemy_chaser'
-                      ? 'Быстрая погоня'
+                      ? 'Зверь-охотник (быстрая погоня)'
                       : item.id === 'enemy_patrol'
-                      ? 'Патруль 4 клетки'
+                      ? 'Часовой дозора (патруль)'
                       : item.id === 'enemy_jumper'
-                      ? 'Прыжки вверх'
-                      : 'Воздушный слайм';
+                      ? 'Прыгун-засадник (прыжки)'
+                      : 'Летучий пикировщик (в воздухе)';
 
                   return (
                     <button
@@ -365,7 +387,11 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                         if (activeTool === 'erase') onSelectTool('brush');
                         sound.playPlaceTile();
                       }}
-                      title={item.hint}
+                      title={
+                        isGround
+                          ? `${item.name}: ставится только на твердую поверхность`
+                          : `${item.name}: летает в воздухе`
+                      }
                       className={`flex items-center justify-between p-2 rounded-xl text-left border transition-all cursor-pointer min-h-[44px] ${
                         isSelected
                           ? 'bg-rose-500/20 border-rose-400 ring-1 ring-rose-400/50 text-white'
@@ -380,13 +406,19 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           <div className="text-xs font-bold leading-tight text-white">
                             {item.name}
                           </div>
-                          <div className="text-[10px] text-slate-400">
+                          <div className="text-[10px] text-slate-400 line-clamp-1">
                             {roleLabel}
                           </div>
                         </div>
                       </div>
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                        ⚔️ прыжок сверху
+                      <span
+                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border shrink-0 ${
+                          isGround
+                            ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                            : 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                        }`}
+                      >
+                        {isGround ? '🌱 на землю' : '☁️ в воздухе'}
                       </span>
                     </button>
                   );
@@ -489,9 +521,9 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         )}
       </div>
 
-      {/* 4. Tools & Actions Bottom Panel */}
+      {/* 4. Tools & Actions Bottom Panel with Hotkey Badges */}
       <div className="p-3 bg-[#0F172A] border-t border-slate-800 space-y-2 shrink-0">
-        {/* Tool Mode Buttons (Brush, Area Box, Eraser, Clear) */}
+        {/* Tool Mode Buttons (Brush [B], Area [R], Eraser [E], Clear) */}
         <div className="grid grid-cols-4 gap-1.5">
           {/* Freehand Brush */}
           <button
@@ -499,8 +531,8 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               onSelectTool('brush');
               sound.playSelect();
             }}
-            title="Свободная кисть: зажмите ЛКМ и рисуйте в любых направлениях"
-            className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
+            title="Свободная кисть (B) — рисование блоков в любом направлении"
+            className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer relative ${
               activeTool === 'brush'
                 ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
@@ -508,6 +540,9 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           >
             <PenTool className="w-4 h-4" />
             <span className="text-[10px]">Кисть</span>
+            <kbd className="absolute top-1 right-1 px-1 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-[#F8FAFC]">
+              B
+            </kbd>
           </button>
 
           {/* Area 2D Box */}
@@ -516,8 +551,8 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               onSelectTool('line');
               sound.playSelect();
             }}
-            title="Прямоугольная область: тяните по диагонали для заполнения стен или ям"
-            className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
+            title="Область (R) — прямоугольное заполнение стен или ям"
+            className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer relative ${
               activeTool === 'line'
                 ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
@@ -525,6 +560,9 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           >
             <Move className="w-4 h-4" />
             <span className="text-[10px]">Область</span>
+            <kbd className="absolute top-1 right-1 px-1 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-[#F8FAFC]">
+              R
+            </kbd>
           </button>
 
           {/* Eraser */}
@@ -533,8 +571,8 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               onSelectTool('erase');
               sound.playErase();
             }}
-            title="Ластик: удаление блоков кликом или протяжкой"
-            className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
+            title="Ластик (E) — удаление блоков кликом или протяжкой"
+            className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer relative ${
               activeTool === 'erase'
                 ? 'bg-rose-500 text-white border-rose-400 shadow-sm'
                 : 'bg-slate-800 text-rose-300 border-slate-700 hover:bg-slate-700'
@@ -542,6 +580,9 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           >
             <Eraser className="w-4 h-4" />
             <span className="text-[10px]">Ластик</span>
+            <kbd className="absolute top-1 right-1 px-1 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-[#F8FAFC]">
+              E
+            </kbd>
           </button>
 
           {/* Clear Level */}
@@ -555,16 +596,22 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           </button>
         </div>
 
-        {/* Save / Presets Row (Clean Separation) */}
+        {/* Save / Presets Row with Hotkey badge Ctrl+S */}
         <div className="grid grid-cols-2 gap-1.5">
           <button
             onClick={onSave}
-            title="Сохранить уровень в библиотеку проектов студии"
-            className="py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer"
+            title="Сохранить уровень в библиотеку проектов студии (Ctrl+S)"
+            className="py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Сохранить</span>
+            <div className="flex items-center gap-1.5">
+              <Download className="w-3.5 h-3.5" />
+              <span>Сохранить</span>
+            </div>
+            <kbd className="px-1.5 py-0.5 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-slate-300">
+              Ctrl+S
+            </kbd>
           </button>
+
           <button
             onClick={onLoad}
             title="Готовые уровни студии и импорт JSON"

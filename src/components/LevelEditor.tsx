@@ -1,33 +1,41 @@
 /**
  * Pixel Studio Pro - Interactive Level Editor (LevelEditor)
  *
- * Stage 1 Refactored Architecture:
+ * Stage 1 & 2 Refactored Architecture:
  * - Studio Header Bar (strictly 48px height): unblocks 100% of the canvas grid (no overlapping banners).
- * - Inline Educational Missions Bar embedded in the header.
- * - High-contrast, prominent Playtest button (44x44px equivalent) in top-right corner.
- * - Continuous Freehand Brush drawing in both X and Y dimensions (no horizontal drag lock).
- * - 2D Box / Rectangle dragging mode with live preview and dimension count.
- * - Ghost Cursor (50% opacity translucent preview of selected tile at hoverCell).
+ * - Ground Enemy Snapping & Ground Validation:
+ *   - Ground enemies (enemy_chaser, enemy_patrol, enemy_jumper) automatically snap to the solid block below (ground_y - 1).
+ *   - Placement over abyss is blocked with warning toast: "Врагов можно ставить только на твердую поверхность!".
+ *   - Area / 2D Box tool places ground enemies safely on the surface of each column.
+ *   - Ghost Cursor shows translucent preview on the calculated ground surface with landing indicator & guide line.
+ *   - Warning indicator (red cross + "Нет опоры") when hovering over void with a ground enemy.
+ * - Global Keyboard Shortcuts & Navigation:
+ *   - Spacebar + drag for smooth viewport panning.
+ *   - Key G for grid toggle.
+ *   - Enter / P for instant playtest.
+ *   - B (Brush), R (Area), E (Eraser), Ctrl+S (Save), Ctrl+Z / Ctrl+Y (Undo/Redo).
+ * - Interactive Floating Toast notification system for clear user feedback.
  * - High-visibility Minimap with Start/Finish and Viewport bounds.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  Eraser,
   Grid,
   Home,
   Move,
+  PenTool,
   Play,
   Redo2,
   Undo2,
   ZoomIn,
   ZoomOut,
-  Eraser,
-  PenTool,
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
-import { CELL_SIZE, GRID_ROWS, THEMES } from '../game/constants';
+import { CELL_SIZE, GRID_ROWS, THEMES, findGroundRowBelow, isGroundEnemy } from '../game/constants';
 import { generateTutorialSample } from '../game/tutorialPresets';
 import { SpriteRenderer } from '../graphics/spriteRenderer';
 import { LevelData, LevelItem, ThemeId, TileId, ToolMode } from '../types/game';
@@ -73,11 +81,24 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   const [zoom, setZoom] = useState<number>(1.0);
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [hoverCell, setHoverCell] = useState<{ col: number; row: number } | null>(null);
+  const [isSpaceHeld, setIsSpaceHeld] = useState<boolean>(false);
 
   // In-Editor Tutorial Guide State
   const [tutorialStep, setTutorialStep] = useState<number>(0);
   const [isTutorialBarOpen, setIsTutorialBarOpen] = useState<boolean>(true);
   const [isTutorialMinimized, setIsTutorialMinimized] = useState<boolean>(false);
+
+  // Floating Toast Warning State
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(msg);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 2600);
+  }, []);
 
   // Drawing & Interaction State
   const [isMouseDown, setIsMouseDown] = useState<boolean>(false);
@@ -86,7 +107,6 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   const [dragCurrentCell, setDragCurrentCell] = useState<{ col: number; row: number } | null>(null);
 
   // Continuous stroke buffer (accumulates all items changed during current mousedown stroke)
-  const currentStrokeItemsRef = useRef<Map<string, LevelItem>>(new Map());
   const strokeDidModifyRef = useRef<boolean>(false);
 
   const isPanningRef = useRef<boolean>(false);
@@ -125,6 +145,36 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     },
     [getMaxCameraX]
   );
+
+  // Key listeners for Space (pan) and G (grid)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+
+      if (e.code === 'Space' && !e.repeat) {
+        setIsSpaceHeld(true);
+      } else if (e.code === 'KeyG' && !e.ctrlKey && !e.metaKey) {
+        setShowGrid((g) => !g);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setIsSpaceHeld(false);
+        if (isPanningRef.current) {
+          isPanningRef.current = false;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   // Apply Sample for Current Tutorial Step
   const handleApplySample = (stepIndex: number) => {
@@ -174,27 +224,40 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     [levelData.items, onUpdateItems]
   );
 
-  // Put tile at (col, row)
+  // Put tile at (col, row) with ground validation for ground enemies
   const paintAt = useCallback(
     (col: number, row: number) => {
+      let finalRow = row;
+
+      // Logic check for Ground Enemies: must stand on solid surface
+      if (isGroundEnemy(selectedTile)) {
+        const groundY = findGroundRowBelow(levelData.items, col, row);
+        if (groundY === null || groundY <= 0) {
+          showToast('Врагов можно ставить только на твердую поверхность!');
+          sound.playBump();
+          return;
+        }
+        finalRow = groundY - 1;
+      }
+
       // Check if same tile already exists at this coordinate
-      const existing = levelData.items.find((it) => it.x === col && it.y === row);
+      const existing = levelData.items.find((it) => it.x === col && it.y === finalRow);
       if (existing && existing.tileId === selectedTile) {
         return;
       }
 
-      const filtered = levelData.items.filter((it) => !(it.x === col && it.y === row));
+      const filtered = levelData.items.filter((it) => !(it.x === col && it.y === finalRow));
       const newItem: LevelItem = {
-        id: `item_${Date.now()}_${col}_${row}_${Math.random().toString(36).substring(2, 6)}`,
+        id: `item_${Date.now()}_${col}_${finalRow}_${Math.random().toString(36).substring(2, 6)}`,
         tileId: selectedTile,
         x: col,
-        y: row,
+        y: finalRow,
       };
       filtered.push(newItem);
       onUpdateItems(filtered, false);
       strokeDidModifyRef.current = true;
     },
-    [levelData.items, onUpdateItems, selectedTile]
+    [levelData.items, onUpdateItems, selectedTile, showToast]
   );
 
   // --- Main 60fps Canvas Render Loop ---
@@ -329,34 +392,107 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         const maxR = Math.max(dragStartCell.row, dragCurrentCell.row);
 
         ctx.save();
-        ctx.globalAlpha = 0.7;
-        for (let c = minC; c <= maxC; c++) {
-          for (let r = minR; r <= maxR; r++) {
-            const px = c * effectiveCellSize;
-            const py = r * effectiveCellSize;
-            SpriteRenderer.drawTile(ctx, selectedTile, px, py, effectiveCellSize, {
-              animTime,
-            });
-            ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(px + 1, py + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+
+        if (isGroundEnemy(selectedTile)) {
+          // For ground enemies: preview enemies falling precisely onto ground in each column
+          let validGroundCount = 0;
+          for (let c = minC; c <= maxC; c++) {
+            const groundY = findGroundRowBelow(levelData.items, c, minR);
+            if (groundY !== null && groundY > 0) {
+              const targetR = groundY - 1;
+              const px = c * effectiveCellSize;
+              const py = targetR * effectiveCellSize;
+
+              // Dotted drop guideline from minR down to ground if elevated
+              if (targetR > minR) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(px + effectiveCellSize * 0.5, minR * effectiveCellSize);
+                ctx.lineTo(px + effectiveCellSize * 0.5, py);
+                ctx.stroke();
+                ctx.restore();
+              }
+
+              // Draw enemy ghost on ground
+              ctx.globalAlpha = 0.75;
+              SpriteRenderer.drawTile(ctx, selectedTile, px, py, effectiveCellSize, { animTime });
+
+              // Emerald landing highlight
+              ctx.strokeStyle = '#10b981';
+              ctx.lineWidth = 2;
+              ctx.strokeRect(px + 1, py + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+              validGroundCount++;
+            } else {
+              // No ground in this column: red warning indicator at minR
+              const px = c * effectiveCellSize;
+              const py = minR * effectiveCellSize;
+              ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+              ctx.fillRect(px, py, effectiveCellSize, effectiveCellSize);
+              ctx.strokeStyle = '#ef4444';
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(px + 1, py + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+              // Red cross
+              ctx.beginPath();
+              ctx.moveTo(px + 6, py + 6);
+              ctx.lineTo(px + effectiveCellSize - 6, py + effectiveCellSize - 6);
+              ctx.moveTo(px + effectiveCellSize - 6, py + 6);
+              ctx.lineTo(px + 6, py + effectiveCellSize - 6);
+              ctx.stroke();
+            }
           }
+
+          // Dimension badge for ground enemies
+          const badgeX = maxC * effectiveCellSize + effectiveCellSize * 0.5;
+          const badgeY = minR * effectiveCellSize - 10;
+          ctx.globalAlpha = 1.0;
+          ctx.fillStyle = '#0f172a';
+          ctx.strokeStyle = validGroundCount > 0 ? '#10b981' : '#ef4444';
+          ctx.lineWidth = 1;
+          const dimText =
+            validGroundCount > 0
+              ? `${validGroundCount} на земле (${maxC - minC + 1} колонок)`
+              : '⚠️ Нет опоры для врагов!';
+          ctx.font = 'bold 11px system-ui, sans-serif';
+          const txtW = ctx.measureText(dimText).width;
+          ctx.fillRect(badgeX - txtW * 0.5 - 6, badgeY - 14, txtW + 12, 18);
+          ctx.strokeRect(badgeX - txtW * 0.5 - 6, badgeY - 14, txtW + 12, 18);
+          ctx.fillStyle = validGroundCount > 0 ? '#6ee7b7' : '#fca5a5';
+          ctx.fillText(dimText, badgeX - txtW * 0.5, badgeY);
+        } else {
+          // Standard tile rectangular box preview
+          ctx.globalAlpha = 0.7;
+          for (let c = minC; c <= maxC; c++) {
+            for (let r = minR; r <= maxR; r++) {
+              const px = c * effectiveCellSize;
+              const py = r * effectiveCellSize;
+              SpriteRenderer.drawTile(ctx, selectedTile, px, py, effectiveCellSize, {
+                animTime,
+              });
+              ctx.strokeStyle = '#f59e0b';
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(px + 1, py + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+            }
+          }
+
+          // Draw dimension badge (e.g. 4 × 2)
+          const badgeX = maxC * effectiveCellSize + effectiveCellSize * 0.5;
+          const badgeY = minR * effectiveCellSize - 10;
+          ctx.globalAlpha = 1.0;
+          ctx.fillStyle = '#0f172a';
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1;
+          const dimText = `${maxC - minC + 1} × ${maxR - minR + 1}`;
+          ctx.font = 'bold 11px system-ui, sans-serif';
+          const txtW = ctx.measureText(dimText).width;
+          ctx.fillRect(badgeX - txtW * 0.5 - 6, badgeY - 14, txtW + 12, 18);
+          ctx.strokeRect(badgeX - txtW * 0.5 - 6, badgeY - 14, txtW + 12, 18);
+          ctx.fillStyle = '#fef08a';
+          ctx.fillText(dimText, badgeX - txtW * 0.5, badgeY);
         }
 
-        // Draw dimension badge (e.g. 4 × 2)
-        const badgeX = maxC * effectiveCellSize + effectiveCellSize * 0.5;
-        const badgeY = minR * effectiveCellSize - 10;
-        ctx.globalAlpha = 1.0;
-        ctx.fillStyle = '#0f172a';
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 1;
-        const dimText = `${maxC - minC + 1} × ${maxR - minR + 1}`;
-        ctx.font = 'bold 11px system-ui, sans-serif';
-        const txtW = ctx.measureText(dimText).width;
-        ctx.fillRect(badgeX - txtW * 0.5 - 6, badgeY - 14, txtW + 12, 18);
-        ctx.strokeRect(badgeX - txtW * 0.5 - 6, badgeY - 14, txtW + 12, 18);
-        ctx.fillStyle = '#fef08a';
-        ctx.fillText(dimText, badgeX - txtW * 0.5, badgeY);
         ctx.restore();
       }
 
@@ -380,8 +516,92 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           ctx.moveTo(hx + effectiveCellSize - 8, hy + 8);
           ctx.lineTo(hx + 8, hy + effectiveCellSize - 8);
           ctx.stroke();
+        } else if (isGroundEnemy(selectedTile)) {
+          // Ground enemy preview: must be attached to ground!
+          const groundY = findGroundRowBelow(levelData.items, hoverCell.col, hoverCell.row);
+
+          if (groundY !== null && groundY > 0) {
+            const targetRow = groundY - 1;
+            const targetPy = targetRow * effectiveCellSize;
+
+            // Downward beam / dashed drop line if mouse is in the air above ground
+            if (targetRow > hoverCell.row) {
+              ctx.save();
+              ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+              ctx.lineWidth = 1.5;
+              ctx.setLineDash([4, 4]);
+              ctx.beginPath();
+              ctx.moveTo(hx + effectiveCellSize * 0.5, hy + effectiveCellSize);
+              ctx.lineTo(hx + effectiveCellSize * 0.5, targetPy);
+              ctx.stroke();
+              ctx.restore();
+
+              // Cursor cell hint
+              ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
+              ctx.fillRect(hx, hy, effectiveCellSize, effectiveCellSize);
+              ctx.strokeStyle = 'rgba(245, 158, 11, 0.5)';
+              ctx.lineWidth = 1;
+              ctx.strokeRect(hx + 1, hy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+            }
+
+            // Translucent ghost sprite of enemy standing firmly on ground
+            ctx.save();
+            ctx.globalAlpha = 0.55;
+            SpriteRenderer.drawTile(ctx, selectedTile, hx, targetPy, effectiveCellSize, { animTime });
+            ctx.restore();
+
+            // Emerald landing border
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+            ctx.fillRect(hx, targetPy, effectiveCellSize, effectiveCellSize);
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(hx + 1, targetPy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+
+            // Landing label badge
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 1;
+            const landTxt = targetRow > hoverCell.row ? '⬇ На землю' : '🌱 Опора';
+            ctx.font = 'bold 10px system-ui, sans-serif';
+            const tw = ctx.measureText(landTxt).width;
+            ctx.fillRect(hx + effectiveCellSize * 0.5 - tw * 0.5 - 4, targetPy - 12, tw + 8, 14);
+            ctx.strokeRect(hx + effectiveCellSize * 0.5 - tw * 0.5 - 4, targetPy - 12, tw + 8, 14);
+            ctx.fillStyle = '#6ee7b7';
+            ctx.fillText(landTxt, hx + effectiveCellSize * 0.5 - tw * 0.5, targetPy - 2);
+            ctx.restore();
+          } else {
+            // No solid ground below: Warning Red Ghost Cursor
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+            ctx.fillRect(hx, hy, effectiveCellSize, effectiveCellSize);
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(hx + 1, hy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+
+            // Red warning cross
+            ctx.beginPath();
+            ctx.moveTo(hx + 8, hy + 8);
+            ctx.lineTo(hx + effectiveCellSize - 8, hy + effectiveCellSize - 8);
+            ctx.moveTo(hx + effectiveCellSize - 8, hy + 8);
+            ctx.lineTo(hx + 8, hy + effectiveCellSize - 8);
+            ctx.stroke();
+
+            // Warning badge
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1;
+            const warnTxt = '⚠️ Нет опоры';
+            ctx.font = 'bold 10px system-ui, sans-serif';
+            const tw = ctx.measureText(warnTxt).width;
+            ctx.fillRect(hx + effectiveCellSize * 0.5 - tw * 0.5 - 4, hy - 12, tw + 8, 14);
+            ctx.strokeRect(hx + effectiveCellSize * 0.5 - tw * 0.5 - 4, hy - 12, tw + 8, 14);
+            ctx.fillStyle = '#fca5a5';
+            ctx.fillText(warnTxt, hx + effectiveCellSize * 0.5 - tw * 0.5, hy - 2);
+            ctx.restore();
+          }
         } else {
-          // Translucent ghost preview of selected item
+          // Standard tile ghost preview
           ctx.save();
           ctx.globalAlpha = 0.5;
           SpriteRenderer.drawTile(ctx, selectedTile, hx, hy, effectiveCellSize, {
@@ -501,7 +721,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const isRightClick = e.button === 2;
-    const isMiddleClick = e.button === 1 || e.altKey;
+    const isMiddleClick = e.button === 1 || e.altKey || isSpaceHeld;
 
     if (isMiddleClick) {
       isPanningRef.current = true;
@@ -565,17 +785,48 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           const maxR = Math.max(dragStartCell.row, dragCurrentCell.row);
 
           let updated = [...levelData.items];
-          for (let c = minC; c <= maxC; c++) {
-            for (let r = minR; r <= maxR; r++) {
-              updated = updated.filter((it) => !(it.x === c && it.y === r));
-              updated.push({
-                id: `item_${Date.now()}_${c}_${r}_${Math.random().toString(36).substring(2, 6)}`,
-                tileId: selectedTile,
-                x: c,
-                y: r,
-              });
+          let placedCount = 0;
+
+          if (isGroundEnemy(selectedTile)) {
+            // For ground enemies: place strictly on solid ground for each column
+            for (let c = minC; c <= maxC; c++) {
+              const groundY = findGroundRowBelow(levelData.items, c, minR);
+              if (groundY !== null && groundY > 0) {
+                const targetR = groundY - 1;
+                updated = updated.filter((it) => !(it.x === c && it.y === targetR));
+                updated.push({
+                  id: `item_${Date.now()}_${c}_${targetR}_${Math.random().toString(36).substring(2, 6)}`,
+                  tileId: selectedTile,
+                  x: c,
+                  y: targetR,
+                });
+                placedCount++;
+              }
+            }
+
+            if (placedCount === 0) {
+              showToast('Врагов можно ставить только на твердую поверхность!');
+              sound.playBump();
+              setIsMouseDown(false);
+              setDragStartCell(null);
+              setDragCurrentCell(null);
+              return;
+            }
+          } else {
+            for (let c = minC; c <= maxC; c++) {
+              for (let r = minR; r <= maxR; r++) {
+                updated = updated.filter((it) => !(it.x === c && it.y === r));
+                updated.push({
+                  id: `item_${Date.now()}_${c}_${r}_${Math.random().toString(36).substring(2, 6)}`,
+                  tileId: selectedTile,
+                  x: c,
+                  y: r,
+                });
+                placedCount++;
+              }
             }
           }
+
           onUpdateItems(updated, true);
           sound.playPlaceTile();
         }
@@ -612,6 +863,14 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     const targetRatio = relX / rect.width;
     const newCamX = targetRatio * totalWorldPx - getViewportWidth() * 0.5;
     setCameraX(clampCameraX(newCamX));
+  };
+
+  // Cursor state
+  const getCursorClass = () => {
+    if (isPanningRef.current) return 'cursor-grabbing';
+    if (isSpaceHeld) return 'cursor-grab';
+    if (activeTool === 'erase') return 'cursor-cell';
+    return 'cursor-crosshair';
   };
 
   return (
@@ -708,7 +967,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           {/* Grid Toggle */}
           <button
             onClick={() => setShowGrid((g) => !g)}
-            title={showGrid ? 'Скрыть сетку' : 'Показать сетку'}
+            title={showGrid ? 'Скрыть сетку (G)' : 'Показать сетку (G)'}
             className={`h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-colors cursor-pointer ${
               showGrid
                 ? 'text-amber-400 bg-amber-500/20 border-amber-400/40'
@@ -722,7 +981,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           <div className="hidden sm:flex items-center bg-slate-800/70 border border-slate-700/80 rounded-xl p-0.5">
             <button
               onClick={() => setZoom((z) => Math.max(0.7, Number((z - 0.15).toFixed(2))))}
-              title="Отдалить"
+              title="Отдалить (Ctrl + колесико)"
               className="p-1 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               <ZoomOut className="w-3.5 h-3.5" />
@@ -732,7 +991,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             </span>
             <button
               onClick={() => setZoom((z) => Math.min(1.4, Number((z + 0.15).toFixed(2))))}
-              title="Приблизить"
+              title="Приблизить (Ctrl + колесико)"
               className="p-1 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               <ZoomIn className="w-3.5 h-3.5" />
@@ -745,8 +1004,8 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
               sound.playCoin();
               onStartPlay();
             }}
-            title="Запустить уровень и проверить физику (Enter)"
-            className="h-9 sm:h-10 px-3.5 sm:px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer border border-emerald-300/40 shrink-0 animate-pulse hover:animate-none"
+            title="Запустить уровень и проверить физику (Enter или P)"
+            className="h-9 sm:h-10 px-3.5 sm:px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer border border-emerald-300/40 shrink-0"
           >
             <Play className="w-4 h-4 fill-slate-950 stroke-[2.5]" />
             <span>ТЕСТ</span>
@@ -754,12 +1013,20 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         </div>
       </header>
 
-      {/* 2. MAIN CANVAS AREA (Begins immediately below header, 100% visible) */}
+      {/* 2. FLOATING TOAST NOTIFICATION (Warnings, Feedback) */}
+      {toastMessage && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 pointer-events-none animate-bounce">
+          <div className="px-4 py-2.5 rounded-xl bg-slate-900/95 border-2 border-rose-500/80 text-rose-200 shadow-2xl shadow-rose-950/80 backdrop-blur-md flex items-center gap-2.5 text-xs sm:text-sm font-bold">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+        </div>
+      )}
+
+      {/* 3. MAIN CANVAS AREA (Begins immediately below header, 100% visible) */}
       <div
         ref={containerRef}
-        className={`flex-1 w-full h-full relative ${
-          activeTool === 'erase' ? 'cursor-cell' : 'cursor-crosshair'
-        }`}
+        className={`flex-1 w-full h-full relative ${getCursorClass()}`}
       >
         <canvas
           ref={canvasRef}
@@ -773,31 +1040,33 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         />
 
         {/* Small floating tool tip when hovering */}
-        <div className="absolute bottom-2 left-4 pointer-events-none text-[11px] font-mono text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800 backdrop-blur-xs flex items-center gap-2">
-          <span className="flex items-center gap-1 text-amber-400 font-bold">
+        <div className="absolute bottom-2 left-4 pointer-events-none text-[11px] font-mono text-slate-400 bg-slate-900/85 px-3 py-1.5 rounded-lg border border-slate-800 backdrop-blur-xs flex items-center gap-2 shadow-lg">
+          <span className="flex items-center gap-1 font-bold">
             {activeTool === 'erase' ? (
               <>
                 <Eraser className="w-3 h-3 text-rose-400" />
-                <span className="text-rose-400">Ластик</span>
+                <span className="text-rose-400">Ластик (E)</span>
               </>
             ) : activeTool === 'line' ? (
               <>
                 <Move className="w-3 h-3 text-amber-400" />
-                <span>Прямоугольная область</span>
+                <span className="text-amber-400">Область (R)</span>
               </>
             ) : (
               <>
                 <PenTool className="w-3 h-3 text-emerald-400" />
-                <span>Свободная кисть</span>
+                <span className="text-emerald-400">Кисть (B)</span>
               </>
             )}
           </span>
           <span className="text-slate-600">|</span>
-          <span>ЛКМ — ставить, ПКМ — удалить</span>
+          <span className="text-slate-300">
+            ЛКМ — ставить, ПКМ — удалить | Пробел+тянуть — обзор | G — сетка
+          </span>
         </div>
       </div>
 
-      {/* 3. BOTTOM MINIMAP & STATUS BAR (44px height) */}
+      {/* 4. BOTTOM MINIMAP & STATUS BAR (44px height) */}
       <div className="h-11 bg-[#0F172A] border-t border-slate-800 flex items-center px-4 gap-3 shrink-0 z-20">
         <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
           <Move className="w-3.5 h-3.5 text-amber-400" />
