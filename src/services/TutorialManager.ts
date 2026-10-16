@@ -24,8 +24,113 @@ export interface ChasmInfo {
 const STORAGE_KEY = 'super_pixel_world_tutorial_completed_v3';
 const SKIPPED_KEY = 'super_pixel_world_tutorial_skipped_v3';
 const GUIDED_TOUR_KEY = 'super_pixel_world_tutorial';
+const TOUR_STEP_KEY = 'super_pixel_world_tour_step_v4';
+
+export type TutorialTabType = 'platforms' | 'interactive' | 'world';
+export type TutorialPhase = 'EDITOR' | 'GAMEPLAY';
 
 export class TutorialManager {
+  /**
+   * Total steps in the full academy curriculum (Steps 0 to 11)
+   */
+  public static readonly TOTAL_STEPS = 11;
+
+  /**
+   * Log step changes for diagnostic inspection
+   */
+  public static logStep(step: number, reason?: string): void {
+    console.log(`[Tutorial] Step changed to: ${step}${reason ? ` (${reason})` : ''}`);
+  }
+
+  /**
+   * Retrieves whether the step belongs to EDITOR or GAMEPLAY phase
+   */
+  public static getPhase(step: number): TutorialPhase {
+    return step >= 9 ? 'GAMEPLAY' : 'EDITOR';
+  }
+
+  /**
+   * Reads persistent saved step index
+   */
+  public static getSavedTourStep(): number {
+    try {
+      const saved = localStorage.getItem(TOUR_STEP_KEY);
+      if (!saved) return 0;
+      const num = parseInt(saved, 10);
+      return isNaN(num) ? 0 : num;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Saves current step progress
+   */
+  public static saveTourStep(step: number): void {
+    try {
+      localStorage.setItem(TOUR_STEP_KEY, String(step));
+    } catch {}
+  }
+
+  /**
+   * Clears saved step progress
+   */
+  public static clearTourStep(): void {
+    try {
+      localStorage.removeItem(TOUR_STEP_KEY);
+    } catch {}
+  }
+
+  /**
+   * Emit tab change event to the global window event bus
+   */
+  public static emitTabChanged(tab: TutorialTabType | string): void {
+    console.log(`[Tutorial] Tab changed event dispatched: ${tab}`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tutorial:tabChanged', { detail: tab }));
+    }
+  }
+
+  /**
+   * Subscribe to tab change events with automatic cleanup handler
+   */
+  public static onTabChanged(callback: (tab: TutorialTabType | string) => void): () => void {
+    if (typeof window === 'undefined') return () => {};
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<TutorialTabType | string>;
+      callback(customEvent.detail);
+    };
+    window.addEventListener('tutorial:tabChanged', handler);
+    return () => {
+      window.removeEventListener('tutorial:tabChanged', handler);
+    };
+  }
+
+  /**
+   * Emit gameplay action (move, jump, victory) for gameplay phase
+   */
+  public static emitGameplayAction(action: 'move' | 'jump' | 'victory' | string): void {
+    console.log(`[Tutorial] Gameplay action: ${action}`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tutorial:gameplayAction', { detail: action }));
+    }
+  }
+
+  /**
+   * Subscribe to gameplay actions with automatic cleanup handler
+   */
+  public static onGameplayAction(callback: (action: string) => void): () => void {
+    if (typeof window === 'undefined') return () => {};
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      callback(customEvent.detail);
+    };
+    window.addEventListener('tutorial:gameplayAction', handler);
+    return () => {
+      window.removeEventListener('tutorial:gameplayAction', handler);
+    };
+  }
+
   /**
    * Checks if player has completed or skipped the interactive Guided Tour
    */

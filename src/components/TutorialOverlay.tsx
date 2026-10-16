@@ -27,6 +27,7 @@ export type TutorialHandAction = 'click' | 'drag-horizontal' | 'input' | 'none';
 export interface TutorialOverlayProps {
   isOpen: boolean;
   step: number;
+  totalSteps?: number;
   targetElementId?: string;
   title?: string;
   message: string;
@@ -34,9 +35,13 @@ export interface TutorialOverlayProps {
   onSkip: () => void;
   onStartTour?: () => void;
   onCompleteTour?: () => void;
+  onSkipStep?: () => void;
+  onNextStep?: () => void;
   placedCount?: number;
   targetPlacedCount?: number;
   wrongClickMessage?: string;
+  isSuccess?: boolean;
+  successMessage?: string;
 }
 
 // --- Crisp White Cartoon Hand with Pointing Index Finger ---
@@ -102,6 +107,7 @@ export const WhitePointingHand: React.FC<{
 export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   isOpen,
   step,
+  totalSteps = 6,
   targetElementId,
   title,
   message,
@@ -109,14 +115,46 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   onSkip,
   onStartTour,
   onCompleteTour,
+  onSkipStep,
+  onNextStep,
   placedCount = 0,
   targetPlacedCount = 3,
   wrongClickMessage,
+  isSuccess = false,
+  successMessage,
 }) => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [handAnimationKey, setHandAnimationKey] = useState<number>(0);
   const [isShaking, setIsShaking] = useState<boolean>(false);
   const shakeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Anti-stuck idle assistance timer (15 seconds of inactivity)
+  const [isIdleHelpActive, setIsIdleHelpActive] = useState<boolean>(false);
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Log step changes for testing & diagnostics
+  useEffect(() => {
+    if (isOpen) {
+      console.log(`[Tutorial] Step changed to: ${step}`);
+    }
+  }, [isOpen, step]);
+
+  // Anti-stuck 15-second timer
+  useEffect(() => {
+    setIsIdleHelpActive(false);
+    if (!isOpen || step === 0 || step > totalSteps) return;
+
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = setTimeout(() => {
+      console.log(`[Tutorial] ⏳ Anti-stuck: User idle on step ${step} for >15s. Showing pulsing assistance.`);
+      setIsIdleHelpActive(true);
+      setHandAnimationKey((k) => k + 1);
+    }, 15000);
+
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [isOpen, step, targetElementId, totalSteps]);
 
   // Measure target element bounding box
   const updateTargetRect = useCallback(() => {
@@ -232,7 +270,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   }
 
   // --- Final Step: Congratulations Modal ---
-  if (step === 6) {
+  if (step > totalSteps || (step >= totalSteps && !targetElementId)) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none animate-in zoom-in-95 duration-200">
         <div className="relative w-full max-w-md p-6 bg-gradient-to-b from-[#131B2E] to-[#0B0F19] border-2 border-emerald-400/80 rounded-3xl shadow-2xl shadow-emerald-500/10 text-center space-y-5">
@@ -326,22 +364,29 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const spotlightWidth = targetRect ? targetRect.width + spotlightPadding * 2 : 0;
   const spotlightHeight = targetRect ? targetRect.height + spotlightPadding * 2 : 0;
 
+  const isCanvasStep =
+    step === 3 ||
+    !targetElementId ||
+    targetElementId === 'tour-canvas-zone' ||
+    targetElementId === 'tour-canvas-guide' ||
+    handAction === 'drag-horizontal';
+
+  if (isCanvasStep) {
+    tooltipStyle = {
+      top: 76,
+      left: '50%',
+      transform: 'translateX(-50%)',
+    };
+    arrowPlacement = 'none';
+  }
+
   return (
     <div className="fixed inset-0 z-40 select-none overflow-hidden pointer-events-none">
-      {/* 1. Backdrop Blocker with Spotlight Cutout */}
-      {targetRect ? (
+      {/* 1. Backdrop Blocker with Spotlight Cutout (Disabled during Canvas drawing steps) */}
+      {!isCanvasStep && targetRect ? (
         <>
-          {/* Spotlight aperture: for clicks it triggers targetElementId click; for drag it lets mouse events pass through */}
+          {/* Spotlight aperture: pointer-events-none lets all clicks directly pass through to the button below */}
           <div
-            onClick={(e) => {
-              e.stopPropagation();
-              if (targetElementId && handAction !== 'drag-horizontal') {
-                const el = document.getElementById(targetElementId);
-                if (el) {
-                  el.click();
-                }
-              }
-            }}
             style={{
               top: spotlightTop,
               left: spotlightLeft,
@@ -349,40 +394,38 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
               height: spotlightHeight,
               boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.78), 0 0 24px 6px rgba(245, 158, 11, 0.5)',
             }}
-            className={`fixed rounded-2xl border-2 border-amber-400 transition-all duration-300 ease-out ${
-              handAction === 'drag-horizontal'
-                ? 'pointer-events-none'
-                : 'pointer-events-auto cursor-pointer'
+            className={`fixed rounded-2xl border-2 transition-all duration-300 ease-out pointer-events-none z-30 ${
+              isSuccess
+                ? 'border-emerald-400 ring-4 ring-emerald-400/40'
+                : isIdleHelpActive
+                ? 'border-amber-400 animate-pulse-help'
+                : 'border-amber-400'
             }`}
           />
 
-          {/* 4 Click catchers surrounding the spotlight (prevents accidental wrong clicks & shakes tooltip) */}
-          {/* Top blocker */}
+          {/* 4 Click catchers surrounding the spotlight for button selection steps */}
           <div
             onClick={triggerShake}
-            className="fixed top-0 left-0 right-0 pointer-events-auto"
+            className="fixed top-0 left-0 right-0 pointer-events-auto z-30"
             style={{ height: Math.max(0, spotlightTop) }}
           />
-          {/* Bottom blocker */}
           <div
             onClick={triggerShake}
-            className="fixed left-0 right-0 bottom-0 pointer-events-auto"
+            className="fixed left-0 right-0 bottom-0 pointer-events-auto z-30"
             style={{ top: Math.max(0, spotlightTop + spotlightHeight) }}
           />
-          {/* Left blocker */}
           <div
             onClick={triggerShake}
-            className="fixed left-0 pointer-events-auto"
+            className="fixed left-0 pointer-events-auto z-30"
             style={{
               top: Math.max(0, spotlightTop),
               width: Math.max(0, spotlightLeft),
               height: spotlightHeight,
             }}
           />
-          {/* Right blocker */}
           <div
             onClick={triggerShake}
-            className="fixed right-0 pointer-events-auto"
+            className="fixed right-0 pointer-events-auto z-30"
             style={{
               top: Math.max(0, spotlightTop),
               left: Math.max(0, spotlightLeft + spotlightWidth),
@@ -390,13 +433,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
             }}
           />
         </>
-      ) : (
-        /* Full backdrop if target rect is not yet ready */
-        <div
-          onClick={triggerShake}
-          className="fixed inset-0 bg-black/75 pointer-events-auto transition-opacity"
-        />
-      )}
+      ) : null}
 
       {/* 2. Top-Right Skip Button */}
       <button
@@ -451,44 +488,120 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
       {/* 4. Child-Friendly Tooltip Card */}
       <div
         style={tooltipStyle}
-        className={`fixed z-50 w-72 sm:w-80 pointer-events-auto transition-transform ${
+        className={`fixed z-50 w-72 sm:w-84 pointer-events-auto transition-transform ${
           isShaking ? 'animate-shake' : ''
         }`}
       >
-        <div className="relative p-4 rounded-2xl bg-gradient-to-b from-[#1E293B] to-[#0F172A] border-2 border-amber-400 text-white shadow-2xl shadow-black/80 backdrop-blur-md space-y-2">
+        <div
+          className={`relative p-4 rounded-2xl border-2 text-white shadow-2xl shadow-black/80 backdrop-blur-md space-y-2.5 transition-all ${
+            isSuccess
+              ? 'bg-gradient-to-b from-[#064E3B] to-[#0B0F19] border-emerald-400 shadow-emerald-500/20'
+              : 'bg-gradient-to-b from-[#1E293B] to-[#0F172A] border-amber-400 shadow-black/80'
+          }`}
+        >
           {/* Arrow pointing to element */}
           {arrowPlacement === 'top' && (
-            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#1E293B] border-t-2 border-l-2 border-amber-400 transform rotate-45" />
+            <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 border-t-2 border-l-2 transform rotate-45 ${
+              isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
+            }`} />
           )}
           {arrowPlacement === 'bottom' && (
-            <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#0F172A] border-b-2 border-r-2 border-amber-400 transform rotate-45" />
+            <div className={`absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 border-b-2 border-r-2 transform rotate-45 ${
+              isSuccess ? 'bg-[#0B0F19] border-emerald-400' : 'bg-[#0F172A] border-amber-400'
+            }`} />
           )}
           {arrowPlacement === 'right' && (
-            <div className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-4 h-4 bg-[#1E293B] border-t-2 border-r-2 border-amber-400 transform rotate-45" />
+            <div className={`absolute top-1/2 -right-2.5 -translate-y-1/2 w-4 h-4 border-t-2 border-r-2 transform rotate-45 ${
+              isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
+            }`} />
           )}
           {arrowPlacement === 'left' && (
-            <div className="absolute top-1/2 -left-2.5 -translate-y-1/2 w-4 h-4 bg-[#1E293B] border-b-2 border-l-2 border-amber-400 transform rotate-45" />
+            <div className={`absolute top-1/2 -left-2.5 -translate-y-1/2 w-4 h-4 border-b-2 border-l-2 transform rotate-45 ${
+              isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
+            }`} />
           )}
 
-          {/* Header Pill */}
-          <div className="flex items-center justify-between">
-            <span className="px-2 py-0.5 rounded-lg bg-amber-400/20 text-amber-300 font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>Шаг {step} из 5</span>
-            </span>
-
-            {/* Step Counter if placing blocks */}
-            {step === 4 && (
-              <span className="text-[11px] font-bold text-emerald-400 font-mono bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-500/40">
-                {placedCount} / {targetPlacedCount} блока
+          {/* Header Pill & Skip Step Button */}
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex items-center gap-1.5">
+              <span className={`px-2 py-0.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+                isSuccess
+                  ? 'bg-emerald-500/30 text-emerald-300'
+                  : 'bg-amber-400/20 text-amber-300'
+              }`}>
+                {isSuccess ? (
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                )}
+                <span>Шаг {step} из {totalSteps}</span>
               </span>
+
+              {/* Step Counter if placing blocks */}
+              {step === 3 && (
+                <span className="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-950/80 px-1.5 py-0.5 rounded-md border border-emerald-500/40">
+                  {placedCount} / {targetPlacedCount} блока
+                </span>
+              )}
+            </div>
+
+            {/* Skip current step button (Anti-Stuck safeguard) */}
+            {onSkipStep && step > 0 && !isSuccess && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  sound.playClick();
+                  onSkipStep();
+                }}
+                title="Пропустить этот шаг обучения"
+                className="text-[10px] text-amber-300 hover:text-white underline font-semibold cursor-pointer transition-colors shrink-0"
+              >
+                Пропустить шаг ⏭
+              </button>
             )}
           </div>
 
-          {/* Card Message */}
-          <div className="text-xs sm:text-sm font-bold text-slate-100 leading-snug">
-            {message}
-          </div>
+          {/* Card Title if provided */}
+          {title && !isSuccess && (
+            <div className="text-xs font-black text-amber-300 uppercase tracking-wide">
+              {title}
+            </div>
+          )}
+
+          {/* Card Message or Success Feedback */}
+          {isSuccess ? (
+            <div className="space-y-2">
+              <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/60 flex items-center gap-2.5 text-emerald-200 text-xs sm:text-sm font-bold shadow-lg">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 stroke-[2.5]" />
+                <span>{successMessage || 'Отлично! Шаг выполнен!'}</span>
+              </div>
+              {onNextStep && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    sound.playClick();
+                    onNextStep();
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/25 transition-all cursor-pointer active:scale-95"
+                >
+                  <span>Дальше</span>
+                  <span className="text-sm">→</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs sm:text-sm font-bold text-slate-100 leading-snug">
+              {message}
+            </div>
+          )}
+
+          {/* Idle Reminder Help if stuck > 15s */}
+          {isIdleHelpActive && !isSuccess && (
+            <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-300 text-[11px] font-bold flex items-center gap-2 animate-pulse-help">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>💡 Нажми сюда! Подсвеченная кнопка ждёт твоего клика!</span>
+            </div>
+          )}
 
           {/* Contextual Warning Reminder if user clicked wrong element */}
           {isShaking && (
@@ -501,3 +614,4 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     </div>
   );
 };
+

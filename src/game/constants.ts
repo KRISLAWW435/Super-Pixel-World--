@@ -144,14 +144,6 @@ export const PALETTE_ITEMS: PaletteItemDef[] = [
     hint: 'Низкое трение: персонаж сохраняет импульс и скользит на несколько клеток.',
   },
   {
-    id: 'ice',
-    name: 'Ледяной блок',
-    category: 'platforms',
-    solid: true,
-    desc: 'Скользкий ледник. Игрок плавно скользит!',
-    hint: 'Персонаж скользит по поверхности льда.',
-  },
-  {
     id: 'cloud',
     name: 'Облачная платформа',
     category: 'platforms',

@@ -33,12 +33,15 @@ import {
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 import { HEROES, PALETTE_ITEMS, THEMES } from '../game/constants';
+import { TutorialManager } from '../services/TutorialManager';
 import { HeroId, ThemeId, TileId, ToolMode } from '../types/game';
 import { PaletteTilePreview } from './PaletteTilePreview';
 
-type StudioSidebarTab = 'platforms' | 'interactive' | 'world';
+export type StudioSidebarTab = 'platforms' | 'interactive' | 'world';
 
 interface BuilderSidebarProps {
+  activeTab?: StudioSidebarTab;
+  onTabChange?: (tab: StudioSidebarTab) => void;
   activeTool: ToolMode;
   selectedTile: TileId;
   selectedTheme: ThemeId;
@@ -65,6 +68,8 @@ interface BuilderSidebarProps {
 }
 
 export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
+  activeTab: activeTabProp,
+  onTabChange,
   activeTool,
   selectedTile,
   selectedTheme,
@@ -89,7 +94,15 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   onExitToMenu,
   isGuidedTourOpen,
 }) => {
-  const [activeTab, setActiveTab] = useState<StudioSidebarTab>('platforms');
+  const [internalTab, setInternalTab] = useState<StudioSidebarTab>('platforms');
+  const activeTab = activeTabProp !== undefined ? activeTabProp : internalTab;
+
+  const handleSelectTab = (tab: StudioSidebarTab) => {
+    setInternalTab(tab);
+    onTabChange?.(tab);
+    TutorialManager.emitTabChanged(tab);
+  };
+
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -100,7 +113,13 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
     }
   }, [isGuidedTourOpen, isCollapsed]);
 
-  const platformItems = PALETTE_ITEMS.filter((i) => i.category === 'platforms');
+  // Guarantee 100% unique items (eliminates duplicate ice blocks)
+  const platformItems = Array.from(
+    new Map(
+      PALETTE_ITEMS.filter((i) => i.category === 'platforms').map((item) => [item.id, item])
+    ).values()
+  ).filter((item, idx, arr) => arr.findIndex((t) => t.name.trim() === item.name.trim()) === idx);
+
   const interactiveItems = PALETTE_ITEMS.filter((i) => i.category === 'objects');
   const enemyItems = PALETTE_ITEMS.filter((i) => i.category === 'enemies');
 
@@ -242,11 +261,12 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         <button
           id="tour-tab-platforms"
           onClick={() => {
-            setActiveTab('platforms');
+            handleSelectTab('platforms');
             if (activeTool === 'erase') onSelectTool('brush');
             sound.playClick();
           }}
-          className={`py-2 px-1 text-xs font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+          style={{ pointerEvents: 'auto' }}
+          className={`tutorial-target py-2 px-1 text-xs font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
             activeTab === 'platforms'
               ? 'bg-[#1E293B] text-amber-300 border border-amber-400/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -259,11 +279,12 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         <button
           id="tour-tab-interactive"
           onClick={() => {
-            setActiveTab('interactive');
+            handleSelectTab('interactive');
             if (activeTool === 'erase') onSelectTool('brush');
             sound.playClick();
           }}
-          className={`py-2 px-1 text-xs font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+          style={{ pointerEvents: 'auto' }}
+          className={`tutorial-target py-2 px-1 text-xs font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
             activeTab === 'interactive'
               ? 'bg-[#1E293B] text-amber-300 border border-amber-400/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -276,10 +297,11 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         <button
           id="tour-tab-world"
           onClick={() => {
-            setActiveTab('world');
+            handleSelectTab('world');
             sound.playClick();
           }}
-          className={`py-2 px-1 text-xs font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+          style={{ pointerEvents: 'auto' }}
+          className={`tutorial-target py-2 px-1 text-xs font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
             activeTab === 'world'
               ? 'bg-[#1E293B] text-amber-300 border border-amber-400/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -298,7 +320,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             <div className="text-[11px] font-semibold text-slate-400">
               Строительные блоки и платформы:
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
               {platformItems.map((item) => {
                 const isSelected = activeTool !== 'erase' && selectedTile === item.id;
                 return (
@@ -311,16 +333,16 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                       sound.playPlaceTile();
                     }}
                     title={item.hint}
-                    className={`flex items-center gap-2 p-2 rounded-xl text-left border transition-all cursor-pointer min-h-[44px] ${
+                    className={`tutorial-target flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl text-left border transition-all cursor-pointer min-h-[58px] sm:min-h-[64px] select-none touch-manipulation ${
                       isSelected
-                        ? 'bg-amber-500/20 border-amber-400 ring-1 ring-amber-400/50 text-white'
-                        : 'bg-[#0B0F19]/80 hover:bg-slate-800 border-slate-700/80 text-slate-300 hover:border-slate-600'
+                        ? 'bg-amber-500/25 border-amber-400 ring-2 ring-amber-400/60 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
+                        : 'bg-[#0B0F19]/90 hover:bg-slate-800 border-slate-700/80 text-slate-200 hover:border-slate-500 active:scale-95'
                     }`}
                   >
-                    <div className="shrink-0 w-8 h-8 rounded-lg bg-[#0F172A] flex items-center justify-center border border-slate-700/60">
-                      <PaletteTilePreview tileId={item.id} size={30} />
+                    <div className="shrink-0 w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-xl bg-[#0F172A] flex items-center justify-center border border-slate-700/60 shadow-inner">
+                      <PaletteTilePreview tileId={item.id} size={36} />
                     </div>
-                    <span className="text-xs font-bold leading-tight truncate">
+                    <span className="text-xs sm:text-[13px] font-bold leading-snug line-clamp-2">
                       {item.name}
                     </span>
                   </button>
@@ -332,13 +354,13 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
 
         {/* TAB 2: INTERACTIVE & ENEMIES */}
         {activeTab === 'interactive' && (
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             {/* Interactive Items Section */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">
                 Бонусы и механизмы:
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                 {interactiveItems.map((item) => {
                   const isSelected = activeTool !== 'erase' && selectedTile === item.id;
                   return (
@@ -351,16 +373,16 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                         sound.playPlaceTile();
                       }}
                       title={item.hint}
-                      className={`flex items-center gap-2 p-2 rounded-xl text-left border transition-all cursor-pointer min-h-[44px] ${
+                      className={`tutorial-target flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl text-left border transition-all cursor-pointer min-h-[58px] sm:min-h-[64px] select-none touch-manipulation ${
                         isSelected
-                          ? 'bg-amber-500/20 border-amber-400 ring-1 ring-amber-400/50 text-white'
-                          : 'bg-[#0B0F19]/80 hover:bg-slate-800 border-slate-700/80 text-slate-300'
+                          ? 'bg-amber-500/25 border-amber-400 ring-2 ring-amber-400/60 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
+                          : 'bg-[#0B0F19]/90 hover:bg-slate-800 border-slate-700/80 text-slate-200 hover:border-slate-500 active:scale-95'
                       }`}
                     >
-                      <div className="shrink-0 w-8 h-8 rounded-lg bg-[#0F172A] flex items-center justify-center border border-slate-700/60">
-                        <PaletteTilePreview tileId={item.id} size={30} />
+                      <div className="shrink-0 w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-xl bg-[#0F172A] flex items-center justify-center border border-slate-700/60 shadow-inner">
+                        <PaletteTilePreview tileId={item.id} size={36} />
                       </div>
-                      <span className="text-xs font-bold leading-tight truncate">
+                      <span className="text-xs sm:text-[13px] font-bold leading-snug line-clamp-2">
                         {item.name}
                       </span>
                     </button>
@@ -370,7 +392,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             </div>
 
             {/* Enemies Section with Ground Requirement Note */}
-            <div className="space-y-1.5 pt-2 border-t border-slate-800">
+            <div className="space-y-2 pt-2 border-t border-slate-800">
               <div className="flex items-center justify-between">
                 <div className="text-[11px] font-semibold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Swords className="w-3.5 h-3.5" />
@@ -381,7 +403,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-1 gap-2.5">
                 {enemyItems.map((item) => {
                   const isSelected = activeTool !== 'erase' && selectedTile === item.id;
                   const isGround = item.id !== 'enemy_slime';
@@ -397,6 +419,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                   return (
                     <button
                       key={item.id}
+                      id={`tour-tile-${item.id}`}
                       onClick={() => {
                         onSelectTile(item.id);
                         if (activeTool === 'erase') onSelectTool('brush');
@@ -407,10 +430,10 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           ? `${item.name}: ставится только на твердую поверхность`
                           : `${item.name}: летает в воздухе`
                       }
-                      className={`flex items-center justify-between p-2 rounded-xl text-left border transition-all cursor-pointer min-h-[44px] ${
+                      className={`tutorial-target flex items-center justify-between p-2.5 rounded-xl text-left border transition-all cursor-pointer min-h-[50px] select-none ${
                         isSelected
-                          ? 'bg-rose-500/20 border-rose-400 ring-1 ring-rose-400/50 text-white'
-                          : 'bg-[#0B0F19]/80 hover:bg-slate-800 border-slate-700/80 text-slate-300'
+                          ? 'bg-rose-500/25 border-rose-400 ring-2 ring-rose-400/60 text-white shadow-md shadow-rose-500/20'
+                          : 'bg-[#0B0F19]/90 hover:bg-slate-800 border-slate-700/80 text-slate-300 hover:border-slate-500 active:scale-98'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">

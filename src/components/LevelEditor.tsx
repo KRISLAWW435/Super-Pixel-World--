@@ -55,6 +55,11 @@ interface LevelEditorProps {
   onUndo?: () => void;
   onRedo?: () => void;
   onExitToMenu?: () => void;
+  onCameraAction?: () => void;
+  isGuidedTourOpen?: boolean;
+  guidedTourStep?: number;
+  tourBlocksPlaced?: number;
+  onAdvanceTourStep?: (step: number) => void;
 }
 
 export const LevelEditor: React.FC<LevelEditorProps> = ({
@@ -71,6 +76,11 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   onUndo,
   onRedo,
   onExitToMenu,
+  onCameraAction,
+  isGuidedTourOpen = false,
+  guidedTourStep = 0,
+  tourBlocksPlaced = 0,
+  onAdvanceTourStep,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -187,6 +197,45 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     const updated = generateTutorialSample(stepIndex, levelData.items, centerCol, levelData.width);
     onUpdateItems(updated, true);
     sound.playPlaceTile();
+  };
+
+  // Auto-helpers for guided tour steps (100% accessible for kids & touchpads)
+  const handleTourAutoRoad = () => {
+    let items = [...levelData.items];
+    const timestamp = Date.now();
+    for (let c = 5; c <= 7; c++) {
+      items = items.filter((it) => !(it.x === c && it.y === 14));
+      items.push({ id: `tour_road_${c}_${timestamp}`, tileId: 'grass_dirt', x: c, y: 14 });
+    }
+    onUpdateItems(items, true);
+    sound.playPlaceTile();
+  };
+
+  const handleTourAutoCoin = () => {
+    let items = [...levelData.items];
+    const timestamp = Date.now();
+    items = items.filter((it) => !(it.x === 6 && it.y === 11));
+    items.push({ id: `tour_coin_6_${timestamp}`, tileId: 'coin', x: 6, y: 11 });
+    onUpdateItems(items, true);
+    sound.playCoin();
+  };
+
+  const handleTourAutoHazard = () => {
+    let items = [...levelData.items];
+    const timestamp = Date.now();
+    items = items.filter((it) => !(it.x === 7 && it.y === 13));
+    items.push({ id: `tour_spikes_7_${timestamp}`, tileId: 'spikes', x: 7, y: 13 });
+    onUpdateItems(items, true);
+    sound.playBump();
+  };
+
+  const handleTourAutoGoal = () => {
+    let items = [...levelData.items];
+    const timestamp = Date.now();
+    items = items.filter((it) => !(it.x === 9 && it.y === 13));
+    items.push({ id: `tour_goal_9_${timestamp}`, tileId: 'goal', x: 9, y: 13 });
+    onUpdateItems(items, true);
+    sound.playVictory();
   };
 
   // Convert mouse event to grid col/row
@@ -716,6 +765,81 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         }
       }
 
+      // Guided Tour Visual Aids on Canvas (Drawing Step 3, 4, 5, 6 guidelines)
+      if (isGuidedTourOpen) {
+        if (guidedTourStep === 3) {
+          // Guide for road across cols 5..7, row 14
+          ctx.save();
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([6, 4]);
+
+          for (let c = 5; c <= 7; c++) {
+            const px = c * effectiveCellSize;
+            const py = 14 * effectiveCellSize;
+            ctx.strokeRect(px + 1, py + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+
+            // Translucent ghost block
+            ctx.globalAlpha = 0.45;
+            SpriteRenderer.drawTile(ctx, 'grass_dirt', px, py, effectiveCellSize, { animTime });
+            ctx.globalAlpha = 1.0;
+          }
+
+          // Animated pointer hand gliding across the 3 blocks
+          const tCycle = (animTime * 1.2) % 3.0; // 0 to 3
+          const handX = (5 + (tCycle / 3.0) * 2.8) * effectiveCellSize + 10;
+          const handY = 14 * effectiveCellSize - 16;
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(handX, handY, 14, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.font = '14px system-ui';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('👉', handX, handY + 1);
+          ctx.restore();
+        } else if (guidedTourStep === 4) {
+          // Guide for coin at col 6, row 11
+          ctx.save();
+          const px = 6 * effectiveCellSize;
+          const py = (11 + Math.sin(animTime * 3) * 0.15) * effectiveCellSize;
+          ctx.strokeStyle = '#eab308';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(px + 2, py + 2, effectiveCellSize - 4, effectiveCellSize - 4);
+          ctx.globalAlpha = 0.6;
+          SpriteRenderer.drawTile(ctx, 'coin', px, py, effectiveCellSize, { animTime });
+          ctx.restore();
+        } else if (guidedTourStep === 5) {
+          // Guide for spikes at col 7, row 13
+          ctx.save();
+          const px = 7 * effectiveCellSize;
+          const py = 13 * effectiveCellSize;
+          ctx.strokeStyle = '#f43f5e';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(px + 2, py + 2, effectiveCellSize - 4, effectiveCellSize - 4);
+          ctx.globalAlpha = 0.6;
+          SpriteRenderer.drawTile(ctx, 'spikes', px, py, effectiveCellSize, { animTime });
+          ctx.restore();
+        } else if (guidedTourStep === 6) {
+          // Guide for goal gate at col 9, row 13
+          ctx.save();
+          const px = 9 * effectiveCellSize;
+          const py = 13 * effectiveCellSize;
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(px + 2, py + 2, effectiveCellSize - 4, effectiveCellSize - 4);
+          ctx.globalAlpha = 0.6;
+          SpriteRenderer.drawTile(ctx, 'goal', px, py, effectiveCellSize, { animTime });
+          ctx.restore();
+        }
+      }
+
       ctx.restore();
 
       renderMinimap();
@@ -942,6 +1066,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
   // Wheel horizontal scrolling & zoom
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    onCameraAction?.();
     if (e.ctrlKey) {
       e.preventDefault();
       const delta = e.deltaY < 0 ? 0.1 : -0.1;
@@ -954,6 +1079,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
   // Minimap click / drag pan
   const handleMinimapInteraction = (clientX: number) => {
+    onCameraAction?.();
     const mCanvas = minimapRef.current;
     if (!mCanvas) return;
     const rect = mCanvas.getBoundingClientRect();
@@ -1131,12 +1257,13 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         {/* Dedicated target zone for Step 3 of Guided Tour */}
         <div
           id="tour-canvas-zone"
-          className="absolute pointer-events-none"
+          className="absolute pointer-events-none select-none"
           style={{
-            left: '25%',
-            bottom: '22%',
-            width: '320px',
-            height: '110px',
+            left: '20%',
+            bottom: '20%',
+            width: '380px',
+            height: '120px',
+            pointerEvents: 'none',
           }}
         />
         <canvas
@@ -1147,6 +1274,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           onMouseLeave={handleMouseUp}
           onWheel={handleWheel}
           onContextMenu={(e) => e.preventDefault()}
+          style={{ pointerEvents: 'auto' }}
           className="absolute inset-0 block w-full h-full"
         />
 

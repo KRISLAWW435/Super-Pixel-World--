@@ -38,6 +38,8 @@ interface GamePlayerProps {
   onExitToMenu?: () => void;
   onToggleFullscreen: () => void;
   onToggleMute: () => void;
+  isTutorialMode?: boolean;
+  onCompleteTutorial?: () => void;
 }
 
 export const GamePlayer: React.FC<GamePlayerProps> = ({
@@ -50,6 +52,8 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
   onExitToMenu,
   onToggleFullscreen,
   onToggleMute,
+  isTutorialMode = false,
+  onCompleteTutorial,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -73,14 +77,20 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
   const [isVictory, setIsVictory] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [showControlsBanner, setShowControlsBanner] = useState(true);
+  const [hasMoved, setHasMoved] = useState(false);
+  const [hasJumped, setHasJumped] = useState(false);
 
-  // Auto-hide controls banner after 7 seconds
+  // Auto-hide standard controls banner if tutorial mode is active (tutorial has its own persistent bar)
   useEffect(() => {
+    if (isTutorialMode) {
+      setShowControlsBanner(false);
+      return;
+    }
     const timer = setTimeout(() => {
       setShowControlsBanner(false);
     }, 7000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isTutorialMode]);
 
   // Background image
   const themeConfig = THEMES[themeId] || THEMES.green_islands;
@@ -139,15 +149,18 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
       if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
         keysRef.current.left = true;
+        setHasMoved(true);
       }
       if (e.code === 'KeyD' || e.code === 'ArrowRight') {
         keysRef.current.right = true;
+        setHasMoved(true);
       }
       if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp') {
         if (!keysRef.current.jump) {
           keysRef.current.jumpJustPressed = true;
         }
         keysRef.current.jump = true;
+        setHasJumped(true);
         e.preventDefault();
       }
     };
@@ -522,8 +535,38 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
         </div>
       </header>
 
+      {/* Interactive In-Game Tutorial Mission Guide (Step 8) */}
+      {isTutorialMode && !isVictory && !isGameOver && (
+        <div className="absolute top-16 left-4 right-4 z-40 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-3">
+          <div className="max-w-2xl bg-gradient-to-r from-slate-900/95 via-slate-950/95 to-slate-900/95 border-2 border-amber-400 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-amber-500/20 pointer-events-auto backdrop-blur-md flex items-center justify-between gap-3 text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-400 flex items-center justify-center shrink-0 text-2xl animate-bounce">
+                {!hasMoved ? '🏃' : !hasJumped ? '🦘' : stats.coinsCollected === 0 ? '🪙' : '🚩'}
+              </div>
+              <div className="text-xs sm:text-sm">
+                <div className="font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                  <span>Обучение: Шаг 8 из 8 — Проверь игру в действии!</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/30 text-[10px] font-mono">Плейтест</span>
+                </div>
+                <div className="text-slate-100 font-bold mt-0.5">
+                  {!hasMoved ? (
+                    <span>Нажимай стрелочки <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono border border-slate-700">⬅ ➡</kbd> или <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono border border-slate-700">A / D</kbd>, чтобы побежать!</span>
+                  ) : !hasJumped ? (
+                    <span>Отлично! Теперь нажми <kbd className="px-2 py-0.5 rounded bg-emerald-900 text-emerald-300 font-mono border border-emerald-500">Пробел</kbd> или <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-300 font-mono border border-slate-700">W</kbd>, чтобы прыгнуть!</span>
+                  ) : stats.coinsCollected === 0 ? (
+                    <span>Супер! Теперь собери сияющую золотую монетку!</span>
+                  ) : (
+                    <span>Монета собрана! 🪙 Теперь спеши к Финишным воротам для победы!</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Intro Controls & Battle Guide Banner */}
-      {showControlsBanner && !isVictory && !isGameOver && (
+      {showControlsBanner && !isTutorialMode && !isVictory && !isGameOver && (
         <div className="absolute top-16 left-4 right-4 z-40 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-3 duration-300">
           <div className="max-w-xl bg-slate-900/95 border-2 border-emerald-500/60 rounded-2xl p-3.5 shadow-2xl shadow-emerald-500/15 pointer-events-auto backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -592,11 +635,14 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
             onTouchStart={(e) => {
               e.preventDefault();
               keysRef.current.left = true;
+              setHasMoved(true);
             }}
             onTouchEnd={() => {
               keysRef.current.left = false;
             }}
-            className="w-16 h-16 rounded-2xl bg-slate-900/80 active:bg-amber-500/80 border-2 border-slate-700 text-white flex items-center justify-center text-xl font-black shadow-xl backdrop-blur-md"
+            className={`w-16 h-16 rounded-2xl bg-slate-900/80 active:bg-amber-500/80 border-2 text-white flex items-center justify-center text-xl font-black shadow-xl backdrop-blur-md ${
+              isTutorialMode && !hasMoved ? 'border-amber-400 ring-4 ring-amber-400/50 animate-pulse' : 'border-slate-700'
+            }`}
           >
             ◀
           </button>
@@ -604,11 +650,14 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
             onTouchStart={(e) => {
               e.preventDefault();
               keysRef.current.right = true;
+              setHasMoved(true);
             }}
             onTouchEnd={() => {
               keysRef.current.right = false;
             }}
-            className="w-16 h-16 rounded-2xl bg-slate-900/80 active:bg-amber-500/80 border-2 border-slate-700 text-white flex items-center justify-center text-xl font-black shadow-xl backdrop-blur-md"
+            className={`w-16 h-16 rounded-2xl bg-slate-900/80 active:bg-amber-500/80 border-2 text-white flex items-center justify-center text-xl font-black shadow-xl backdrop-blur-md ${
+              isTutorialMode && !hasMoved ? 'border-amber-400 ring-4 ring-amber-400/50 animate-pulse' : 'border-slate-700'
+            }`}
           >
             ▶
           </button>
@@ -621,12 +670,15 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
               e.preventDefault();
               keysRef.current.jumpJustPressed = true;
               keysRef.current.jump = true;
+              setHasJumped(true);
             }}
             onTouchEnd={() => {
               keysRef.current.jump = false;
               keysRef.current.jumpJustPressed = false;
             }}
-            className="w-20 h-20 rounded-full bg-emerald-600/90 active:bg-emerald-400 border-4 border-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center shadow-2xl backdrop-blur-md"
+            className={`w-20 h-20 rounded-full bg-emerald-600/90 active:bg-emerald-400 border-4 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center shadow-2xl backdrop-blur-md ${
+              isTutorialMode && hasMoved && !hasJumped ? 'border-amber-300 ring-4 ring-amber-400/60 animate-bounce' : 'border-emerald-400'
+            }`}
           >
             ПРЫЖОК
           </button>
@@ -716,11 +768,16 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
             <div>
               <div className="text-xs font-black uppercase tracking-widest text-amber-400">
-                Уровень пройден!
+                {isTutorialMode ? 'Обучение успешно завершено! 🎓' : 'Уровень пройден!'}
               </div>
-              <h2 className="font-black text-3xl text-white mt-1">
-                ГРАНДИОЗНАЯ ПОБЕДА!
+              <h2 className="font-black text-2xl sm:text-3xl text-white mt-1">
+                {isTutorialMode ? 'ПОЗДРАВЛЯЕМ, ГЕЙМДИЗАЙНЕР!' : 'ГРАНДИОЗНАЯ ПОБЕДА!'}
               </h2>
+              {isTutorialMode && (
+                <p className="text-xs sm:text-sm text-slate-200 mt-2 leading-relaxed">
+                  Ты создал свой первый уровень в <span className="text-amber-300 font-bold">Super Pixel World</span> и победоносно прошёл его! Теперь у тебя есть все необходимые навыки — строй любые миры, делись ими и удивляй друзей!
+                </p>
+              )}
             </div>
 
             {/* Victory Statistics */}
@@ -751,24 +808,35 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
               </div>
             </div>
 
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={initGame}
-                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Играть ещё раз
-              </button>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <button
                 onClick={() => {
                   sound.stopBgm();
+                  if (isTutorialMode) {
+                    onCompleteTutorial?.();
+                  }
                   onExitToEditor();
                 }}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/25 transition-all cursor-pointer active:scale-95"
               >
                 <ArrowLeft className="w-4 h-4" />
-                В конструктор
+                <span>В конструктор (Создать игру)</span>
               </button>
+              {onExitToMenu && (
+                <button
+                  onClick={() => {
+                    sound.stopBgm();
+                    if (isTutorialMode) {
+                      onCompleteTutorial?.();
+                    }
+                    onExitToMenu();
+                  }}
+                  className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  <span>В меню</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
