@@ -11,6 +11,7 @@ import {
   Coins,
   Crown,
   Heart,
+  Home,
   Maximize2,
   Minimize2,
   Pause,
@@ -34,6 +35,7 @@ interface GamePlayerProps {
   isFullscreen: boolean;
   isMuted: boolean;
   onExitToEditor: () => void;
+  onExitToMenu?: () => void;
   onToggleFullscreen: () => void;
   onToggleMute: () => void;
 }
@@ -45,6 +47,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
   isFullscreen,
   isMuted,
   onExitToEditor,
+  onExitToMenu,
   onToggleFullscreen,
   onToggleMute,
 }) => {
@@ -69,6 +72,15 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [isVictory, setIsVictory] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [showControlsBanner, setShowControlsBanner] = useState(true);
+
+  // Auto-hide controls banner after 7 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowControlsBanner(false);
+    }, 7000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Background image
   const themeConfig = THEMES[themeId] || THEMES.green_islands;
@@ -412,6 +424,20 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
             <span className="hidden sm:inline">В редактор</span>
           </button>
 
+          {onExitToMenu && (
+            <button
+              onClick={() => {
+                sound.stopBgm();
+                sound.playClick();
+                onExitToMenu();
+              }}
+              className="px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white font-bold text-xs flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+            >
+              <Home className="w-4 h-4 text-sky-400" />
+              <span className="hidden sm:inline">В меню</span>
+            </button>
+          )}
+
           {/* Hearts / Lives */}
           <div className="px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-lg backdrop-blur-md flex items-center gap-1">
             {[...Array(3)].map((_, i) => (
@@ -472,6 +498,68 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           </button>
         </div>
       </header>
+
+      {/* Intro Controls & Battle Guide Banner */}
+      {showControlsBanner && !isVictory && !isGameOver && (
+        <div className="absolute top-16 left-4 right-4 z-40 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-3 duration-300">
+          <div className="max-w-xl bg-slate-900/95 border-2 border-emerald-500/60 rounded-2xl p-3.5 shadow-2xl shadow-emerald-500/15 pointer-events-auto backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 text-xl font-bold">
+                🎮
+              </div>
+              <div className="text-xs">
+                <div className="font-bold text-emerald-400 uppercase tracking-wider mb-0.5">
+                  Обучение: Управление и битва
+                </div>
+                <div className="text-slate-200">
+                  <span className="font-semibold text-white">Бег:</span> ⬅ / ➡ или A, D ·{' '}
+                  <span className="font-semibold text-white">Прыжок:</span> Пробел или W (удерживайте для высоты) ·{' '}
+                  <span className="font-bold text-amber-300">Врагов побеждайте прыжком СВЕРХУ!</span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowControlsBanner(false)}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black shrink-0 transition-all cursor-pointer active:scale-95"
+            >
+              В бой!
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop / Tablet Persistent Controls Bar at Bottom */}
+      <div className="hidden md:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+        <div className="px-4 py-2 rounded-2xl bg-slate-950/85 border border-slate-700/80 shadow-xl backdrop-blur-md flex items-center gap-4 text-xs font-medium text-slate-300">
+          <div className="flex items-center gap-1.5">
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono font-bold text-[11px] border border-slate-700">A / D</span>
+            <span className="text-slate-400">или</span>
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono font-bold text-[11px] border border-slate-700">⬅ ➡</span>
+            <span className="text-slate-200 ml-1">Бег</span>
+          </div>
+
+          <div className="w-[1px] h-3.5 bg-slate-700" />
+
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono font-bold text-[11px] border border-slate-700">Пробел / W</span>
+            <span className="text-slate-200 ml-1">Прыжок (удержание = выше)</span>
+          </div>
+
+          <div className="w-[1px] h-3.5 bg-slate-700" />
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-rose-400 font-bold">⚔️ Прыжок сверху:</span>
+            <span className="text-slate-200">Убить врага</span>
+          </div>
+
+          <div className="w-[1px] h-3.5 bg-slate-700" />
+
+          <div className="flex items-center gap-1.5">
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono font-bold text-[11px] border border-slate-700">Esc</span>
+            <span className="text-slate-300">Пауза / В редактор</span>
+          </div>
+        </div>
+      </div>
 
       {/* MOBILE ON-SCREEN TOUCH CONTROLS (Always handy on touchscreens) */}
       <div className="absolute bottom-6 left-6 right-6 z-30 flex items-end justify-between pointer-events-none md:hidden">

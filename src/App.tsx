@@ -1,6 +1,6 @@
 /**
  * SUPER PIXEL WORLD — яркий 2D-платформер с конструктором уровней
- * Main App Component orchestrating Level Editor, Game Player, and Builder Toolbox.
+ * Main App Component orchestrating Profile Creation, Main Menu, My Games, Level Editor, and Game Player.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -9,36 +9,33 @@ import { BuilderSidebar } from './components/BuilderSidebar';
 import { GamePlayer } from './components/GamePlayer';
 import { LevelEditor } from './components/LevelEditor';
 import { LoadPresetModal } from './components/LoadPresetModal';
+import { MainMenuScreen } from './components/MainMenuScreen';
+import { MyGamesScreen } from './components/MyGamesScreen';
+import { ProfileCreationScreen } from './components/ProfileCreationScreen';
+import { SaveGameModal } from './components/SaveGameModal';
 import { TutorialModal } from './components/TutorialModal';
 import { createDefaultLevel } from './game/presetLevels';
+import { ProfileManager, SaveManager, SettingsManager } from './services/storageManager';
 import { HeroId, LevelData, LevelItem, ThemeId, TileId, ToolMode } from './types/game';
+import { UserProfile } from './types/storage';
 
-const LOCAL_STORAGE_KEY = 'super_pixel_world_level_v5';
+export type AppScreenMode = 'profile_create' | 'main_menu' | 'my_games' | 'editor' | 'playing';
 
 export default function App() {
-  // Mode: 'editor' or 'playing'
-  const [gameMode, setGameMode] = useState<'editor' | 'playing'>('editor');
+  // Player Profile
+  const [profile, setProfile] = useState<UserProfile | null>(() => ProfileManager.getProfile());
 
-  // Level Data: strictly empty of pre-placed enemies, coins, stars, and crystals
+  // Screen Mode: 'profile_create' | 'main_menu' | 'my_games' | 'editor' | 'playing'
+  const [screenMode, setScreenMode] = useState<AppScreenMode>(() => {
+    return ProfileManager.hasProfile() ? 'main_menu' : 'profile_create';
+  });
+
+  // Level Data: strictly clean of pre-placed enemies, coins, stars, and crystals
   const [levelData, setLevelData] = useState<LevelData>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
-          parsed.items = parsed.items.filter(
-            (it: LevelItem) =>
-              !it.tileId.startsWith('enemy_') &&
-              (it.tileId as string) !== 'enemy_walker' &&
-              it.tileId !== 'coin' &&
-              it.tileId !== 'star' &&
-              it.tileId !== 'crystal'
-          );
-          return parsed;
-        }
-      }
-    } catch {
-      // Fallback to default
+    // Check if there are any saved games
+    const saved = SaveManager.getSavedGames();
+    if (saved.length > 0 && saved[0].levelData) {
+      return saved[0].levelData;
     }
     const def = createDefaultLevel();
     def.items = def.items.filter(
@@ -66,19 +63,19 @@ export default function App() {
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
+  const [tutorialStep, setTutorialStep] = useState<number>(0);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false);
   const [isLoadModalOpen, setIsLoadModalOpen] = useState<boolean>(false);
 
   // Fullscreen Container Ref
   const appContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Autosave to localStorage
+  // Initialize sound settings on launch
   useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(levelData));
-    } catch {
-      // ignore
-    }
-  }, [levelData]);
+    const settings = SettingsManager.getSettings();
+    sound.applySettings(settings);
+    setIsMuted(sound.getMuted());
+  }, []);
 
   // Sync theme/hero to levelData
   useEffect(() => {
@@ -130,10 +127,10 @@ export default function App() {
     sound.playErase();
   };
 
-  // Keyboard Shortcuts (Ctrl+Z, Ctrl+Y)
+  // Keyboard Shortcuts (Ctrl+Z, Ctrl+Y) in editor
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (gameMode !== 'editor') return;
+      if (screenMode !== 'editor') return;
 
       if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
         e.preventDefault();
@@ -179,12 +176,56 @@ export default function App() {
 
   // Switch to Play Mode
   const handleStartPlay = () => {
-    setGameMode('playing');
+    setScreenMode('playing');
   };
 
   // Switch to Editor Mode
   const handleExitToEditor = () => {
-    setGameMode('editor');
+    setScreenMode('editor');
+  };
+
+  // Switch to Main Menu
+  const handleExitToMenu = () => {
+    sound.stopBgm();
+    setScreenMode('main_menu');
+  };
+
+  // Create fresh new level
+  const handleCreateNewGame = () => {
+    const def = createDefaultLevel();
+    def.name = 'Новый уровень';
+    def.items = def.items.filter(
+      (it: LevelItem) =>
+        !it.tileId.startsWith('enemy_') &&
+        (it.tileId as string) !== 'enemy_walker' &&
+        it.tileId !== 'coin' &&
+        it.tileId !== 'star' &&
+        it.tileId !== 'crystal'
+    );
+    setLevelData(def);
+    setSelectedTheme('green_islands');
+    setSelectedHero('leo');
+    setHistory([def.items]);
+    setHistoryIndex(0);
+    setScreenMode('editor');
+  };
+
+  // Load level from MyGames into Player
+  const handlePlayLevel = (level: LevelData) => {
+    setLevelData(level);
+    setSelectedTheme(level.bgTheme || 'green_islands');
+    setSelectedHero(level.heroId || 'leo');
+    setScreenMode('playing');
+  };
+
+  // Load level from MyGames into Editor
+  const handleEditLevel = (level: LevelData) => {
+    setLevelData(level);
+    setSelectedTheme(level.bgTheme || 'green_islands');
+    setSelectedHero(level.heroId || 'leo');
+    setHistory([level.items]);
+    setHistoryIndex(0);
+    setScreenMode('editor');
   };
 
   return (
@@ -192,8 +233,43 @@ export default function App() {
       ref={appContainerRef}
       className="w-screen h-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col font-sans select-none"
     >
-      {gameMode === 'playing' ? (
-        /* Fullscreen Game Play Mode */
+      {/* 1. SCREEN: Profile Creation (First launch if no profile in LocalStorage) */}
+      {screenMode === 'profile_create' && (
+        <ProfileCreationScreen
+          onProfileCreated={(newProfile) => {
+            setProfile(newProfile);
+            setScreenMode('main_menu');
+          }}
+        />
+      )}
+
+      {/* 2. SCREEN: Main Menu (Hero greeting, Play, Create, Settings) */}
+      {screenMode === 'main_menu' && profile && (
+        <MainMenuScreen
+          profile={profile}
+          onOpenPlayGames={() => setScreenMode('my_games')}
+          onOpenCreateEditor={() => setScreenMode('editor')}
+          onProfileUpdated={(updated) => setProfile(updated)}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={handleToggleFullscreen}
+          isMuted={isMuted}
+          onToggleMute={handleToggleMute}
+        />
+      )}
+
+      {/* 3. SCREEN: My Games (Grid of child's saved levels) */}
+      {screenMode === 'my_games' && (
+        <MyGamesScreen
+          profile={profile}
+          onBackToMenu={handleExitToMenu}
+          onPlayGame={handlePlayLevel}
+          onEditGame={handleEditLevel}
+          onCreateNewGame={handleCreateNewGame}
+        />
+      )}
+
+      {/* 4. SCREEN: Fullscreen Game Play Mode */}
+      {screenMode === 'playing' && (
         <GamePlayer
           levelData={levelData}
           heroId={selectedHero}
@@ -201,11 +277,14 @@ export default function App() {
           isFullscreen={isFullscreen}
           isMuted={isMuted}
           onExitToEditor={handleExitToEditor}
+          onExitToMenu={handleExitToMenu}
           onToggleFullscreen={handleToggleFullscreen}
           onToggleMute={handleToggleMute}
         />
-      ) : (
-        /* Level Editor Mode: 78-82% Left Canvas, 18-22% Right Toolbox */
+      )}
+
+      {/* 5. SCREEN: Level Editor Mode (78-82% Left Canvas, 18-22% Right Toolbox) */}
+      {screenMode === 'editor' && (
         <div className="w-full h-full flex flex-col md:flex-row overflow-hidden">
           {/* Left Main Level Canvas & Minimap */}
           <LevelEditor
@@ -214,7 +293,12 @@ export default function App() {
             selectedTile={selectedTile}
             selectedTheme={selectedTheme}
             onUpdateItems={handleUpdateItems}
-            onOpenTutorial={() => setIsTutorialOpen(true)}
+            onOpenTutorial={(stepIdx) => {
+              setTutorialStep(stepIdx ?? 0);
+              setIsTutorialOpen(true);
+            }}
+            onSelectTile={setSelectedTile}
+            onStartPlay={handleStartPlay}
           />
 
           {/* Right Compact Level Builder Panel */}
@@ -235,11 +319,15 @@ export default function App() {
             onRedo={handleRedo}
             onClear={handleClearLevel}
             onPlay={handleStartPlay}
-            onSave={() => setIsLoadModalOpen(true)}
+            onSave={() => setIsSaveModalOpen(true)}
             onLoad={() => setIsLoadModalOpen(true)}
             onToggleFullscreen={handleToggleFullscreen}
             onToggleMute={handleToggleMute}
-            onOpenTutorial={() => setIsTutorialOpen(true)}
+            onOpenTutorial={() => {
+              setTutorialStep(0);
+              setIsTutorialOpen(true);
+            }}
+            onExitToMenu={handleExitToMenu}
           />
         </div>
       )}
@@ -248,9 +336,29 @@ export default function App() {
       <TutorialModal
         isOpen={isTutorialOpen}
         onClose={() => setIsTutorialOpen(false)}
+        initialStep={tutorialStep}
+        onSelectTile={(tile) => {
+          setSelectedTile(tile);
+          setIsTutorialOpen(false);
+        }}
+        onStartPlay={() => {
+          setIsTutorialOpen(false);
+          handleStartPlay();
+        }}
       />
 
-      {/* Preset Levels & Save/Load Modal */}
+      {/* Save Level to LocalStorage "Мои Игры" Modal */}
+      <SaveGameModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        currentLevel={levelData}
+        profile={profile}
+        onSaved={(savedName) => {
+          setLevelData((prev) => ({ ...prev, name: savedName }));
+        }}
+      />
+
+      {/* Preset Levels & Import/Export Modal */}
       <LoadPresetModal
         isOpen={isLoadModalOpen}
         onClose={() => setIsLoadModalOpen(false)}

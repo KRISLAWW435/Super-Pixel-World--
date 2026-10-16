@@ -20,6 +20,7 @@ import { sound } from '../audio/soundEngine';
 import { CELL_SIZE, GRID_ROWS, THEMES } from '../game/constants';
 import { SpriteRenderer } from '../graphics/spriteRenderer';
 import { LevelData, LevelItem, ThemeId, TileId, ToolMode } from '../types/game';
+import { EditorTutorialBar } from './EditorTutorialBar';
 
 interface LevelEditorProps {
   levelData: LevelData;
@@ -27,7 +28,9 @@ interface LevelEditorProps {
   selectedTile: TileId;
   selectedTheme: ThemeId;
   onUpdateItems: (newItems: LevelItem[], recordHistory?: boolean) => void;
-  onOpenTutorial: () => void;
+  onOpenTutorial: (stepIndex?: number) => void;
+  onSelectTile: (tile: TileId) => void;
+  onStartPlay: () => void;
 }
 
 export const LevelEditor: React.FC<LevelEditorProps> = ({
@@ -37,6 +40,8 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   selectedTheme,
   onUpdateItems,
   onOpenTutorial,
+  onSelectTile,
+  onStartPlay,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -47,6 +52,11 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   const [zoom, setZoom] = useState<number>(1.0);
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [hoverCell, setHoverCell] = useState<{ col: number; row: number } | null>(null);
+
+  // In-Editor Tutorial Guide State
+  const [tutorialStep, setTutorialStep] = useState<number>(0);
+  const [isTutorialBarOpen, setIsTutorialBarOpen] = useState<boolean>(true);
+  const [isTutorialMinimized, setIsTutorialMinimized] = useState<boolean>(false);
 
   // Drag Placement State
   const [isMouseDown, setIsMouseDown] = useState<boolean>(false);
@@ -93,6 +103,87 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     },
     [getMaxCameraX]
   );
+
+  // Apply Sample for Current Tutorial Step
+  const handleApplySample = (stepIndex: number) => {
+    const vpW = getViewportWidth();
+    const centerCol = Math.max(
+      4,
+      Math.min(levelData.width - 12, Math.floor((cameraX + vpW * 0.5) / effectiveCellSize))
+    );
+
+    let newItems = [...levelData.items];
+    const timestamp = Date.now();
+
+    if (stepIndex === 0) {
+      // Step 1: Road & Platforms (10 blocks at rows 14-15)
+      for (let c = centerCol - 4; c <= centerCol + 5; c++) {
+        newItems = newItems.filter((it) => !(it.x === c && (it.y === 14 || it.y === 15)));
+        newItems.push({ id: `road_${c}_14_${timestamp}`, tileId: 'grass_dirt', x: c, y: 14 });
+        newItems.push({ id: `road_${c}_15_${timestamp}`, tileId: 'grass_dirt', x: c, y: 15 });
+      }
+    } else if (stepIndex === 1) {
+      // Step 2: Gap with Spikes
+      for (let c = centerCol - 3; c <= centerCol - 1; c++) {
+        newItems = newItems.filter((it) => !(it.x === c && it.y === 14));
+        newItems.push({ id: `plat_${c}_14_${timestamp}`, tileId: 'grass_dirt', x: c, y: 14 });
+      }
+      for (let c = centerCol + 1; c <= centerCol + 3; c++) {
+        newItems = newItems.filter((it) => !(it.x === c && it.y === 14));
+        newItems.push({ id: `plat_${c}_14_${timestamp}`, tileId: 'grass_dirt', x: c, y: 14 });
+      }
+      newItems = newItems.filter((it) => !(it.x === centerCol && it.y === 14));
+      newItems.push({ id: `spike_${centerCol}_14_${timestamp}`, tileId: 'spikes', x: centerCol, y: 14 });
+    } else if (stepIndex === 2) {
+      // Step 3: Question block & Coins
+      for (let c = centerCol - 2; c <= centerCol + 2; c++) {
+        newItems = newItems.filter((it) => !(it.x === c && it.y === 14));
+        newItems.push({ id: `ground_${c}_14_${timestamp}`, tileId: 'grass_dirt', x: c, y: 14 });
+      }
+      newItems = newItems.filter((it) => !(it.x === centerCol && it.y === 10));
+      newItems.push({ id: `qblock_${centerCol}_10_${timestamp}`, tileId: 'question_block', x: centerCol, y: 10 });
+      newItems = newItems.filter((it) => !(it.x === centerCol - 1 && it.y === 9));
+      newItems.push({ id: `coin_${centerCol - 1}_9_${timestamp}`, tileId: 'coin', x: centerCol - 1, y: 9 });
+      newItems = newItems.filter((it) => !(it.x === centerCol + 1 && it.y === 9));
+      newItems.push({ id: `coin_${centerCol + 1}_9_${timestamp}`, tileId: 'coin', x: centerCol + 1, y: 9 });
+    } else if (stepIndex === 3) {
+      // Step 4: Spring & High Wall
+      for (let c = centerCol - 2; c <= centerCol + 4; c++) {
+        newItems = newItems.filter((it) => !(it.x === c && it.y === 14));
+        newItems.push({ id: `ground_${c}_14_${timestamp}`, tileId: 'grass_dirt', x: c, y: 14 });
+      }
+      for (let r = 10; r <= 13; r++) {
+        newItems = newItems.filter((it) => !(it.x === centerCol + 3 && it.y === r));
+        newItems.push({ id: `wall_${centerCol + 3}_${r}_${timestamp}`, tileId: 'stone', x: centerCol + 3, y: r });
+      }
+      newItems = newItems.filter((it) => !(it.x === centerCol && it.y === 13));
+      newItems.push({ id: `spring_${centerCol}_13_${timestamp}`, tileId: 'spring', x: centerCol, y: 13 });
+    } else if (stepIndex === 4) {
+      // Step 5: Battle Enemies (Chaser on left, Patrol on right)
+      for (let c = centerCol - 4; c <= centerCol + 4; c++) {
+        newItems = newItems.filter((it) => !(it.x === c && it.y === 14));
+        newItems.push({ id: `ground_${c}_14_${timestamp}`, tileId: 'grass_dirt', x: c, y: 14 });
+      }
+      newItems = newItems.filter((it) => !(it.x === centerCol - 2 && it.y === 13));
+      newItems.push({ id: `enemy_chaser_${centerCol - 2}_13_${timestamp}`, tileId: 'enemy_chaser', x: centerCol - 2, y: 13 });
+      newItems = newItems.filter((it) => !(it.x === centerCol + 2 && it.y === 13));
+      newItems.push({ id: `enemy_patrol_${centerCol + 2}_13_${timestamp}`, tileId: 'enemy_patrol', x: centerCol + 2, y: 13 });
+    } else if (stepIndex === 5) {
+      // Step 6: Goal gate on ground
+      for (let c = centerCol - 1; c <= centerCol + 3; c++) {
+        newItems = newItems.filter((it) => !(it.x === c && it.y === 14));
+        newItems.push({ id: `ground_${c}_14_${timestamp}`, tileId: 'grass_dirt', x: c, y: 14 });
+      }
+      newItems = newItems.filter((it) => !(it.x === centerCol + 1 && it.y === 13));
+      newItems.push({ id: `goal_${centerCol + 1}_13_${timestamp}`, tileId: 'goal', x: centerCol + 1, y: 13 });
+    } else if (stepIndex === 6) {
+      onStartPlay();
+      return;
+    }
+
+    onUpdateItems(newItems, true);
+    sound.playPlaceTile();
+  };
 
   // Convert mouse event to grid col/row
   const getCellFromMouse = useCallback(
@@ -293,6 +384,108 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         }
       }
 
+      // 6. In-Editor Tutorial Blueprint Guidelines
+      if (isTutorialBarOpen && !isTutorialMinimized) {
+        ctx.save();
+        const startX = cameraX;
+        const viewW = canvas.width;
+        const animPulse = 0.5 + 0.5 * Math.sin(animTime * 3);
+
+        ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+
+        if (tutorialStep === 0) {
+          // Step 1: Road & Ground rows 13 & 14
+          ctx.fillStyle = `rgba(34, 197, 94, ${0.06 + 0.04 * animPulse})`;
+          ctx.fillRect(startX, 13 * effectiveCellSize, viewW, 2 * effectiveCellSize);
+          ctx.strokeStyle = `rgba(34, 197, 94, ${0.4 + 0.3 * animPulse})`;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([6, 6]);
+          ctx.strokeRect(startX, 13 * effectiveCellSize, viewW, 2 * effectiveCellSize);
+          ctx.setLineDash([]);
+          // Blueprint label
+          ctx.fillStyle = '#22c55e';
+          ctx.fillText('🌱 ЗОНА ЗЕМЛИ (Ряды 13–14): Зажмите ЛКМ и проведите дорожку', startX + 20, 13 * effectiveCellSize - 8);
+        } else if (tutorialStep === 1) {
+          // Step 2: Hazard Spikes row 14
+          ctx.fillStyle = `rgba(239, 68, 68, ${0.08 + 0.04 * animPulse})`;
+          ctx.fillRect(startX, 14 * effectiveCellSize, viewW, effectiveCellSize);
+          ctx.strokeStyle = `rgba(239, 68, 68, ${0.5 + 0.3 * animPulse})`;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(startX, 14 * effectiveCellSize, viewW, effectiveCellSize);
+          ctx.setLineDash([]);
+          // Blueprint label
+          ctx.fillStyle = '#ef4444';
+          ctx.fillText('⚠️ ЗОНА ЛОВУШЕК: Ставьте шипы на дно ям или перед уступами', startX + 20, 14 * effectiveCellSize - 8);
+        } else if (tutorialStep === 2) {
+          // Step 3: Question block & Coins row 9-10
+          ctx.fillStyle = `rgba(250, 204, 21, ${0.06 + 0.04 * animPulse})`;
+          ctx.fillRect(startX, 9 * effectiveCellSize, viewW, 2 * effectiveCellSize);
+          ctx.strokeStyle = `rgba(250, 204, 21, ${0.5 + 0.3 * animPulse})`;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(startX, 9 * effectiveCellSize, viewW, 2 * effectiveCellSize);
+          ctx.setLineDash([]);
+          // Blueprint label
+          ctx.fillStyle = '#facc15';
+          ctx.fillText('⭐ ЗОНА СЕКРЕТОВ (Ряды 9–10): Блок (?) бейте снизу головой, чтобы выбить монетку!', startX + 20, 9 * effectiveCellSize - 8);
+        } else if (tutorialStep === 3) {
+          // Step 4: Spring & High Wall
+          ctx.fillStyle = `rgba(168, 85, 247, ${0.06 + 0.04 * animPulse})`;
+          ctx.fillRect(startX, 13 * effectiveCellSize, viewW, effectiveCellSize);
+          ctx.strokeStyle = `rgba(168, 85, 247, ${0.5 + 0.3 * animPulse})`;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5, 5]);
+          ctx.strokeRect(startX, 13 * effectiveCellSize, viewW, effectiveCellSize);
+          ctx.setLineDash([]);
+          // Blueprint label
+          ctx.fillStyle = '#c084fc';
+          ctx.fillText('⚡ БАТУТ: Ставьте на землю перед высокой стеной — взлёт на 8–10 клеток!', startX + 20, 13 * effectiveCellSize - 8);
+        } else if (tutorialStep === 4) {
+          // Step 5: Enemy battle row 13
+          ctx.fillStyle = `rgba(244, 63, 94, ${0.06 + 0.04 * animPulse})`;
+          ctx.fillRect(startX, 13 * effectiveCellSize, viewW, effectiveCellSize);
+          ctx.strokeStyle = `rgba(244, 63, 94, ${0.5 + 0.3 * animPulse})`;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5, 5]);
+          ctx.strokeRect(startX, 13 * effectiveCellSize, viewW, effectiveCellSize);
+          ctx.setLineDash([]);
+          // Blueprint label
+          ctx.fillStyle = '#fb7185';
+          ctx.fillText('👾 ВРАГИ (Ряд 13): Расставьте 4 типа врагов · ПОБЕЖДАЙТЕ ПРЫЖКОМ СВЕРХУ!', startX + 20, 13 * effectiveCellSize - 8);
+        } else if (tutorialStep === 5) {
+          // Step 6: Goal gate zone
+          const goalCol = levelData.width - 4;
+          const gx = goalCol * effectiveCellSize;
+          ctx.fillStyle = `rgba(59, 130, 246, ${0.1 + 0.05 * animPulse})`;
+          ctx.fillRect(gx - effectiveCellSize, 11 * effectiveCellSize, 3 * effectiveCellSize, 3 * effectiveCellSize);
+          ctx.strokeStyle = `rgba(59, 130, 246, ${0.7 + 0.3 * animPulse})`;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(gx - effectiveCellSize, 11 * effectiveCellSize, 3 * effectiveCellSize, 3 * effectiveCellSize);
+          ctx.setLineDash([]);
+          // Blueprint label
+          ctx.fillStyle = '#60a5fa';
+          ctx.fillText('🏁 ФИНИШ: Поставьте ворота в самом конце карты (справа)!', startX + 20, 11 * effectiveCellSize - 8);
+        } else if (tutorialStep === 6) {
+          // Step 7: How to start & controls hint
+          ctx.fillStyle = `rgba(16, 185, 129, ${0.08 + 0.04 * animPulse})`;
+          ctx.fillRect(startX, 4 * effectiveCellSize, viewW, 3 * effectiveCellSize);
+          ctx.strokeStyle = `rgba(16, 185, 129, ${0.6 + 0.4 * animPulse})`;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 6]);
+          ctx.strokeRect(startX, 4 * effectiveCellSize, viewW, 3 * effectiveCellSize);
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#34d399';
+          ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
+          ctx.fillText('🎮 НАЧАЛО ИГРЫ: Нажмите зелёную кнопку «ИГРАТЬ ▶» в правом верхнем углу!', startX + 24, 5 * effectiveCellSize + 4);
+          ctx.font = '11px system-ui, -apple-system, sans-serif';
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillText('Управление: A / D или ⬅ ➡ (бег) · Пробел / W (прыжок, держите дольше = выше) · Прыгайте на врагов СВЕРХУ!', startX + 24, 6 * effectiveCellSize);
+        }
+        ctx.restore();
+      }
+
       ctx.restore();
 
       // Render Minimap
@@ -316,6 +509,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     levelData,
     showGrid,
     themeConfig,
+    isTutorialBarOpen,
+    isTutorialMinimized,
+    tutorialStep,
   ]);
 
   // Render bottom interactive minimap
@@ -505,18 +701,50 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
   return (
     <main className="flex-1 h-full flex flex-col bg-slate-950 relative overflow-hidden select-none">
+      {/* Interactive Step-by-Step Game Tutorial Bar */}
+      {isTutorialBarOpen && (
+        <EditorTutorialBar
+          currentStep={tutorialStep}
+          onStepChange={setTutorialStep}
+          onSelectTile={onSelectTile}
+          onApplySample={handleApplySample}
+          onStartPlay={onStartPlay}
+          onOpenFullModal={(step) => onOpenTutorial(step)}
+          onClose={() => setIsTutorialBarOpen(false)}
+          isMinimized={isTutorialMinimized}
+          onToggleMinimize={() => setIsTutorialMinimized((m) => !m)}
+        />
+      )}
+
       {/* Top Floating Quick Bar */}
-      <div className="absolute top-3 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+      <div
+        className={`absolute left-4 right-4 z-20 flex items-center justify-between pointer-events-none transition-all ${
+          isTutorialBarOpen && !isTutorialMinimized ? 'top-32 md:top-28' : 'top-3'
+        }`}
+      >
         {/* Left Status & Onboarding Hint */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-md backdrop-blur-md flex items-center gap-2 text-xs">
-            <span className="font-bold text-amber-400">💡 Подсказка:</span>
-            <span className="text-slate-200 hidden sm:inline">
-              Зажмите ЛКМ и тяните вправо, чтобы построить длинный мост. ПКМ — удаление.
-            </span>
-            <span className="text-slate-200 sm:hidden">Тяните ЛКМ для платформ</span>
+          {!isTutorialBarOpen && (
             <button
-              onClick={onOpenTutorial}
+              onClick={() => {
+                setIsTutorialBarOpen(true);
+                setIsTutorialMinimized(false);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20 border border-amber-300 backdrop-blur-md flex items-center gap-1.5 text-xs transition-all cursor-pointer active:scale-95"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Обучение как в играх ({tutorialStep + 1}/7)</span>
+            </button>
+          )}
+
+          <div className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-md backdrop-blur-md flex items-center gap-2 text-xs">
+            <span className="font-bold text-amber-400">💡 Быстрые клавиши:</span>
+            <span className="text-slate-200 hidden sm:inline">
+              ЛКМ — ставить, ПКМ — удалить, колесико/скролл — обзор мира.
+            </span>
+            <span className="text-slate-200 sm:hidden">ЛКМ ставить, ПКМ удалить</span>
+            <button
+              onClick={() => onOpenTutorial(tutorialStep)}
               className="text-amber-400 hover:text-amber-300 font-bold underline ml-1 cursor-pointer"
             >
               Инструкция

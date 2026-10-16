@@ -25,8 +25,33 @@ class SoundEngine {
     }
   }
 
+  private soundEnabled: boolean = true;
+  private musicEnabled: boolean = true;
+  private masterVolume: number = 0.8;
+
+  public applySettings(settings: { sound: boolean; music: boolean; volume: number }) {
+    this.soundEnabled = settings.sound;
+    this.musicEnabled = settings.music;
+    this.masterVolume = Math.max(0, Math.min(1, settings.volume));
+    if (!this.musicEnabled || this.isMuted) {
+      this.stopBgm();
+    }
+  }
+
+  public getSoundEnabled(): boolean {
+    return this.soundEnabled && !this.isMuted;
+  }
+
+  public getMusicEnabled(): boolean {
+    return this.musicEnabled && !this.isMuted;
+  }
+
+  public getMasterVolume(): number {
+    return this.masterVolume;
+  }
+
   public getMuted(): boolean {
-    return this.isMuted;
+    return this.isMuted || (!this.soundEnabled && !this.musicEnabled);
   }
 
   public toggleMute(): boolean {
@@ -35,6 +60,32 @@ class SoundEngine {
       this.stopBgm();
     }
     return this.isMuted;
+  }
+
+  // --- Cartoon Menu UI Click Sound ---
+  public playClick() {
+    if (this.isMuted || !this.soundEnabled || this.masterVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    // Cheerful cartoon pop sound
+    osc.frequency.setValueAtTime(520, t);
+    osc.frequency.exponentialRampToValueAtTime(880, t + 0.05);
+
+    const vol = 0.18 * this.masterVolume;
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.08);
   }
 
   // --- Sound Effects ---
@@ -372,10 +423,33 @@ class SoundEngine {
     osc.stop(t + 0.08);
   }
 
+  public playSelect() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(520, t);
+    osc.frequency.exponentialRampToValueAtTime(780, t + 0.06);
+
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.08);
+  }
+
   // --- Background Melody Loop ---
 
   public startBgm(theme: string = 'green_islands') {
-    if (this.isMuted) return;
+    if (this.isMuted || !this.musicEnabled || this.masterVolume <= 0) return;
     if (this.musicInterval && this.currentMusicTheme === theme) return;
     this.stopBgm();
     this.initContext();

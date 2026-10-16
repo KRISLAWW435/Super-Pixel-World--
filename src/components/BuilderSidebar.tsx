@@ -7,6 +7,7 @@ import {
   Download,
   Eraser,
   HelpCircle,
+  Home,
   Maximize2,
   Minimize2,
   Play,
@@ -44,6 +45,7 @@ interface BuilderSidebarProps {
   onToggleFullscreen: () => void;
   onToggleMute: () => void;
   onOpenTutorial: () => void;
+  onExitToMenu?: () => void;
 }
 
 export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
@@ -68,6 +70,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   onToggleFullscreen,
   onToggleMute,
   onOpenTutorial,
+  onExitToMenu,
 }) => {
   const [activeTab, setActiveTab] = useState<PaletteCategory>('platforms');
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
@@ -79,11 +82,23 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   return (
     <aside className="w-full md:w-80 lg:w-[22%] h-full bg-slate-900 border-l border-slate-800 flex flex-col justify-between shrink-0 select-none shadow-xl z-20 overflow-hidden">
       {/* Top Header / Mode Title */}
-      <div className="px-4 py-2.5 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
+      <div className="px-3.5 py-2.5 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-            Панель конструктора
+          {onExitToMenu && (
+            <button
+              onClick={() => {
+                sound.playClick();
+                onExitToMenu();
+              }}
+              title="Вернуться в Главное меню"
+              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold text-xs flex items-center gap-1 border border-slate-700 transition-colors cursor-pointer"
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>Меню</span>
+            </button>
+          )}
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
+            Конструктор
           </span>
         </div>
         <div className="flex items-center gap-1">
