@@ -22,13 +22,15 @@ import { UserProfile } from './types/storage';
 export type AppScreenMode = 'profile_create' | 'main_menu' | 'my_games' | 'editor' | 'playing';
 
 export default function App() {
-  // Player Profile
-  const [profile, setProfile] = useState<UserProfile | null>(() => ProfileManager.getProfile());
+  // Player / Creator Profile
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    const existing = ProfileManager.getProfile();
+    if (existing) return existing;
+    return ProfileManager.createProfile('Создатель', 'fox');
+  });
 
   // Screen Mode: 'profile_create' | 'main_menu' | 'my_games' | 'editor' | 'playing'
-  const [screenMode, setScreenMode] = useState<AppScreenMode>(() => {
-    return ProfileManager.hasProfile() ? 'main_menu' : 'profile_create';
-  });
+  const [screenMode, setScreenMode] = useState<AppScreenMode>('main_menu');
 
   // Level Data: strictly clean of pre-placed enemies, coins, stars, and crystals
   const [levelData, setLevelData] = useState<LevelData>(() => {
@@ -249,6 +251,7 @@ export default function App() {
           profile={profile}
           onOpenPlayGames={() => setScreenMode('my_games')}
           onOpenCreateEditor={() => setScreenMode('editor')}
+          onOpenPresets={() => setIsLoadModalOpen(true)}
           onProfileUpdated={(updated) => setProfile(updated)}
           isFullscreen={isFullscreen}
           onToggleFullscreen={handleToggleFullscreen}
@@ -299,6 +302,11 @@ export default function App() {
             }}
             onSelectTile={setSelectedTile}
             onStartPlay={handleStartPlay}
+            canUndo={historyIndex > 0}
+            canRedo={historyIndex < history.length - 1}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onExitToMenu={handleExitToMenu}
           />
 
           {/* Right Compact Level Builder Panel */}

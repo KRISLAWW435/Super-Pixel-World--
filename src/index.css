@@ -19,3 +19,23 @@
     image-rendering: pixelated;
   }
 }
+
+.font-pixel {
+  font-family: 'Press Start 2P', monospace, cursive;
+}
+
+/* Pixel Studio Pro Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0F19;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}

@@ -434,7 +434,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
               className="px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white font-bold text-xs flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95 cursor-pointer"
             >
               <Home className="w-4 h-4 text-sky-400" />
-              <span className="hidden sm:inline">В меню</span>
+              <span className="hidden sm:inline">В студию</span>
             </button>
           )}
 

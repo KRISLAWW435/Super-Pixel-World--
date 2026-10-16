@@ -78,7 +78,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
           className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-black flex items-center gap-2 border-2 border-slate-700 transition-all cursor-pointer active:scale-95 shadow-md"
         >
           <ArrowLeft className="w-4 h-4 stroke-[3]" />
-          <span>В меню</span>
+          <span>В студию</span>
         </button>
 
         <div className="flex items-center gap-3">
@@ -95,10 +95,10 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
           </div>
           <div>
             <div className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-400">
-              Коллекция уровней
+              Архив проектов Super Pixel World
             </div>
             <h1 className="text-lg sm:text-2xl font-black text-white">
-              Игры {profile?.name || 'игрока'}
+              Игры автора {profile?.name || 'студии'}
             </h1>
           </div>
         </div>

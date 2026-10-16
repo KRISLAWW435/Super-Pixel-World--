@@ -1,16 +1,19 @@
 /**
- * Super Pixel World - Interactive In-Editor Walkthrough Bar ("Обучение как в играх")
- * Floats at the top of LevelEditor, guiding the player step-by-step through each stage:
- * what to pick, how and where to place it, sample insertion, and starting to play.
+ * Pixel Studio Pro - Inline Educational Missions Bar
+ *
+ * Compact, non-intrusive widget that integrates seamlessly into the Studio Header Bar (48px):
+ * - Never covers or pushes down the canvas grid.
+ * - Displays mission number, title, and quick action (e.g. "+ Вставить образец").
+ * - Has expandable tooltip/popover for the current objective.
+ * - Supports next/prev navigation and quick help.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  Eye,
   HelpCircle,
   Play,
   Sparkles,
@@ -44,6 +47,7 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
   isMinimized,
   onToggleMinimize,
 }) => {
+  const [isPopoverOpen, setIsPopoverOpen] = useState<boolean>(false);
   const step = TUTORIAL_STEPS[currentStep] || TUTORIAL_STEPS[0];
   const Icon = step.icon;
 
@@ -54,7 +58,7 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
     }
   };
 
-  const handleApplySample = () => {
+  const handleApply = () => {
     if (currentStep === 6) {
       onStartPlay();
       return;
@@ -63,147 +67,161 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
     sound.playPlaceTile();
   };
 
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      sound.playClick();
+      onStepChange(currentStep - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentStep < TUTORIAL_STEPS.length - 1) {
+      sound.playClick();
+      onStepChange(currentStep + 1);
+    }
+  };
+
   if (isMinimized) {
     return (
-      <div className="absolute top-3 left-4 z-30 pointer-events-auto">
-        <button
-          onClick={onToggleMinimize}
-          className="px-3.5 py-2 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-2 shadow-xl shadow-amber-500/20 border-2 border-amber-300 transition-all cursor-pointer active:scale-95"
-        >
-          <Icon className="w-4 h-4" />
-          <span>Обучение: Этап {currentStep + 1} из 7</span>
-          <ChevronDown className="w-4 h-4" />
-        </button>
-      </div>
+      <button
+        onClick={onToggleMinimize}
+        title="Развернуть подсказку по миссии"
+        className="h-8 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+      >
+        <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+        <span>Миссия {currentStep + 1}/7</span>
+        <ChevronDown className="w-3 h-3 text-amber-400" />
+      </button>
     );
   }
 
   return (
-    <div className="absolute top-3 left-4 right-4 z-30 pointer-events-none flex justify-center">
-      <div className="w-full max-w-4xl bg-slate-900/95 backdrop-blur-md border-2 border-amber-500/50 rounded-2xl shadow-2xl shadow-amber-500/10 pointer-events-auto p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
-        {/* Top Line: Stage Title & Quick Controls */}
-        <div className="flex items-center justify-between gap-3 border-b border-slate-800/80 pb-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0">
-              <Icon className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                  Этап {currentStep + 1} / 7
-                </span>
-                <span className="text-xs font-bold text-slate-300 truncate">
-                  {step.title}
-                </span>
-              </div>
-            </div>
-          </div>
+    <div className="relative flex items-center">
+      {/* Compact Capsule Widget */}
+      <div className="h-8.5 px-2 bg-slate-950/80 border border-amber-400/40 rounded-xl flex items-center gap-2 shadow-sm text-xs">
+        {/* Step Badge & Title */}
+        <button
+          onClick={() => setIsPopoverOpen((p) => !p)}
+          title="Нажмите для подробностей миссии"
+          className="flex items-center gap-1.5 hover:text-amber-300 text-slate-200 transition-colors cursor-pointer text-left"
+        >
+          <span className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center font-mono font-bold text-[11px] shrink-0">
+            {currentStep + 1}
+          </span>
+          <span className="font-semibold text-xs text-white max-w-[130px] sm:max-w-[200px] truncate">
+            {step.title.split(':')[1]?.trim() || step.title}
+          </span>
+          <ChevronDown className={`w-3.5 h-3.5 text-amber-400 transition-transform ${isPopoverOpen ? 'rotate-180' : ''}`} />
+        </button>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => onOpenFullModal(currentStep)}
-              title="Открыть подробную инструкцию"
-              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Справка</span>
-            </button>
-            <button
-              onClick={onToggleMinimize}
-              title="Свернуть панель"
-              className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
-            >
-              <ChevronUp className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onClose}
-              title="Закрыть обучение"
-              className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+        <div className="w-[1px] h-3.5 bg-slate-800" />
+
+        {/* Quick Sample Action */}
+        <button
+          onClick={handleApply}
+          title={currentStep === 6 ? 'Запустить плейтест' : 'Вставить пример этой зоны в уровень'}
+          className="h-6 px-2 rounded-md bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
+        >
+          {currentStep === 6 ? (
+            <>
+              <Play className="w-3 h-3 fill-slate-950" />
+              <span>Тест</span>
+            </>
+          ) : (
+            <>
+              <Wand2 className="w-3 h-3" />
+              <span className="hidden sm:inline">Образец</span>
+            </>
+          )}
+        </button>
+
+        {/* Prev / Next Chevrons */}
+        <div className="flex items-center">
+          <button
+            onClick={handlePrev}
+            disabled={currentStep === 0}
+            title="Предыдущая миссия"
+            className="w-5 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={handleNext}
+            disabled={currentStep === TUTORIAL_STEPS.length - 1}
+            title="Следующая миссия"
+            className="w-5 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* Middle Line: Actionable Steps (What to pick & Where to put) */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 text-xs">
-          {/* WHAT TO TAKE (Колонка 1) */}
-          <div className="md:col-span-5 p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex flex-col justify-between gap-1.5">
+        {/* Minimize Button */}
+        <button
+          onClick={onToggleMinimize}
+          title="Свернуть виджет"
+          className="w-5 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+        >
+          <ChevronUp className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Popover Card for Details (Opens below the bar without pushing canvas) */}
+      {isPopoverOpen && (
+        <div className="absolute top-10 left-0 z-50 w-72 sm:w-80 p-3.5 rounded-xl bg-[#131B2E] border border-amber-400/50 shadow-2xl shadow-black/80 space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+          <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
             <div>
-              <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-0.5">
-                1. Что взять:
+              <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                {step.badge}
               </div>
-              <div className="text-slate-200 line-clamp-2">
-                {step.whatToTake}
-              </div>
+              <h4 className="text-xs font-bold text-white">
+                {step.title}
+              </h4>
             </div>
-            {step.tileId && (
-              <button
-                onClick={handlePickItem}
-                className="w-full py-1 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 text-[11px]"
-              >
-                <Wand2 className="w-3.5 h-3.5" />
-                <span>Взять {step.tileName}</span>
-              </button>
+            <button
+              onClick={() => setIsPopoverOpen(false)}
+              className="text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="text-xs text-slate-300 leading-snug space-y-1.5">
+            <div>
+              <span className="font-bold text-amber-300">Что сделать: </span>
+              <span>{step.howToPlace}</span>
+            </div>
+            {step.extraRule && (
+              <div className="text-[11px] text-slate-400 bg-slate-900/60 p-1.5 rounded border border-slate-800">
+                💡 {step.extraRule}
+              </div>
             )}
           </div>
 
-          {/* HOW & WHERE TO PLACE (Колонка 2) */}
-          <div className="md:col-span-7 p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex flex-col justify-between gap-1.5">
-            <div>
-              <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-0.5">
-                2. Как и куда поставить:
-              </div>
-              <div className="text-slate-200 text-[11px] leading-relaxed line-clamp-2">
-                {step.howToPlace} {step.whereToPlace}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-850">
-              {currentStep < 6 ? (
-                <button
-                  onClick={handleApplySample}
-                  className="py-1 px-2.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 text-[11px]"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Поставить образец этого шага</span>
-                </button>
-              ) : (
-                <button
-                  onClick={onStartPlay}
-                  className="py-1 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 text-xs animate-pulse"
-                >
-                  <Play className="w-3.5 h-3.5 fill-slate-950" />
-                  <span>Начать играть прямо сейчас!</span>
-                </button>
-              )}
-
-              {/* Navigation Arrows */}
-              <div className="flex items-center gap-1">
-                <button
-                  disabled={currentStep === 0}
-                  onClick={() => onStepChange(Math.max(0, currentStep - 1))}
-                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-300 transition-colors cursor-pointer"
-                  title="Предыдущий шаг"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className="text-[11px] font-mono font-bold text-slate-400 px-1">
-                  {currentStep + 1}/7
-                </span>
-                <button
-                  disabled={currentStep === 6}
-                  onClick={() => onStepChange(Math.min(6, currentStep + 1))}
-                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-300 transition-colors cursor-pointer"
-                  title="Следующий шаг"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+            {step.tileId && (
+              <button
+                onClick={() => {
+                  handlePickItem();
+                  setIsPopoverOpen(false);
+                }}
+                className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 underline cursor-pointer"
+              >
+                Выбрать блок «{step.tileName || 'Тайла'}»
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setIsPopoverOpen(false);
+                onOpenFullModal(currentStep);
+              }}
+              className="text-[11px] font-medium text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer ml-auto"
+            >
+              <HelpCircle className="w-3 h-3 text-amber-400" />
+              <span>Гид</span>
+            </button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -84,13 +84,13 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-400/20 border-2 border-amber-400/50 text-amber-300 font-black text-xs uppercase tracking-wider">
             <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>Добро пожаловать в игру!</span>
+            <span>Студия Super Pixel World — это не игра, а мастерская 2D-миров</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-black text-white tracking-wide drop-shadow-md">
-            Создай свой профиль
+            Профиль Автора Студии
           </h1>
           <p className="text-sm sm:text-base text-slate-300 font-medium max-w-md mx-auto">
-            Назови своего героя и выбери любимую пиксельную аватарку, чтобы сохранять свои миры!
+            Назовите своего геймдизайнера и выберите аватарку, чтобы подписывать и сохранять созданные вами игры!
           </p>
         </div>
 
@@ -192,7 +192,7 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
                   : 'bg-slate-800 border-2 border-slate-700 text-slate-500 cursor-not-allowed opacity-60'
               }`}
             >
-              <span>НАЧАТЬ ИГРАТЬ</span>
+              <span>ВОЙТИ В СТУДИЮ</span>
               <ArrowRight className="w-6 h-6 stroke-[3]" />
             </button>
           </div>

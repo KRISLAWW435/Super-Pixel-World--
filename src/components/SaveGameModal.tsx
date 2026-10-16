@@ -1,18 +1,19 @@
 /**
- * Super Pixel World - Save Level to LocalStorage Modal
- * Child-friendly level save dialog:
- * - Enter level title
- * - Shows creator avatar & author tag
- * - Saves to LocalStorage under child's profile via SaveManager
- * - Optional JSON export backup
+ * Pixel Studio Pro - Save Project & Export Modal
+ *
+ * Implements strict separation:
+ * 1. Primary CTA: Save to LocalStorage under creator's profile
+ * 2. Secondary Utility: Export level data to a standalone JSON file
+ * Uses unified StudioModal shell.
  */
 
 import React, { useState } from 'react';
-import { Download, Sparkles, X, Check, Save } from 'lucide-react';
+import { Download, Sparkles, Check, Save } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 import { SaveManager } from '../services/storageManager';
 import { LevelData } from '../types/game';
 import { PRESET_AVATARS, UserProfile } from '../types/storage';
+import { StudioModal } from './StudioModal';
 
 interface SaveGameModalProps {
   isOpen: boolean;
@@ -32,22 +33,20 @@ export const SaveGameModal: React.FC<SaveGameModalProps> = ({
   const [levelName, setLevelName] = useState<string>(
     currentLevel.name && currentLevel.name !== 'Безымянный уровень'
       ? currentLevel.name
-      : 'Мой крутой уровень'
+      : 'Мой авторский уровень'
   );
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-
-  if (!isOpen) return null;
 
   const avatar = PRESET_AVATARS.find((a) => a.id === profile?.avatarId) || PRESET_AVATARS[0];
 
   const handleSaveToLocalStorage = () => {
-    const finalName = levelName.trim() || 'Мой супер уровень';
+    const finalName = levelName.trim() || 'Мой авторский уровень';
     sound.playCoin();
 
     SaveManager.saveGame(finalName, {
       ...currentLevel,
       name: finalName,
-      author: profile?.name || 'Юный архитектор',
+      author: profile?.name || 'Геймдизайнер',
     });
 
     setIsSuccess(true);
@@ -55,16 +54,16 @@ export const SaveGameModal: React.FC<SaveGameModalProps> = ({
       setIsSuccess(false);
       onSaved(finalName);
       onClose();
-    }, 1100);
+    }, 1000);
   };
 
   const handleExportJson = () => {
     sound.playClick();
-    const finalName = levelName.trim() || 'my_level';
+    const finalName = levelName.trim() || 'pixel_studio_level';
     const exportData = {
       ...currentLevel,
       name: finalName,
-      author: profile?.name || 'Юный архитектор',
+      author: profile?.name || 'Геймдизайнер',
     };
     const dataStr =
       'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportData, null, 2));
@@ -80,114 +79,92 @@ export const SaveGameModal: React.FC<SaveGameModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 select-none">
-      <div className="w-full max-w-md bg-slate-900 border-4 border-emerald-400/80 rounded-3xl shadow-2xl shadow-emerald-950/80 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-b-2 border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/30 border-2 border-emerald-400/60 flex items-center justify-center text-emerald-300 text-xl font-bold">
-              💾
+    <StudioModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Сохранение проекта"
+      subtitle="Сохраните уровень в библиотеку студии или экспортируйте в файл"
+      icon={<Save className="w-5 h-5 text-emerald-400" />}
+      badge="Pixel Studio"
+      badgeColor="emerald"
+    >
+      {isSuccess ? (
+        <div className="py-6 flex flex-col items-center justify-center text-center space-y-3 animate-in zoom-in-90 duration-300">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-bounce">
+            <Check className="w-8 h-8 stroke-[3]" />
+          </div>
+          <h3 className="text-xl font-bold text-emerald-400">
+            Проект успешно сохранён!
+          </h3>
+          <p className="text-xs text-slate-300">
+            Уровень добавлен в «Мои проекты» и готов к тестированию.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Creator Profile Chip */}
+          <div className="p-3 rounded-xl bg-[#0F172A] border border-slate-700/80 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg overflow-hidden border border-emerald-400/60 shadow-sm shrink-0 bg-slate-950">
+              <img
+                src={avatar.imageUrl}
+                alt={avatar.name}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+                style={{ imageRendering: 'pixelated' }}
+              />
             </div>
-            <div>
-              <h2 className="text-xl font-black text-white leading-tight">
-                Сохранить уровень
-              </h2>
-              <p className="text-xs text-slate-300">
-                В твою коллекцию «Мои Игры»
-              </p>
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                Автор проекта:
+              </div>
+              <div className="text-sm font-semibold text-white truncate">
+                {profile?.name || 'Геймдизайнер'}
+              </div>
             </div>
           </div>
+
+          {/* Level Name Input */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Название проекта:</span>
+            </label>
+            <input
+              type="text"
+              value={levelName}
+              onChange={(e) => setLevelName(e.target.value.slice(0, 28))}
+              placeholder="Введите название..."
+              maxLength={28}
+              className="w-full px-3.5 py-2.5 text-sm font-semibold bg-[#0B0F19] border border-slate-700 focus:border-amber-400 rounded-xl text-white outline-none transition-all shadow-inner"
+            />
+          </div>
+
+          {/* Primary Action: Save to LocalStorage */}
           <button
-            onClick={() => {
-              sound.playClick();
-              onClose();
-            }}
-            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            onClick={handleSaveToLocalStorage}
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-98 transition-all cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <Save className="w-4 h-4 stroke-[2.5]" />
+            <span>Сохранить в студию</span>
           </button>
-        </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-5">
-          {/* Success Overlay state */}
-          {isSuccess ? (
-            <div className="py-8 flex flex-col items-center justify-center text-center space-y-3 animate-in zoom-in-90 duration-300">
-              <div className="w-16 h-16 rounded-3xl bg-emerald-500 text-slate-950 flex items-center justify-center shadow-xl shadow-emerald-500/40 animate-bounce">
-                <Check className="w-9 h-9 stroke-[3]" />
+          {/* Secondary Action: Export JSON */}
+          <div className="pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs text-slate-400">
+                Резервная копия на диск в формате JSON:
               </div>
-              <h3 className="text-2xl font-black text-emerald-400">
-                Уровень сохранён!
-              </h3>
-              <p className="text-xs text-slate-300">
-                Ты сможешь найти его в меню «Мои Игры»
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Creator Card */}
-              <div className="p-3.5 rounded-2xl bg-slate-950/70 border-2 border-slate-800 flex items-center gap-3">
-                <div
-                  className="w-12 h-12 rounded-xl overflow-hidden border-2 border-emerald-400 shadow-md bg-slate-950 shrink-0"
-                >
-                  <img
-                    src={avatar.imageUrl}
-                    alt={avatar.name}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                    style={{ imageRendering: 'pixelated' }}
-                  />
-                </div>
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-amber-400">
-                    Создатель уровня:
-                  </div>
-                  <div className="text-sm font-black text-white">
-                    {profile?.name || 'Юный архитектор'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Title Input */}
-              <div className="space-y-2">
-                <label className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Название твоего уровня:</span>
-                </label>
-                <input
-                  type="text"
-                  value={levelName}
-                  onChange={(e) => setLevelName(e.target.value.slice(0, 24))}
-                  maxLength={24}
-                  placeholder="Придумай крутое название..."
-                  autoFocus
-                  className="w-full px-4 py-3.5 text-base font-bold bg-slate-950 border-3 border-slate-700 focus:border-emerald-400 rounded-xl text-white outline-none shadow-inner"
-                />
-              </div>
-
-              {/* Primary Save Button */}
               <button
-                onClick={handleSaveToLocalStorage}
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-400 via-green-500 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black text-base uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/25 active:scale-98 transition-all cursor-pointer"
+                onClick={handleExportJson}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition-colors cursor-pointer shrink-0"
               >
-                <Save className="w-5 h-5 stroke-[2.5]" />
-                <span>СОХРАНИТЬ В «МОИ ИГРЫ»</span>
+                <Download className="w-3.5 h-3.5 text-sky-400" />
+                <span>Экспорт JSON</span>
               </button>
-
-              {/* Export JSON Option */}
-              <div className="pt-1">
-                <button
-                  onClick={handleExportJson}
-                  className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Download className="w-4 h-4 text-sky-400" />
-                  <span>Также скачать резервный JSON-файл</span>
-                </button>
-              </div>
-            </>
-          )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </StudioModal>
   );
 };
