@@ -4,9 +4,10 @@
  */
 
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Music, Bell, Check, Settings } from 'lucide-react';
+import { Volume2, VolumeX, Music, Bell, Check, Settings, RotateCcw, GraduationCap } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 import { SettingsManager } from '../services/storageManager';
+import { TutorialManager } from '../services/TutorialManager';
 import { GameSettings } from '../types/storage';
 import { StudioModal } from './StudioModal';
 
@@ -14,12 +15,14 @@ interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSettingsChanged?: (settings: GameSettings) => void;
+  onResetTutorial?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   onSettingsChanged,
+  onResetTutorial,
 }) => {
   const [settings, setSettings] = useState<GameSettings>(() =>
     SettingsManager.getSettings()
@@ -167,6 +170,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onChange={handleVolumeChange}
             className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
           />
+        </div>
+
+        {/* Interactive Guided Tour Reset */}
+        <div className="pt-2 border-t border-slate-800 flex items-center justify-between p-3.5 rounded-xl bg-[#0F172A] border border-slate-700/80">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white">
+                Обучение геймдизайну
+              </div>
+              <div className="text-xs text-slate-400">
+                Интерактивный пошаговый тур по редактору
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              TutorialManager.resetGuidedTour();
+              sound.playClick();
+              onResetTutorial?.();
+              onClose();
+            }}
+            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95 shrink-0"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Пройти заново</span>
+          </button>
         </div>
       </div>
     </StudioModal>

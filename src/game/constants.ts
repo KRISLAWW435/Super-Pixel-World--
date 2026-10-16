@@ -136,6 +136,14 @@ export const PALETTE_ITEMS: PaletteItemDef[] = [
     hint: 'Прыгните снизу головой, чтобы расколоть блок на осколки!',
   },
   {
+    id: 'ice_block',
+    name: 'Ледяной блок',
+    category: 'platforms',
+    solid: true,
+    desc: 'Скользкий ледник. Игрок плавно скользит по инерции!',
+    hint: 'Низкое трение: персонаж сохраняет импульс и скользит на несколько клеток.',
+  },
+  {
     id: 'ice',
     name: 'Ледяной блок',
     category: 'platforms',
@@ -180,11 +188,27 @@ export const PALETTE_ITEMS: PaletteItemDef[] = [
     name: 'Зелёная труба',
     category: 'platforms',
     solid: true,
-    desc: 'Знаменитая труба-портал',
-    hint: 'Позволяет строить узнаваемые входы и декорации.',
+    desc: 'Зелёная труба-телепорт',
+    hint: 'Связывается с парной зелёной трубой для мгновенного перемещения!',
+  },
+  {
+    id: 'pipe_red',
+    name: 'Красная труба',
+    category: 'platforms',
+    solid: true,
+    desc: 'Красная труба-телепорт',
+    hint: 'Связывается с парной красной трубой для мгновенного перемещения!',
   },
 
   // --- Interactive Objects & Items ---
+  {
+    id: 'bonus_heart',
+    name: 'Сердечко (+1 жизнь)',
+    category: 'objects',
+    solid: false,
+    desc: 'Восстанавливает 1 потерянную жизнь',
+    hint: 'Если жизней 3 из 3, сердечко подождёт на карте до ранения!',
+  },
   {
     id: 'coin',
     name: 'Золотая монета',

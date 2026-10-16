@@ -14,8 +14,10 @@ import { MyGamesScreen } from './components/MyGamesScreen';
 import { ProfileCreationScreen } from './components/ProfileCreationScreen';
 import { SaveGameModal } from './components/SaveGameModal';
 import { TutorialModal } from './components/TutorialModal';
+import { TutorialOverlay } from './components/TutorialOverlay';
 import { createDefaultLevel } from './game/presetLevels';
 import { ProfileManager, SaveManager, SettingsManager } from './services/storageManager';
+import { TutorialManager } from './services/TutorialManager';
 import { HeroId, LevelData, LevelItem, ThemeId, TileId, ToolMode } from './types/game';
 import { UserProfile } from './types/storage';
 
@@ -61,6 +63,13 @@ export default function App() {
   const [history, setHistory] = useState<LevelItem[][]>([levelData.items]);
   const [historyIndex, setHistoryIndex] = useState<number>(0);
 
+  // Interactive Onboarding Guided Tour State
+  const [isGuidedTourOpen, setIsGuidedTourOpen] = useState<boolean>(() => {
+    return !TutorialManager.isGuidedTourCompleted();
+  });
+  const [guidedTourStep, setGuidedTourStep] = useState<number>(0);
+  const [tourBlocksPlaced, setTourBlocksPlaced] = useState<number>(0);
+
   // App UI State
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -71,6 +80,48 @@ export default function App() {
 
   // Fullscreen Container Ref
   const appContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Guided Tour Step Selection Handlers
+  const handleSelectTool = (tool: ToolMode) => {
+    setActiveTool(tool);
+    if (isGuidedTourOpen && guidedTourStep === 1 && tool === 'brush') {
+      sound.playSelect();
+      setGuidedTourStep(2);
+    }
+  };
+
+  const handleSelectTile = (tile: TileId) => {
+    setSelectedTile(tile);
+    if (isGuidedTourOpen && guidedTourStep === 2 && (tile === 'grass_dirt' || tile === 'ice_block' || tile === 'stone')) {
+      sound.playPlaceTile();
+      setGuidedTourStep(3);
+      setTourBlocksPlaced(0);
+    } else if (isGuidedTourOpen && guidedTourStep === 4 && tile === 'coin') {
+      sound.playCoin();
+      setGuidedTourStep(5);
+    }
+  };
+
+  const handleStartTour = () => {
+    setGuidedTourStep(1);
+  };
+
+  const handleCompleteTour = () => {
+    TutorialManager.setGuidedTourCompleted(true);
+    setIsGuidedTourOpen(false);
+    setScreenMode('playing');
+  };
+
+  const handleSkipTour = () => {
+    TutorialManager.setGuidedTourCompleted(true);
+    setIsGuidedTourOpen(false);
+  };
+
+  const handleRestartTour = () => {
+    setGuidedTourStep(0);
+    setTourBlocksPlaced(0);
+    setIsGuidedTourOpen(true);
+  };
 
   // Initialize sound settings on launch
   useEffect(() => {
@@ -90,6 +141,24 @@ export default function App() {
 
   // Handle Items Update with History
   const handleUpdateItems = (newItems: LevelItem[], recordHistory: boolean = true) => {
+    if (isGuidedTourOpen && guidedTourStep === 3) {
+      const prevCount = levelData.items.length;
+      const newCount = newItems.length;
+      if (newCount > prevCount) {
+        const added = newCount - prevCount;
+        setTourBlocksPlaced((cur) => {
+          const next = cur + added;
+          if (next >= 3) {
+            sound.playMissionComplete();
+            setTimeout(() => {
+              setGuidedTourStep(4);
+            }, 550);
+          }
+          return next;
+        });
+      }
+    }
+
     setLevelData((prev) => ({ ...prev, items: newItems }));
 
     if (recordHistory) {
@@ -165,8 +234,7 @@ export default function App() {
       // B -> Freehand Brush
       if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        setActiveTool('brush');
-        sound.playSelect();
+        handleSelectTool('brush');
       }
       // R -> Rectangle / Area
       else if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -219,6 +287,11 @@ export default function App() {
 
   // Switch to Play Mode
   const handleStartPlay = () => {
+    if (isGuidedTourOpen && guidedTourStep === 5) {
+      sound.playVictory();
+      setGuidedTourStep(6);
+      return;
+    }
     setScreenMode('playing');
   };
 
@@ -328,58 +401,143 @@ export default function App() {
       )}
 
       {/* 5. SCREEN: Level Editor Mode (78-82% Left Canvas, 18-22% Right Toolbox) */}
-      {screenMode === 'editor' && (
-        <div className="w-full h-full flex flex-col md:flex-row overflow-hidden">
-          {/* Left Main Level Canvas & Minimap */}
-          <LevelEditor
-            levelData={levelData}
-            activeTool={activeTool}
-            selectedTile={selectedTile}
-            selectedTheme={selectedTheme}
-            onUpdateItems={handleUpdateItems}
-            onOpenTutorial={(stepIdx) => {
-              setTutorialStep(stepIdx ?? 0);
-              setIsTutorialOpen(true);
-            }}
-            onSelectTile={setSelectedTile}
-            onStartPlay={handleStartPlay}
-            canUndo={historyIndex > 0}
-            canRedo={historyIndex < history.length - 1}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onExitToMenu={handleExitToMenu}
-          />
+      {screenMode === 'editor' && (() => {
+        const isCoinInDom = typeof document !== 'undefined' && !!document.getElementById('tour-tile-coin');
 
-          {/* Right Compact Level Builder Panel */}
-          <BuilderSidebar
-            activeTool={activeTool}
-            selectedTile={selectedTile}
-            selectedTheme={selectedTheme}
-            selectedHero={selectedHero}
-            canUndo={historyIndex > 0}
-            canRedo={historyIndex < history.length - 1}
-            isFullscreen={isFullscreen}
-            isMuted={isMuted}
-            onSelectTool={setActiveTool}
-            onSelectTile={setSelectedTile}
-            onSelectTheme={setSelectedTheme}
-            onSelectHero={setSelectedHero}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onClear={handleClearLevel}
-            onPlay={handleStartPlay}
-            onSave={() => setIsSaveModalOpen(true)}
-            onLoad={() => setIsLoadModalOpen(true)}
-            onToggleFullscreen={handleToggleFullscreen}
-            onToggleMute={handleToggleMute}
-            onOpenTutorial={() => {
-              setTutorialStep(0);
-              setIsTutorialOpen(true);
-            }}
-            onExitToMenu={handleExitToMenu}
-          />
-        </div>
-      )}
+        const getTourStepConfig = () => {
+          switch (guidedTourStep) {
+            case 0:
+              return {
+                targetId: undefined,
+                title: 'Привет, Геймдизайнер!',
+                message:
+                  'Давай создадим твою первую игру! Я покажу тебе шаг за шагом, как строить уровни и оживлять миры.',
+                handAction: 'none' as const,
+                wrongClickMsg: undefined,
+              };
+            case 1:
+              return {
+                targetId: 'tour-tool-brush',
+                title: 'Инструмент Кисть',
+                message: 'Это твоя кисть. Нажми на неё, чтобы рисовать блоки!',
+                handAction: 'click' as const,
+                wrongClickMsg: 'Нажми на значок кисти!',
+              };
+            case 2:
+              return {
+                targetId: 'tour-tile-grass_dirt',
+                title: 'Выбор блока',
+                message: 'Выбери блок травы с землёй! Это основа для дорог твоего мира.',
+                handAction: 'click' as const,
+                wrongClickMsg: 'Выбери блок травы в палитре!',
+              };
+            case 3:
+              return {
+                targetId: 'tour-canvas-zone',
+                title: 'Построй дорогу',
+                message: 'Нарисуй дорогу! Зажми левую кнопку мыши и протяни линию из 3 блоков на игровом поле!',
+                handAction: 'drag-horizontal' as const,
+                wrongClickMsg: 'Ставь блоки на игровом поле!',
+              };
+            case 4:
+              return {
+                targetId: isCoinInDom ? 'tour-tile-coin' : 'tour-tab-interactive',
+                title: isCoinInDom ? 'Золотая награда' : 'Интерактив',
+                message: isCoinInDom
+                  ? 'Отлично! Теперь выбери золотую монетку, чтобы порадовать героя!'
+                  : 'Открой вкладку «Интерактив», чтобы найти монеты и бонусы!',
+                handAction: 'click' as const,
+                wrongClickMsg: isCoinInDom ? 'Нажми на монетку!' : 'Нажми на вкладку «Интерактив»!',
+              };
+            case 5:
+              return {
+                targetId: 'tour-play-button',
+                title: 'Проверка уровня',
+                message: 'Ты молодец! Теперь нажми на зелёную кнопку «ТЕСТ», чтобы сыграть на своём уровне!',
+                handAction: 'click' as const,
+                wrongClickMsg: 'Нажми зелёную кнопку «ТЕСТ»!',
+              };
+            case 6:
+            default:
+              return {
+                targetId: undefined,
+                title: 'Тур Завершён!',
+                message:
+                  'Поздравляю! Ты сделал свой первый шаг в создании игр! Теперь у тебя есть все необходимые инструменты — твори свободно!',
+                handAction: 'none' as const,
+                wrongClickMsg: undefined,
+              };
+          }
+        };
+
+        const currentTour = getTourStepConfig();
+
+        return (
+          <>
+            <div className="w-full h-full flex flex-col md:flex-row overflow-hidden relative">
+              {/* Left Main Level Canvas & Minimap */}
+              <LevelEditor
+                levelData={levelData}
+                activeTool={activeTool}
+                selectedTile={selectedTile}
+                selectedTheme={selectedTheme}
+                onUpdateItems={handleUpdateItems}
+                onOpenTutorial={handleRestartTour}
+                onSelectTile={handleSelectTile}
+                onStartPlay={handleStartPlay}
+                canUndo={historyIndex > 0}
+                canRedo={historyIndex < history.length - 1}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                onExitToMenu={handleExitToMenu}
+              />
+
+              {/* Right Compact Level Builder Panel */}
+              <BuilderSidebar
+                activeTool={activeTool}
+                selectedTile={selectedTile}
+                selectedTheme={selectedTheme}
+                selectedHero={selectedHero}
+                canUndo={historyIndex > 0}
+                canRedo={historyIndex < history.length - 1}
+                isFullscreen={isFullscreen}
+                isMuted={isMuted}
+                onSelectTool={handleSelectTool}
+                onSelectTile={handleSelectTile}
+                onSelectTheme={setSelectedTheme}
+                onSelectHero={setSelectedHero}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                onClear={handleClearLevel}
+                onPlay={handleStartPlay}
+                onSave={() => setIsSaveModalOpen(true)}
+                onLoad={() => setIsLoadModalOpen(true)}
+                onToggleFullscreen={handleToggleFullscreen}
+                onToggleMute={handleToggleMute}
+                onOpenTutorial={handleRestartTour}
+                onExitToMenu={handleExitToMenu}
+                isGuidedTourOpen={isGuidedTourOpen}
+              />
+            </div>
+
+            {/* Interactive Guided Tour Spotlight Overlay */}
+            <TutorialOverlay
+              isOpen={isGuidedTourOpen}
+              step={guidedTourStep}
+              targetElementId={currentTour.targetId}
+              title={currentTour.title}
+              message={currentTour.message}
+              handAction={currentTour.handAction}
+              onSkip={handleSkipTour}
+              onStartTour={handleStartTour}
+              onCompleteTour={handleCompleteTour}
+              placedCount={tourBlocksPlaced}
+              targetPlacedCount={3}
+              wrongClickMessage={currentTour.wrongClickMsg}
+            />
+          </>
+        );
+      })()}
 
       {/* Interactive Step-by-Step Tutorial Modal */}
       <TutorialModal

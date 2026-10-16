@@ -372,8 +372,31 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
             facingRight: engine.player.facingRight,
             animTime: engine.player.animTime,
             isHurt: engine.player.isHurt,
+            isSliding: engine.player.isSliding,
           }
         );
+
+        // 6. Render Floating Game Tooltips (e.g. "+1 Жизнь!", "Максимум жизней!", "Нет выхода!")
+        if (engine.floatingTexts && engine.floatingTexts.length > 0) {
+          engine.floatingTexts.forEach((t) => {
+            ctx.save();
+            const alpha = Math.max(0, 1 - t.life / t.maxLife);
+            ctx.globalAlpha = alpha;
+            ctx.font = 'bold 13px Fredoka, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Text outline
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 3.5;
+            ctx.strokeText(t.text, t.x, t.y);
+
+            // Text fill
+            ctx.fillStyle = t.color;
+            ctx.fillText(t.text, t.x, t.y);
+            ctx.restore();
+          });
+        }
       }
 
       ctx.restore();

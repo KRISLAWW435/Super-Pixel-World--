@@ -46,7 +46,8 @@ export class SpriteRenderer {
         this.drawBrick(ctx, size);
         break;
       case 'ice':
-        this.drawIce(ctx, size, hasLeft, hasRight);
+      case 'ice_block':
+        this.drawIce(ctx, size, hasLeft, hasRight, animTime);
         break;
       case 'cloud':
         this.drawCloud(ctx, size, animTime);
@@ -61,7 +62,17 @@ export class SpriteRenderer {
         this.drawCrystalBlock(ctx, size, animTime);
         break;
       case 'pipe_green':
-        this.drawPipe(ctx, size);
+      case 'pipe_green_entrance':
+      case 'pipe_green_exit':
+        this.drawPipe(ctx, size, 'green');
+        break;
+      case 'pipe_red':
+      case 'pipe_red_entrance':
+      case 'pipe_red_exit':
+        this.drawPipe(ctx, size, 'red');
+        break;
+      case 'bonus_heart':
+        this.drawHeart(ctx, size, animTime);
         break;
       case 'coin':
         this.drawCoin(ctx, size, animTime);
@@ -260,10 +271,17 @@ export class SpriteRenderer {
     ctx.fillRect(s * 0.55, 4, s * 0.4, 2);
   }
 
-  private static drawIce(ctx: CanvasRenderingContext2D, s: number, hasL: boolean, hasR: boolean) {
+  private static drawIce(
+    ctx: CanvasRenderingContext2D,
+    s: number,
+    hasL: boolean,
+    hasR: boolean,
+    animTime: number = 0
+  ) {
     const iceGrad = ctx.createLinearGradient(0, 0, s, s);
-    iceGrad.addColorStop(0, '#e0f2fe');
-    iceGrad.addColorStop(0.5, '#7dd3fc');
+    iceGrad.addColorStop(0, '#f0f9ff');
+    iceGrad.addColorStop(0.3, '#bae6fd');
+    iceGrad.addColorStop(0.7, '#38bdf8');
     iceGrad.addColorStop(1, '#0284c7');
     ctx.fillStyle = iceGrad;
 
@@ -272,24 +290,33 @@ export class SpriteRenderer {
     ctx.roundRect(0, 0, s, s, [!hasL ? r : 0, !hasR ? r : 0, !hasR ? r : 0, !hasL ? r : 0]);
     ctx.fill();
 
-    // Ice crystal facets
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    // Ice crystal facets / fractures
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(s * 0.2, s * 0.1);
-    ctx.lineTo(s * 0.5, s * 0.6);
-    ctx.lineTo(s * 0.8, s * 0.2);
+    ctx.moveTo(s * 0.15, s * 0.12);
+    ctx.lineTo(s * 0.48, s * 0.55);
+    ctx.lineTo(s * 0.82, s * 0.18);
+    ctx.moveTo(s * 0.48, s * 0.55);
+    ctx.lineTo(s * 0.52, s * 0.88);
     ctx.stroke();
 
-    // Shimmer gleam
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    // Shimmer gleam (shimmers gently)
+    const glint = 0.7 + Math.sin(animTime * 4) * 0.3;
+    ctx.fillStyle = `rgba(255, 255, 255, ${glint})`;
     ctx.beginPath();
     ctx.arc(s * 0.25, s * 0.25, 2.5, 0, Math.PI * 2);
+    ctx.arc(s * 0.75, s * 0.65, 2, 0, Math.PI * 2);
     ctx.fill();
 
+    // Deep blue icy border
+    ctx.strokeStyle = '#0284c7';
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(0.5, 0.5, s - 1, s - 1);
+
     // Gloss top
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.fillRect(0, 0, s, 3);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.fillRect(hasL ? 0 : 2, 0, s - (hasL ? 0 : 2) - (hasR ? 0 : 2), 3);
   }
 
   private static drawCloud(ctx: CanvasRenderingContext2D, s: number, animTime: number) {
@@ -392,24 +419,88 @@ export class SpriteRenderer {
     ctx.stroke();
   }
 
-  private static drawPipe(ctx: CanvasRenderingContext2D, s: number) {
+  private static drawPipe(ctx: CanvasRenderingContext2D, s: number, color: 'green' | 'red' = 'green') {
+    const isRed = color === 'red';
     // Pipe body / rim
     const pipeGrad = ctx.createLinearGradient(0, 0, s, 0);
-    pipeGrad.addColorStop(0, '#22c55e');
-    pipeGrad.addColorStop(0.3, '#86efac');
-    pipeGrad.addColorStop(0.7, '#16a34a');
-    pipeGrad.addColorStop(1, '#14532d');
+    if (isRed) {
+      pipeGrad.addColorStop(0, '#ef4444');
+      pipeGrad.addColorStop(0.3, '#fca5a5');
+      pipeGrad.addColorStop(0.7, '#dc2626');
+      pipeGrad.addColorStop(1, '#7f1d1d');
+    } else {
+      pipeGrad.addColorStop(0, '#22c55e');
+      pipeGrad.addColorStop(0.3, '#86efac');
+      pipeGrad.addColorStop(0.7, '#16a34a');
+      pipeGrad.addColorStop(1, '#14532d');
+    }
     ctx.fillStyle = pipeGrad;
 
     // Rim top
     ctx.fillRect(1, 0, s - 2, s * 0.35);
-    ctx.strokeStyle = '#052e16';
+    ctx.strokeStyle = isRed ? '#450a0a' : '#052e16';
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 0, s - 2, s * 0.35);
 
     // Body
     ctx.fillRect(3, s * 0.35, s - 6, s * 0.65);
     ctx.strokeRect(3, s * 0.35, s - 6, s * 0.65);
+
+    // Dark opening on top
+    ctx.fillStyle = isRed ? '#450a0a' : '#052e16';
+    ctx.fillRect(4, 2, s - 8, 4);
+
+    // Swirl warp indicator glow in opening
+    ctx.fillStyle = isRed ? 'rgba(254, 202, 202, 0.8)' : 'rgba(187, 247, 208, 0.8)';
+    ctx.fillRect(s * 0.4, 2, s * 0.2, 3);
+  }
+
+  private static drawHeart(ctx: CanvasRenderingContext2D, s: number, animTime: number) {
+    const floatY = Math.sin(animTime * 4) * 2.5;
+    const pulse = 1 + Math.sin(animTime * 6) * 0.08;
+
+    ctx.translate(s * 0.5, s * 0.5 + floatY);
+    ctx.scale(pulse, pulse);
+
+    // Soft heart aura glow
+    ctx.fillStyle = 'rgba(244, 63, 94, 0.28)';
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.46, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Heart shape using bezier curves
+    const heartGrad = ctx.createLinearGradient(0, -s * 0.35, 0, s * 0.35);
+    heartGrad.addColorStop(0, '#fb7185');
+    heartGrad.addColorStop(0.5, '#f43f5e');
+    heartGrad.addColorStop(1, '#be123c');
+    ctx.fillStyle = heartGrad;
+
+    const w = s * 0.72;
+    const h = s * 0.72;
+
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.32);
+    // Left lobe
+    ctx.bezierCurveTo(-w * 0.55, h * 0.1, -w * 0.55, -h * 0.35, -w * 0.25, -h * 0.42);
+    ctx.bezierCurveTo(-w * 0.08, -h * 0.44, 0, -h * 0.28, 0, -h * 0.18);
+    // Right lobe
+    ctx.bezierCurveTo(0, -h * 0.28, w * 0.08, -h * 0.44, w * 0.25, -h * 0.42);
+    ctx.bezierCurveTo(w * 0.55, -h * 0.35, w * 0.55, h * 0.1, 0, h * 0.32);
+    ctx.closePath();
+    ctx.fill();
+
+    // Gloss / Shine highlight on top-left lobe
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.2, -h * 0.25, 4.5, 2.8, -0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sparkle star near top right
+    const sparkleA = 0.5 + Math.sin(animTime * 8) * 0.5;
+    ctx.fillStyle = `rgba(255, 255, 255, ${sparkleA})`;
+    ctx.beginPath();
+    ctx.arc(w * 0.22, -h * 0.25, 1.8, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // --- Interactive Items ---
@@ -940,6 +1031,7 @@ export class SpriteRenderer {
       facingRight: boolean;
       animTime: number;
       isHurt?: boolean;
+      isSliding?: boolean;
     }
   ) {
     ctx.save();
@@ -956,6 +1048,27 @@ export class SpriteRenderer {
     const s = width;
     const walkBob = state.isWalking && !state.isInAir ? Math.sin(state.animTime * 14) * 2 : 0;
     const legSwing = state.isWalking && !state.isInAir ? Math.cos(state.animTime * 14) * 6 : 0;
+
+    // Visual effect: Translucent ice trail and frost sparks under feet when sliding
+    if (state.isSliding) {
+      ctx.save();
+      // Frost trail behind hero
+      const trailGrad = ctx.createLinearGradient(-s * 0.8, s * 0.42, 0, s * 0.42);
+      trailGrad.addColorStop(0, 'rgba(186, 230, 253, 0)');
+      trailGrad.addColorStop(0.7, 'rgba(125, 211, 252, 0.45)');
+      trailGrad.addColorStop(1, 'rgba(255, 255, 255, 0.7)');
+      ctx.fillStyle = trailGrad;
+      ctx.beginPath();
+      ctx.ellipse(-s * 0.35, s * 0.42, s * 0.42, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Shiny frost sparks
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillRect(-s * 0.45, s * 0.38, 2.5, 2.5);
+      ctx.fillRect(-s * 0.65, s * 0.41, 2, 2);
+      ctx.fillRect(-s * 0.25, s * 0.44, 2, 2);
+      ctx.restore();
+    }
 
     ctx.translate(0, walkBob);
 

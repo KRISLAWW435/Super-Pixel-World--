@@ -38,6 +38,26 @@ export interface PlayerState {
   spawnY: number;
   checkpointX: number;
   checkpointY: number;
+  // Ice & Sliding
+  isSliding?: boolean;
+  isOnIce?: boolean;
+  // Pipe Portals
+  pipeWarpState?: 'none' | 'entering' | 'exiting';
+  pipeWarpTimer?: number;
+  pipeCooldown?: number;
+  pipeTargetX?: number;
+  pipeTargetY?: number;
+}
+
+export interface FloatingText {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  color: string;
 }
 
 export class PhysicsEngine {
@@ -45,6 +65,7 @@ export class PhysicsEngine {
   public enemies: ActiveEnemy[] = [];
   public particles: Particle[] = [];
   public blockBumps: ActiveBlockBump[] = [];
+  public floatingTexts: FloatingText[] = [];
   public stats: GameStats;
   public isVictory: boolean = false;
   public isGameOver: boolean = false;
@@ -88,6 +109,11 @@ export class PhysicsEngine {
       spawnY: startPy,
       checkpointX: startPx,
       checkpointY: startPy,
+      isSliding: false,
+      isOnIce: false,
+      pipeWarpState: 'none',
+      pipeWarpTimer: 0,
+      pipeCooldown: 0,
     };
 
     // Calculate total collectibles
@@ -198,6 +224,7 @@ export class PhysicsEngine {
   ) {
     if (this.isVictory || this.isGameOver) {
       this.updateParticles(dt);
+      this.updateFloatingTexts(dt);
       return;
     }
 
@@ -219,6 +246,46 @@ export class PhysicsEngine {
       }
     }
 
+    // Pipe Cooldown decrement
+    if (this.player.pipeCooldown && this.player.pipeCooldown > 0) {
+      this.player.pipeCooldown -= clampedDt;
+    }
+
+    // Pipe Warp Animation & State
+    if (this.player.pipeWarpState === 'entering') {
+      this.player.pipeWarpTimer = (this.player.pipeWarpTimer || 0) - clampedDt;
+      this.player.y += 85 * clampedDt;
+      this.player.vx = 0;
+      this.player.vy = 0;
+      if (this.player.pipeWarpTimer <= 0) {
+        this.player.x = this.player.pipeTargetX ?? this.player.x;
+        this.player.y = (this.player.pipeTargetY ?? this.player.y) + 32;
+        this.player.pipeWarpState = 'exiting';
+        this.player.pipeWarpTimer = 0.35;
+        sound.playPipe();
+        this.emitSparkles(this.player.x + this.player.width * 0.5, this.player.y, '#38bdf8');
+      }
+      this.updateBlockBumps(clampedDt);
+      this.updateParticles(clampedDt);
+      this.updateFloatingTexts(clampedDt);
+      return;
+    } else if (this.player.pipeWarpState === 'exiting') {
+      this.player.pipeWarpTimer = (this.player.pipeWarpTimer || 0) - clampedDt;
+      this.player.y -= 85 * clampedDt;
+      this.player.vx = 0;
+      this.player.vy = 0;
+      if (this.player.pipeWarpTimer <= 0) {
+        this.player.pipeWarpState = 'none';
+        this.player.y = this.player.pipeTargetY ?? this.player.y;
+        this.player.pipeCooldown = 1.0; // 1s safe cooldown
+        this.player.vy = -3.5; // gentle jump pop out
+      }
+      this.updateBlockBumps(clampedDt);
+      this.updateParticles(clampedDt);
+      this.updateFloatingTexts(clampedDt);
+      return;
+    }
+
     // Input buffering & Coyote time
     if (input.jumpJustPressed) {
       this.player.jumpBufferTimer = 0.12; // 120ms buffer
@@ -232,28 +299,59 @@ export class PhysicsEngine {
       this.player.coyoteTimer -= clampedDt;
     }
 
-    // --- Horizontal Movement ---
-    const accel = 32.0;
+    // --- Horizontal Movement & Ice Sliding Physics ---
+    const normalAccel = 32.0;
     const maxSpeed = heroConfig.speed;
-    let friction = 0.82;
 
-    // Check if standing on Ice
-    const standingCellX = Math.floor((this.player.x + this.player.width * 0.5) / CELL_SIZE);
+    // Check if standing on Ice (ice or ice_block)
+    const footColLeft = Math.floor((this.player.x + 4) / CELL_SIZE);
+    const footColRight = Math.floor((this.player.x + this.player.width - 4) / CELL_SIZE);
     const standingCellY = Math.floor((this.player.y + this.player.height + 2) / CELL_SIZE);
-    const standingTile = this.solidGrid.get(`${standingCellX},${standingCellY}`);
-    if (standingTile && standingTile.tileId === 'ice') {
-      friction = 0.96; // ice slick
-    }
+    const tileL = this.solidGrid.get(`${footColLeft},${standingCellY}`);
+    const tileR = this.solidGrid.get(`${footColRight},${standingCellY}`);
+    const onIceTile = (tileL && (tileL.tileId === 'ice' || tileL.tileId === 'ice_block')) ||
+                      (tileR && (tileR.tileId === 'ice' || tileR.tileId === 'ice_block'));
+    const isStandingOnIce = this.player.isGrounded && !!onIceTile;
+    this.player.isOnIce = isStandingOnIce;
 
-    if (input.left) {
-      this.player.vx -= accel * clampedDt;
-      this.player.facingRight = false;
-    } else if (input.right) {
-      this.player.vx += accel * clampedDt;
-      this.player.facingRight = true;
+    if (isStandingOnIce) {
+      // Ice Physics (very low friction ~0.05, character preserves momentum and slides ~3 cells)
+      if (input.left) {
+        // Slow smooth deceleration if reversing direction on ice
+        const iceAccel = this.player.vx > 0 ? 13.0 : 20.0;
+        this.player.vx -= iceAccel * clampedDt;
+        this.player.facingRight = false;
+        this.player.isSliding = Math.abs(this.player.vx) > 0.5;
+      } else if (input.right) {
+        // Slow smooth deceleration if reversing direction on ice
+        const iceAccel = this.player.vx < 0 ? 13.0 : 20.0;
+        this.player.vx += iceAccel * clampedDt;
+        this.player.facingRight = true;
+        this.player.isSliding = Math.abs(this.player.vx) > 0.5;
+      } else {
+        // Releasing keys: slide on inertia! Damping is very gentle (friction = 0.05 -> retention ~0.985)
+        this.player.vx *= Math.pow(0.985, clampedDt * 60);
+        if (Math.abs(this.player.vx) < 0.1) this.player.vx = 0;
+        this.player.isSliding = Math.abs(this.player.vx) > 0.35;
+      }
+
+      if (this.player.isSliding && Math.random() < 0.35) {
+        this.emitIceParticles(this.player.x + this.player.width * 0.5, this.player.y + this.player.height);
+      }
     } else {
-      this.player.vx *= friction;
-      if (Math.abs(this.player.vx) < 0.1) this.player.vx = 0;
+      // Normal Ground Physics
+      this.player.isSliding = false;
+      const normalFriction = 0.82;
+      if (input.left) {
+        this.player.vx -= normalAccel * clampedDt;
+        this.player.facingRight = false;
+      } else if (input.right) {
+        this.player.vx += normalAccel * clampedDt;
+        this.player.facingRight = true;
+      } else {
+        this.player.vx *= normalFriction;
+        if (Math.abs(this.player.vx) < 0.1) this.player.vx = 0;
+      }
     }
 
     this.player.vx = Math.max(-maxSpeed, Math.min(maxSpeed, this.player.vx));
@@ -317,8 +415,11 @@ export class PhysicsEngine {
       this.loseLife('Упал в пропасть!');
     }
 
-    // --- Interactive Objects overlap (Coins, Stars, Spring, Flag, Spikes) ---
+    // --- Interactive Objects overlap (Coins, Stars, Spring, Flag, Spikes, Heart) ---
     this.checkInteractiveOverlaps();
+
+    // --- Check Pipe Portal Teleportation ---
+    this.checkPipeTeleportation();
 
     // --- Enemies Update & Collisions ---
     this.updateEnemies(clampedDt, fallingVy, playerPreY);
@@ -326,6 +427,7 @@ export class PhysicsEngine {
     // --- Block Bumps & Particles ---
     this.updateBlockBumps(clampedDt);
     this.updateParticles(clampedDt);
+    this.updateFloatingTexts(clampedDt);
   }
 
   private resolveHorizontalCollision() {
@@ -459,7 +561,25 @@ export class PhysicsEngine {
   }
 
   private handleItemTouch(item: LevelItem, col: number, row: number) {
-    if (item.tileId === 'coin') {
+    if (item.tileId === 'bonus_heart') {
+      if (this.stats.lives < 3) {
+        this.stats.lives = Math.min(3, this.stats.lives + 1);
+        sound.playHeal();
+        this.emitHeartSparkles(col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE + CELL_SIZE * 0.5);
+        this.addFloatingText('+1 Жизнь!', col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE, '#f43f5e');
+        this.removeItem(item);
+      } else {
+        // Player already has 3 lives (maximum) -> Don't delete heart so player can return later!
+        const now = Date.now();
+        const lastAlert = ((item.properties as Record<string, unknown> | undefined)?.lastAlert as number) || 0;
+        if (now - lastAlert > 1500) {
+          if (!item.properties) item.properties = {};
+          item.properties.lastAlert = now;
+          sound.playBump();
+          this.addFloatingText('Максимум жизней!', col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE - 10, '#fbbf24');
+        }
+      }
+    } else if (item.tileId === 'coin') {
       sound.playCoin();
       this.stats.coinsCollected++;
       this.stats.score += 100;
@@ -555,33 +675,82 @@ export class PhysicsEngine {
           enemy.vx = 1.3;
         }
       } else if (enemy.tileId === 'enemy_jumper') {
-        // --- 3. ПРЫГУН-ЗАСАДНИК (Атака прыжками) ---
-        // Сидит на платформе, приседает и совершает высокие дуговые прыжки в сторону героя
+        // --- 3. ПРЫГУН-ЗАСАДНИК (Лягушка) ---
+        // Сидит на платформе, приседает и совершает безопасные прыжки, не падая в бездну
         if (enemy.isGrounded) {
           enemy.vx *= 0.8; // трение на земле
           enemy.jumpCooldown -= dt;
 
-          // Проверяем, есть ли по-прежнему твердая опора под ногами
+          // Проверяем край платформы под ногами
           const footRow = Math.floor((enemy.y + enemy.height + 2) / CELL_SIZE);
           const leftFootCol = Math.floor((enemy.x + 4) / CELL_SIZE);
           const rightFootCol = Math.floor((enemy.x + enemy.width - 4) / CELL_SIZE);
-          const hasGround = this.solidGrid.get(`${leftFootCol},${footRow}`) || this.solidGrid.get(`${rightFootCol},${footRow}`);
-          if (!hasGround) {
+          const hasLeft = !!this.solidGrid.get(`${leftFootCol},${footRow}`);
+          const hasRight = !!this.solidGrid.get(`${rightFootCol},${footRow}`);
+
+          // Если лягушка приземлилась на край платформы: развернуться в сторону платформы!
+          if (!hasLeft && hasRight) {
+            enemy.direction = 1;
+          } else if (!hasRight && hasLeft) {
+            enemy.direction = -1;
+          }
+
+          if (!hasLeft && !hasRight) {
             enemy.isGrounded = false;
           }
 
           if (enemy.jumpCooldown <= 0.45 && enemy.jumpCooldown > 0) {
             enemy.preparingJump = true;
+            // Смотрим в сторону героя, если не стоим на краю
             if (Math.abs(dx) < 380) {
-              enemy.direction = dx > 0 ? 1 : -1;
+              const wantedDir = dx > 0 ? 1 : -1;
+              if ((wantedDir === 1 && hasRight) || (wantedDir === -1 && hasLeft)) {
+                enemy.direction = wantedDir;
+              }
             }
           } else if (enemy.jumpCooldown <= 0) {
+            // Проверка перед прыжком: есть ли твердая опора впереди?
+            let targetDir = enemy.direction;
+            if (Math.abs(dx) < 380) {
+              const wanted = dx > 0 ? 1 : -1;
+              if ((wanted === 1 && hasRight) || (wanted === -1 && hasLeft)) {
+                targetDir = wanted;
+              }
+            }
+
+            // Проверяем 1 и 2 клетки вперед на наличие твердой платформы
+            const checkCol1 = Math.floor((enemy.x + enemy.width * 0.5 + targetDir * CELL_SIZE) / CELL_SIZE);
+            const checkCol2 = Math.floor((enemy.x + enemy.width * 0.5 + targetDir * CELL_SIZE * 2) / CELL_SIZE);
+            const land1 = this.hasGroundBelow(checkCol1, footRow - 1, footRow + 3);
+            const land2 = this.hasGroundBelow(checkCol2, footRow - 1, footRow + 3);
+
+            if (!land1 && !land2) {
+              // Впереди пропасть! Проверяем противоположное направление
+              const oppDir = targetDir > 0 ? -1 : 1;
+              const oppCol1 = Math.floor((enemy.x + enemy.width * 0.5 + oppDir * CELL_SIZE) / CELL_SIZE);
+              const oppCol2 = Math.floor((enemy.x + enemy.width * 0.5 + oppDir * CELL_SIZE * 2) / CELL_SIZE);
+              const oppLand1 = this.hasGroundBelow(oppCol1, footRow - 1, footRow + 3);
+              const oppLand2 = this.hasGroundBelow(oppCol2, footRow - 1, footRow + 3);
+
+              if (oppLand1 || oppLand2) {
+                // Разворачиваемся и прыгаем в безопасную сторону
+                targetDir = oppDir;
+                enemy.direction = targetDir;
+              } else {
+                // Пропасть с обеих сторон (одиночный блок) — сидит на месте и ждет!
+                enemy.preparingJump = false;
+                enemy.jumpCooldown = 1.6 + Math.random() * 0.6;
+                enemy.vx = 0;
+                continue;
+              }
+            }
+
+            // Совершаем безопасный прыжок
             enemy.preparingJump = false;
             enemy.isGrounded = false;
             enemy.vy = -11.2;
-            const jDir = Math.abs(dx) < 380 ? (dx > 0 ? 1 : -1) : enemy.direction;
-            enemy.direction = jDir;
-            enemy.vx = jDir * 2.8;
+            enemy.direction = targetDir;
+            enemy.vx = targetDir * 2.8;
             enemy.jumpCooldown = 2.0 + Math.random() * 0.7;
             this.emitDust(enemy.x + enemy.width * 0.5, enemy.y + enemy.height);
           }
@@ -656,7 +825,7 @@ export class PhysicsEngine {
           }
         }
       } else if (enemy.tileId === 'enemy_patrol') {
-        // --- 2. ЧАСОВОЙ (Патруль строго по своим 3–5 клеткам) ---
+        // --- 2. ЧАСОВОЙ (Патруль строго по своим 3–5 клеткам с проверкой края платформы) ---
         const minX = enemy.initialX - enemy.patrolRadius;
         const maxX = enemy.initialX + enemy.patrolRadius;
 
@@ -665,9 +834,9 @@ export class PhysicsEngine {
           enemy.vx = 0;
         } else {
           enemy.vx = enemy.direction * 1.25;
-          enemy.x += enemy.vx;
 
-          const frontFootX = enemy.vx > 0 ? enemy.x + enemy.width + 4 : enemy.x - 4;
+          // Edge Detection: проверка клетки под собой на один шаг впереди
+          const frontFootX = enemy.direction > 0 ? enemy.x + enemy.width + 6 : enemy.x - 6;
           const frontCol = Math.floor(frontFootX / CELL_SIZE);
           const enemyRow = Math.floor((enemy.y + 16) / CELL_SIZE);
           const belowRow = Math.floor((enemy.y + enemy.height + 4) / CELL_SIZE);
@@ -677,9 +846,11 @@ export class PhysicsEngine {
           const gapAhead = !this.solidGrid.get(`${frontCol},${belowRow}`);
 
           if (hitBoundary || hitWall || gapAhead) {
-            enemy.pauseTimer = 0.4; // секундная пауза дозора перед разворотом
+            enemy.pauseTimer = 0.35; // секундная пауза дозора перед разворотом
             enemy.direction = enemy.direction > 0 ? -1 : 1;
-            enemy.vx = 0;
+            enemy.vx = enemy.direction * 1.25;
+          } else {
+            enemy.x += enemy.vx;
           }
 
           // Apply vertical gravity and landing for patrol
@@ -706,26 +877,38 @@ export class PhysicsEngine {
         }
       } else {
         // --- 1. ЗВЕРЬ-ОХОТНИК (enemy_chaser) ---
-        // Охотник замечает героя и бежит за ним на удвоенной скорости!
+        // Охотник замечает героя и бежит за ним, но НИКОГДА не падает с платформы в бездну!
         if (dist < 340 && Math.abs(dy) < 140) {
           enemy.isChasing = true;
           enemy.direction = dx > 0 ? 1 : -1;
-          enemy.vx = enemy.direction * 2.8; // стремительная погоня!
-
-          // Небольшой подскок если перед охотником ступенька в 1 блок
-          const frontFootX = enemy.vx > 0 ? enemy.x + enemy.width + 4 : enemy.x - 4;
-          const frontCol = Math.floor(frontFootX / CELL_SIZE);
-          const enemyRow = Math.floor((enemy.y + 16) / CELL_SIZE);
-          if (this.solidGrid.get(`${frontCol},${enemyRow}`) && enemy.isGrounded) {
-            enemy.vy = -7.0;
-            enemy.isGrounded = false;
-          }
+          enemy.vx = enemy.direction * 2.6; // стремительная погоня!
         } else {
           enemy.isChasing = false;
           enemy.vx = enemy.direction * 1.3;
         }
 
-        enemy.x += enemy.vx;
+        // Edge Detection: проверка клетки перед собой и под следующим шагом
+        const frontFootX = enemy.direction > 0 ? enemy.x + enemy.width + 6 : enemy.x - 6;
+        const frontCol = Math.floor(frontFootX / CELL_SIZE);
+        const enemyRow = Math.floor((enemy.y + 16) / CELL_SIZE);
+        const belowRow = Math.floor((enemy.y + enemy.height + 4) / CELL_SIZE);
+
+        const wallItem = this.solidGrid.get(`${frontCol},${enemyRow}`);
+        const groundItem = this.solidGrid.get(`${frontCol},${belowRow}`);
+
+        // Разворот у стены или у обрыва (ВСЕГДА останавливается перед обрывом!)
+        if (!groundItem) {
+          // Впереди пропасть: останавливаемся и разворачиваемся!
+          enemy.direction = enemy.direction > 0 ? -1 : 1;
+          enemy.vx = enemy.direction * 1.3;
+          enemy.isChasing = false;
+        } else if (wallItem) {
+          // Впереди стена: разворот
+          enemy.direction = enemy.direction > 0 ? -1 : 1;
+          enemy.vx = enemy.direction * (enemy.isChasing ? 2.0 : 1.3);
+        } else {
+          enemy.x += enemy.vx;
+        }
 
         // Apply vertical gravity and landing for chaser
         if (!enemy.isGrounded) {
@@ -742,27 +925,12 @@ export class PhysicsEngine {
         } else {
           const footCol = Math.floor((enemy.x + enemy.width * 0.5) / CELL_SIZE);
           const footRow = Math.floor((enemy.y + enemy.height + 2) / CELL_SIZE);
-          const groundItem = this.solidGrid.get(`${footCol},${footRow}`);
-          if (!groundItem) {
+          const groundUnderFoot = this.solidGrid.get(`${footCol},${footRow}`);
+          if (!groundUnderFoot) {
             enemy.isGrounded = false;
           } else {
             enemy.y = footRow * CELL_SIZE - enemy.height;
           }
-        }
-
-        // Проверка стен и края платформы
-        const frontFootX = enemy.vx > 0 ? enemy.x + enemy.width + 4 : enemy.x - 4;
-        const frontCol = Math.floor(frontFootX / CELL_SIZE);
-        const enemyRow = Math.floor((enemy.y + 16) / CELL_SIZE);
-        const belowRow = Math.floor((enemy.y + enemy.height + 4) / CELL_SIZE);
-
-        const wallItem = this.solidGrid.get(`${frontCol},${enemyRow}`);
-        const groundItem = this.solidGrid.get(`${frontCol},${belowRow}`);
-
-        // Разворот у стены или у обрыва (если не в яростной погоне)
-        if (wallItem || (!groundItem && !enemy.isChasing)) {
-          enemy.direction = enemy.direction > 0 ? -1 : 1;
-          enemy.vx = enemy.direction * Math.abs(enemy.vx);
         }
       }
 
@@ -1021,6 +1189,146 @@ export class PhysicsEngine {
         shape: 'square',
         rotation: Math.random() * Math.PI,
         vRot: (Math.random() - 0.5) * 0.2,
+      });
+    }
+  }
+
+  public isPipeTile(tileId: string): boolean {
+    return (
+      tileId === 'pipe_green' ||
+      tileId === 'pipe_green_entrance' ||
+      tileId === 'pipe_green_exit' ||
+      tileId === 'pipe_red' ||
+      tileId === 'pipe_red_entrance' ||
+      tileId === 'pipe_red_exit'
+    );
+  }
+
+  public getPairedPipe(currentPipe: LevelItem): LevelItem | null {
+    const isRed = currentPipe.tileId.includes('red');
+    const sameColorPipes = this.levelData.items
+      .filter(
+        (it) =>
+          (isRed ? it.tileId.includes('red') : it.tileId.includes('green')) &&
+          this.isPipeTile(it.tileId)
+      )
+      .sort((a, b) => a.x - b.x || a.y - b.y);
+
+    if (sameColorPipes.length < 2) return null;
+
+    const myIdx = sameColorPipes.findIndex((it) => it.id === currentPipe.id);
+    if (myIdx === -1) return null;
+
+    if (myIdx % 2 === 0) {
+      return sameColorPipes[myIdx + 1] ?? sameColorPipes[0];
+    } else {
+      return sameColorPipes[myIdx - 1];
+    }
+  }
+
+  public checkPipeTeleportation() {
+    if (
+      !this.player.isGrounded ||
+      (this.player.pipeCooldown && this.player.pipeCooldown > 0) ||
+      this.player.pipeWarpState === 'entering' ||
+      this.player.pipeWarpState === 'exiting'
+    ) {
+      return;
+    }
+
+    const footY = this.player.y + this.player.height;
+    const centerCol = Math.floor((this.player.x + this.player.width * 0.5) / CELL_SIZE);
+    const pipeRow = Math.floor((footY + 2) / CELL_SIZE);
+    const pipeItem = this.solidGrid.get(`${centerCol},${pipeRow}`);
+
+    if (pipeItem && this.isPipeTile(pipeItem.tileId)) {
+      const pipeCenterX = pipeItem.x * CELL_SIZE + CELL_SIZE * 0.5;
+      const playerCenterX = this.player.x + this.player.width * 0.5;
+
+      if (Math.abs(playerCenterX - pipeCenterX) < 18) {
+        const pair = this.getPairedPipe(pipeItem);
+        if (!pair) {
+          // No paired pipe placed!
+          sound.playBump();
+          this.addFloatingText('Нет выхода!', pipeCenterX, pipeItem.y * CELL_SIZE - 12, '#f87171');
+          this.player.pipeCooldown = 1.4; // prevent spam
+        } else {
+          // Trigger suction animation
+          sound.playPipe();
+          this.player.pipeWarpState = 'entering';
+          this.player.pipeWarpTimer = 0.35;
+          this.player.vx = 0;
+          this.player.vy = 0;
+          this.player.pipeTargetX = pair.x * CELL_SIZE + (CELL_SIZE - this.player.width) * 0.5;
+          this.player.pipeTargetY = (pair.y - 1) * CELL_SIZE + (CELL_SIZE - this.player.height);
+          const pColor = pipeItem.tileId.includes('red') ? '#ef4444' : '#22c55e';
+          this.emitSparkles(pipeCenterX, pipeItem.y * CELL_SIZE + 4, pColor);
+        }
+      }
+    }
+  }
+
+  public hasGroundBelow(col: number, minRow: number, maxRow: number): boolean {
+    for (let r = Math.max(0, minRow); r <= Math.min(GRID_ROWS, maxRow); r++) {
+      if (this.solidGrid.get(`${col},${r}`)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public addFloatingText(text: string, x: number, y: number, color: string = '#ffffff') {
+    this.floatingTexts.push({
+      id: Math.random().toString(),
+      text,
+      x,
+      y,
+      vy: -26,
+      life: 0,
+      maxLife: 1.5,
+      color,
+    });
+  }
+
+  public updateFloatingTexts(dt: number) {
+    this.floatingTexts.forEach((t) => {
+      t.y += t.vy * dt;
+      t.life += dt;
+    });
+    this.floatingTexts = this.floatingTexts.filter((t) => t.life < t.maxLife);
+  }
+
+  public emitIceParticles(x: number, y: number) {
+    for (let i = 0; i < 3; i++) {
+      this.particles.push({
+        x,
+        y,
+        vx: (Math.random() - 0.5) * 4,
+        vy: -Math.random() * 2 - 0.5,
+        color: 'rgba(186, 230, 253, 0.85)',
+        size: Math.random() * 2.5 + 1.5,
+        alpha: 0.9,
+        life: 0,
+        maxLife: 0.35,
+        shape: 'circle',
+      });
+    }
+  }
+
+  public emitHeartSparkles(x: number, y: number) {
+    const colors = ['#f43f5e', '#fb7185', '#fda4af', '#ffffff'];
+    for (let i = 0; i < 10; i++) {
+      this.particles.push({
+        x,
+        y,
+        vx: (Math.random() - 0.5) * 5,
+        vy: -Math.random() * 4 - 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 4 + 2,
+        alpha: 1,
+        life: 0,
+        maxLife: 0.65,
+        shape: 'sparkle',
       });
     }
   }

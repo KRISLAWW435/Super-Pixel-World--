@@ -39,3 +39,79 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
+
+/* Tutorial Ghost Hand & Guided Tour Keyframes */
+@keyframes tourTap {
+  0% {
+    transform: translate(-30px, -40px) scale(1.1);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-4px, -4px) scale(1);
+    opacity: 1;
+  }
+  35% {
+    transform: translate(-2px, 2px) scale(0.85);
+  }
+  50% {
+    transform: translate(-4px, -4px) scale(1);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(-4px, -4px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-4px, -4px) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes tourDragHorizontal {
+  0% {
+    transform: translate(-80px, 0px) scale(1.1);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-80px, 0px) scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(-80px, 4px) scale(0.88);
+  }
+  75% {
+    transform: translate(80px, 4px) scale(0.88);
+    opacity: 1;
+  }
+  85% {
+    transform: translate(80px, 0px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(80px, 0px) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-tour-tap {
+  animation: tourTap 2.4s ease-in-out infinite;
+}
+
+.animate-tour-drag-horizontal {
+  animation: tourDragHorizontal 2.8s ease-in-out infinite;
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+

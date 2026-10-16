@@ -9,7 +9,7 @@
  * - Collapsible sidebar rail
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -61,6 +61,7 @@ interface BuilderSidebarProps {
   onToggleMute: () => void;
   onOpenTutorial: () => void;
   onExitToMenu?: () => void;
+  isGuidedTourOpen?: boolean;
 }
 
 export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
@@ -86,10 +87,18 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   onToggleMute,
   onOpenTutorial,
   onExitToMenu,
+  isGuidedTourOpen,
 }) => {
   const [activeTab, setActiveTab] = useState<StudioSidebarTab>('platforms');
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Keep sidebar uncollapsed whenever guided tour is active so child can see tools
+  useEffect(() => {
+    if (isGuidedTourOpen && isCollapsed) {
+      setIsCollapsed(false);
+    }
+  }, [isGuidedTourOpen, isCollapsed]);
 
   const platformItems = PALETTE_ITEMS.filter((i) => i.category === 'platforms');
   const interactiveItems = PALETTE_ITEMS.filter((i) => i.category === 'objects');
@@ -111,6 +120,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         <div className="flex flex-col gap-2.5 w-full items-center">
           {/* Brush */}
           <button
+            id="tour-tool-brush"
             onClick={() => {
               onSelectTool('brush');
               sound.playSelect();
@@ -230,6 +240,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
       {/* 2. Three Unified Studio Tabs (Platforms, Interactive, World) */}
       <div className="grid grid-cols-3 bg-[#0B0F19] border-b border-slate-800 p-1.5 gap-1 shrink-0">
         <button
+          id="tour-tab-platforms"
           onClick={() => {
             setActiveTab('platforms');
             if (activeTool === 'erase') onSelectTool('brush');
@@ -246,6 +257,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         </button>
 
         <button
+          id="tour-tab-interactive"
           onClick={() => {
             setActiveTab('interactive');
             if (activeTool === 'erase') onSelectTool('brush');
@@ -262,6 +274,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         </button>
 
         <button
+          id="tour-tab-world"
           onClick={() => {
             setActiveTab('world');
             sound.playClick();
@@ -291,6 +304,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                 return (
                   <button
                     key={item.id}
+                    id={`tour-tile-${item.id}`}
                     onClick={() => {
                       onSelectTile(item.id);
                       if (activeTool === 'erase') onSelectTool('brush');
@@ -330,6 +344,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                   return (
                     <button
                       key={item.id}
+                      id={`tour-tile-${item.id}`}
                       onClick={() => {
                         onSelectTile(item.id);
                         if (activeTool === 'erase') onSelectTool('brush');
@@ -527,6 +542,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         <div className="grid grid-cols-4 gap-1.5">
           {/* Freehand Brush */}
           <button
+            id="tour-tool-brush"
             onClick={() => {
               onSelectTool('brush');
               sound.playSelect();
@@ -547,6 +563,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
 
           {/* Area 2D Box */}
           <button
+            id="tour-tool-line"
             onClick={() => {
               onSelectTool('line');
               sound.playSelect();
@@ -567,6 +584,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
 
           {/* Eraser */}
           <button
+            id="tour-tool-erase"
             onClick={() => {
               onSelectTool('erase');
               sound.playErase();

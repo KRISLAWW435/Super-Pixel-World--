@@ -376,6 +376,93 @@ class SoundEngine {
     });
   }
 
+  // Healing heart chime: "Целебный дзынь" (+1 жизнь)
+  public playHeal() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const notes = [
+      { f: 523.25, d: 0.0 },   // C5
+      { f: 659.25, d: 0.07 },  // E5
+      { f: 783.99, d: 0.14 },  // G5
+      { f: 1046.50, d: 0.21 }, // C6
+      { f: 1318.51, d: 0.28 }, // E6
+    ];
+
+    notes.forEach(({ f, d }) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const startT = t + d;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, startT);
+
+      const vol = 0.22 * this.masterVolume;
+      gain.gain.setValueAtTime(vol, startT);
+      gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(startT);
+      osc.stop(startT + 0.38);
+    });
+  }
+
+  // Pipe warp sound: classic whoosh / teleportation suction
+  public playPipe() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320, t);
+    osc.frequency.exponentialRampToValueAtTime(140, t + 0.15);
+    osc.frequency.exponentialRampToValueAtTime(480, t + 0.32);
+
+    const vol = 0.2 * this.masterVolume;
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.linearRampToValueAtTime(vol * 0.8, t + 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.36);
+  }
+
+  // Ice slide swish sound
+  public playIceSlide() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(700, t);
+    osc.frequency.exponentialRampToValueAtTime(520, t + 0.18);
+
+    const vol = 0.08 * this.masterVolume;
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.22);
+  }
+
   public playVictory() {
     if (this.isMuted) return;
     this.initContext();

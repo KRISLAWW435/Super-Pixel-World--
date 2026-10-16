@@ -618,6 +618,104 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         }
       }
 
+      // Pipe portal connections visualization (Task 4: Editor visualization)
+      const isPipe = (t: string) => t.startsWith('pipe_');
+      const hoveredItem = hoverCell ? levelData.items.find((it) => it.x === hoverCell.col && it.y === hoverCell.row) : null;
+      const isHoveringPipe = hoveredItem && isPipe(hoveredItem.tileId);
+
+      if (isHoveringPipe && hoveredItem) {
+        const isRed = hoveredItem.tileId.includes('red');
+        const colorName = isRed ? 'Красный' : 'Зелёный';
+        const linkColor = isRed ? '#ef4444' : '#22c55e';
+        const sameColorPipes = levelData.items
+          .filter((it) => (isRed ? it.tileId.includes('red') : it.tileId.includes('green')) && isPipe(it.tileId))
+          .sort((a, b) => a.x - b.x || a.y - b.y);
+
+        if (sameColorPipes.length >= 2) {
+          const myIdx = sameColorPipes.findIndex((it) => it.id === hoveredItem.id);
+          const paired = myIdx % 2 === 0 ? (sameColorPipes[myIdx + 1] ?? sameColorPipes[0]) : sameColorPipes[myIdx - 1];
+
+          if (paired && paired.id !== hoveredItem.id) {
+            const startX = hoveredItem.x * effectiveCellSize + effectiveCellSize * 0.5;
+            const startY = hoveredItem.y * effectiveCellSize + effectiveCellSize * 0.5;
+            const endX = paired.x * effectiveCellSize + effectiveCellSize * 0.5;
+            const endY = paired.y * effectiveCellSize + effectiveCellSize * 0.5;
+
+            // Draw glowing curved arc connecting the paired pipes
+            ctx.save();
+            ctx.strokeStyle = linkColor;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([6, 4]);
+            ctx.lineDashOffset = -animTime * 30;
+
+            const midX = (startX + endX) * 0.5;
+            const midY = Math.min(startY, endY) - Math.min(80, Math.abs(endX - startX) * 0.25) - 30;
+
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.quadraticCurveTo(midX, midY, endX, endY);
+            ctx.stroke();
+
+            // Destination target dot and pulsing ring
+            ctx.setLineDash([]);
+            ctx.fillStyle = linkColor;
+            ctx.beginPath();
+            ctx.arc(endX, endY, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = linkColor;
+            ctx.lineWidth = 2;
+            const pulseR = 8 + Math.sin(animTime * 8) * 3;
+            ctx.beginPath();
+            ctx.arc(endX, endY, pulseR, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Direction arrow head pointing to destination
+            const angle = Math.atan2(endY - midY, endX - midX);
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - 14 * Math.cos(angle - 0.4), endY - 14 * Math.sin(angle - 0.4));
+            ctx.lineTo(endX - 14 * Math.cos(angle + 0.4), endY - 14 * Math.sin(angle + 0.4));
+            ctx.closePath();
+            ctx.fillStyle = linkColor;
+            ctx.fill();
+
+            // Badge near midpoint of curve
+            const badgeTxt = `🌀 ${colorName} портал ➔ [${paired.x + 1}, ${paired.y + 1}]`;
+            ctx.font = 'bold 11px Fredoka, sans-serif';
+            const bw = ctx.measureText(badgeTxt).width;
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(midX - bw * 0.5 - 6, midY - 14, bw + 12, 20);
+            ctx.strokeStyle = linkColor;
+            ctx.strokeRect(midX - bw * 0.5 - 6, midY - 14, bw + 12, 20);
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(badgeTxt, midX, midY - 4);
+
+            ctx.restore();
+          }
+        } else {
+          // Unpaired pipe warning in editor
+          const px = hoveredItem.x * effectiveCellSize + effectiveCellSize * 0.5;
+          const py = hoveredItem.y * effectiveCellSize - 12;
+          ctx.save();
+          const warnTxt = '⚠️ Нет выхода! Поставьте вторую трубу';
+          ctx.font = 'bold 10px system-ui, sans-serif';
+          const bw = ctx.measureText(warnTxt).width;
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(px - bw * 0.5 - 6, py - 12, bw + 12, 18);
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(px - bw * 0.5 - 6, py - 12, bw + 12, 18);
+          ctx.fillStyle = '#fca5a5';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(warnTxt, px, py - 3);
+          ctx.restore();
+        }
+      }
+
       ctx.restore();
 
       renderMinimap();
@@ -1000,6 +1098,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
           {/* Primary High-Contrast Playtest Button (44px target) */}
           <button
+            id="tour-play-button"
             onClick={() => {
               sound.playCoin();
               onStartPlay();
@@ -1025,9 +1124,21 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
       {/* 3. MAIN CANVAS AREA (Begins immediately below header, 100% visible) */}
       <div
+        id="tour-editor-canvas"
         ref={containerRef}
         className={`flex-1 w-full h-full relative ${getCursorClass()}`}
       >
+        {/* Dedicated target zone for Step 3 of Guided Tour */}
+        <div
+          id="tour-canvas-zone"
+          className="absolute pointer-events-none"
+          style={{
+            left: '25%',
+            bottom: '22%',
+            width: '320px',
+            height: '110px',
+          }}
+        />
         <canvas
           ref={canvasRef}
           onMouseDown={handleMouseDown}

@@ -23,8 +23,38 @@ export interface ChasmInfo {
 
 const STORAGE_KEY = 'super_pixel_world_tutorial_completed_v3';
 const SKIPPED_KEY = 'super_pixel_world_tutorial_skipped_v3';
+const GUIDED_TOUR_KEY = 'super_pixel_world_tutorial';
 
 export class TutorialManager {
+  /**
+   * Checks if player has completed or skipped the interactive Guided Tour
+   */
+  public static isGuidedTourCompleted(): boolean {
+    try {
+      return localStorage.getItem(GUIDED_TOUR_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Saves completion of the interactive Guided Tour
+   */
+  public static setGuidedTourCompleted(completed: boolean): void {
+    try {
+      localStorage.setItem(GUIDED_TOUR_KEY, completed ? 'true' : 'false');
+    } catch {}
+  }
+
+  /**
+   * Resets the interactive Guided Tour so the player can experience it again
+   */
+  public static resetGuidedTour(): void {
+    try {
+      localStorage.removeItem(GUIDED_TOUR_KEY);
+    } catch {}
+  }
+
   /**
    * Retrieves array of completed mission indices (0..6)
    */
@@ -88,6 +118,7 @@ export class TutorialManager {
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(SKIPPED_KEY);
+      localStorage.removeItem(GUIDED_TOUR_KEY);
     } catch {}
   }
 
