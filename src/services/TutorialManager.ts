@@ -107,6 +107,31 @@ export class TutorialManager {
   }
 
   /**
+   * Emit tile selected event from the palette to the event bus
+   */
+  public static emitTileSelected(tile: string): void {
+    console.log(`[Tutorial] Tile selected: ${tile}`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tutorial:tileSelected', { detail: tile }));
+    }
+  }
+
+  /**
+   * Subscribe to tile selected events with automatic cleanup handler
+   */
+  public static onTileSelected(callback: (tile: string) => void): () => void {
+    if (typeof window === 'undefined') return () => {};
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      callback(customEvent.detail);
+    };
+    window.addEventListener('tutorial:tileSelected', handler);
+    return () => {
+      window.removeEventListener('tutorial:tileSelected', handler);
+    };
+  }
+
+  /**
    * Emit gameplay action (move, jump, victory) for gameplay phase
    */
   public static emitGameplayAction(action: 'move' | 'jump' | 'victory' | string): void {

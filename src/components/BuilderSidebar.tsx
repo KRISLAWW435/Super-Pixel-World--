@@ -347,6 +347,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                     id={`tour-tile-${item.id}`}
                     onClick={() => {
                       onSelectTile(item.id);
+                      TutorialManager.emitTileSelected(item.id);
                       if (activeTool === 'erase') onSelectTool('brush');
                       sound.playPlaceTile();
                     }}
@@ -386,6 +387,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                       id={`tour-tile-${item.id}`}
                       onClick={() => {
                         onSelectTile(item.id);
+                        TutorialManager.emitTileSelected(item.id);
                         if (activeTool === 'erase') onSelectTool('brush');
                         sound.playPlaceTile();
                       }}
@@ -443,6 +445,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                       id={`tour-tile-${item.id}`}
                       onClick={() => {
                         onSelectTile(item.id);
+                        TutorialManager.emitTileSelected(item.id);
                         if (activeTool === 'erase') onSelectTool('brush');
                         sound.playPlaceTile();
                       }}

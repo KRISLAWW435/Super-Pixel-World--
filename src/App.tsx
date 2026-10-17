@@ -76,6 +76,11 @@ export default function App() {
   const [tourStepSuccess, setTourStepSuccess] = useState<boolean>(false);
   const [tourSuccessMsg, setTourSuccessMsg] = useState<string>('');
 
+  // Multi-phase tour step selection flags (tile selection in palette -> canvas placement)
+  const [tourCoinSelected, setTourCoinSelected] = useState<boolean>(false);
+  const [tourEnemySelected, setTourEnemySelected] = useState<boolean>(false);
+  const [tourSpikesSelected, setTourSpikesSelected] = useState<boolean>(false);
+
   // App UI State
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -96,6 +101,16 @@ export default function App() {
       unsubscribe();
     };
   }, []);
+
+  // Listen to tile selected events via TutorialManager (Event Bus)
+  useEffect(() => {
+    const unsubscribe = TutorialManager.onTileSelected((tile) => {
+      handleSelectTile(tile as TileId);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [isGuidedTourOpen, guidedTourStep]);
 
   // Listen to Phase 2 gameplay actions (move, jump, victory) from GamePlayer
   useEffect(() => {
@@ -154,7 +169,11 @@ export default function App() {
 
   const handleSelectTile = (tile: TileId) => {
     setSelectedTile(tile);
-    if (isGuidedTourOpen && guidedTourStep === 3 && (tile === 'grass_dirt' || tile === 'ice_block' || tile === 'stone')) {
+
+    if (!isGuidedTourOpen) return;
+
+    // Step 3: Grass dirt selected
+    if (guidedTourStep === 3 && (tile === 'grass_dirt' || tile === 'ice_block' || tile === 'stone')) {
       sound.playPlaceTile();
       TutorialManager.logStep(3, 'Tile grass_dirt selected');
       setTourStepSuccess(true);
@@ -164,20 +183,61 @@ export default function App() {
         setGuidedTourStep(4);
         setTourBlocksPlaced(0);
       }, 300);
+      return;
+    }
+
+    // Step 6: Coin selected from palette
+    if (guidedTourStep === 6 && tile === 'coin') {
+      sound.playCoin();
+      TutorialManager.logStep(6, 'Tile coin selected from palette');
+      setTourStepSuccess(true);
+      setTourSuccessMsg('Монета выбрана! Теперь поставь её на поле.');
+      setTourCoinSelected(true);
+      setTimeout(() => {
+        setTourStepSuccess(false);
+      }, 450);
+      return;
+    }
+
+    // Step 7: Enemy selected from palette
+    if (guidedTourStep === 7 && (tile === 'enemy_chaser' || tile.startsWith('enemy_'))) {
+      sound.playBump();
+      TutorialManager.logStep(7, 'Enemy selected from palette');
+      setTourStepSuccess(true);
+      setTourSuccessMsg('Зверь-охотник выбран! Поставь его на платформу.');
+      setTourEnemySelected(true);
+      setTimeout(() => {
+        setTourStepSuccess(false);
+      }, 450);
+      return;
+    }
+
+    // Step 8: Spikes selected from palette
+    if (guidedTourStep === 8 && tile === 'spikes') {
+      sound.playPlaceTile();
+      TutorialManager.logStep(8, 'Spikes selected from palette');
+      setTourStepSuccess(true);
+      setTourSuccessMsg('Шипы выбраны! Размести их на пути героя.');
+      setTourSpikesSelected(true);
+      setTimeout(() => {
+        setTourStepSuccess(false);
+      }, 450);
+      return;
     }
   };
 
-  // Step 5: Mouse Wheel Action
+  // Step 5: Mouse Wheel / Camera Navigation Action
   const handleWheelAction = () => {
     if (isGuidedTourOpen && guidedTourStep === 5) {
       sound.playSelect();
-      TutorialManager.logStep(5, 'Mouse wheel scrolled');
+      TutorialManager.logStep(5, 'Camera navigated');
       setTourStepSuccess(true);
       setTourSuccessMsg('Отлично! Камера перемещается.');
       setTimeout(() => {
         setTourStepSuccess(false);
         setSidebarTab('interactive');
         setSelectedTile('coin');
+        setTourCoinSelected(false);
         setGuidedTourStep(6);
       }, 400);
     }
@@ -200,16 +260,22 @@ export default function App() {
     } else if (guidedTourStep === 5) {
       setSidebarTab('interactive');
       setSelectedTile('coin');
+      setTourCoinSelected(false);
       setGuidedTourStep(6);
     } else if (guidedTourStep === 6) {
       setSidebarTab('enemies');
       setSelectedTile('enemy_chaser');
+      setTourCoinSelected(false);
+      setTourEnemySelected(false);
       setGuidedTourStep(7);
     } else if (guidedTourStep === 7) {
       setSidebarTab('interactive');
       setSelectedTile('spikes');
+      setTourEnemySelected(false);
+      setTourSpikesSelected(false);
       setGuidedTourStep(8);
     } else if (guidedTourStep === 8) {
+      setTourSpikesSelected(false);
       setGuidedTourStep(9);
     } else if (guidedTourStep === 9) {
       setGuidedTourStep(10);
@@ -248,6 +314,9 @@ export default function App() {
     setGuidedTourStep(1);
     setTourBlocksPlaced(0);
     setTourVictory(false);
+    setTourCoinSelected(false);
+    setTourEnemySelected(false);
+    setTourSpikesSelected(false);
     setIsGuidedTourOpen(true);
     setScreenMode('editor');
   };
@@ -301,6 +370,7 @@ export default function App() {
           setTourSuccessMsg('Золотая монета размещена!');
           setTimeout(() => {
             setTourStepSuccess(false);
+            setTourCoinSelected(false);
             setSidebarTab('enemies');
             setSelectedTile('enemy_chaser');
             setGuidedTourStep(7);
@@ -317,6 +387,7 @@ export default function App() {
           setTourSuccessMsg('Зверь-охотник на страже!');
           setTimeout(() => {
             setTourStepSuccess(false);
+            setTourEnemySelected(false);
             setSidebarTab('interactive');
             setSelectedTile('spikes');
             setGuidedTourStep(8);
@@ -333,6 +404,7 @@ export default function App() {
           setTourSuccessMsg('Опасные шипы установлены!');
           setTimeout(() => {
             setTourStepSuccess(false);
+            setTourSpikesSelected(false);
             setGuidedTourStep(9);
           }, 450);
         }
@@ -680,52 +752,80 @@ export default function App() {
             case 5:
               return {
                 targetId: undefined,
-                title: 'Управление камерой',
-                message: 'Покрути колёсико мыши, чтобы двигать камеру.',
+                title: 'Навигация по уровню',
+                message:
+                  'Крути колесико мыши вверх-вниз, чтобы двигать камеру вертикально. А если зажать колесико (или нажать Пробел и потянуть) — можно двигать холст горизонтально!',
                 handAction: 'wheel' as const,
-                wrongClickMsg: 'Покрути колёсико мыши вперёд или назад!',
+                wrongClickMsg: 'Покрути колёсико мыши или зажми Пробел для панорамирования!',
               };
             case 6:
+              if (!tourCoinSelected) {
+                return {
+                  targetId: sidebarTab === 'interactive' ? 'tour-tile-coin' : 'tour-tab-interactive',
+                  title: 'Золотая награда',
+                  message:
+                    sidebarTab === 'interactive'
+                      ? 'Нажми на золотую монету в палитре бонусов!'
+                      : 'Открой вкладку «Бонусы», чтобы найти монеты!',
+                  handAction: 'click' as const,
+                  wrongClickMsg:
+                    sidebarTab === 'interactive'
+                      ? 'Нажми на золотую монету!'
+                      : 'Нажми на вкладку «Бонусы»!',
+                };
+              }
               return {
-                targetId: sidebarTab === 'interactive' ? 'tour-tile-coin' : 'tour-tab-interactive',
+                targetId: undefined, // Canvas is completely open!
                 title: 'Золотая награда',
-                message:
-                  sidebarTab === 'interactive'
-                    ? 'Выбери золотую монету и поставь её на игровое поле!'
-                    : 'Открой вкладку «Интерактив», чтобы найти монеты!',
+                message: 'Отлично! Теперь поставь золотую монету на игровое поле над платформой.',
                 handAction: 'click' as const,
-                wrongClickMsg:
-                  sidebarTab === 'interactive'
-                    ? 'Поставь монету на игровое поле!'
-                    : 'Нажми на вкладку «Интерактив»!',
+                wrongClickMsg: 'Поставь монету на игровое поле!',
               };
             case 7:
+              if (!tourEnemySelected) {
+                return {
+                  targetId: sidebarTab === 'enemies' ? 'tour-tile-enemy_chaser' : 'tour-tab-enemies',
+                  title: 'Враг на карте',
+                  message:
+                    sidebarTab === 'enemies'
+                      ? 'Выбери Зверя-охотника в палитре врагов!'
+                      : 'Открой вкладку «Враги», чтобы выбрать противника!',
+                  handAction: 'click' as const,
+                  wrongClickMsg:
+                    sidebarTab === 'enemies'
+                      ? 'Нажми на Зверя-охотника!'
+                      : 'Нажми на вкладку «Враги»!',
+                };
+              }
               return {
-                targetId: sidebarTab === 'enemies' ? 'tour-tile-enemy_chaser' : 'tour-tab-enemies',
+                targetId: undefined,
                 title: 'Враг на карте',
-                message:
-                  sidebarTab === 'enemies'
-                    ? 'Выбери Зверя-охотника и поставь его на платформу!'
-                    : 'Открой вкладку «Враги», чтобы выбрать противника!',
+                message: 'Отлично! Теперь поставь Зверя-охотника на платформу.',
                 handAction: 'click' as const,
-                wrongClickMsg:
-                  sidebarTab === 'enemies'
-                    ? 'Поставь Зверя-охотника на платформу!'
-                    : 'Нажми на вкладку «Враги»!',
+                wrongClickMsg: 'Поставь Зверя-охотника на платформу!',
               };
             case 8:
+              if (!tourSpikesSelected) {
+                return {
+                  targetId: sidebarTab === 'interactive' ? 'tour-tile-spikes' : 'tour-tab-interactive',
+                  title: 'Опасные шипы',
+                  message:
+                    sidebarTab === 'interactive'
+                      ? 'Выбери Опасные шипы в палитре бонусов!'
+                      : 'Открой вкладку «Бонусы», чтобы найти шипы!',
+                  handAction: 'click' as const,
+                  wrongClickMsg:
+                    sidebarTab === 'interactive'
+                      ? 'Нажми на Опасные шипы!'
+                      : 'Нажми на вкладку «Бонусы»!',
+                };
+              }
               return {
-                targetId: sidebarTab === 'interactive' ? 'tour-tile-spikes' : 'tour-tab-interactive',
+                targetId: undefined,
                 title: 'Опасные шипы',
-                message:
-                  sidebarTab === 'interactive'
-                    ? 'Выбери Опасные шипы и размести их на пути героя!'
-                    : 'Открой вкладку «Интерактив», чтобы найти шипы!',
+                message: 'Отлично! Теперь размести шипы на пути героя.',
                 handAction: 'click' as const,
-                wrongClickMsg:
-                  sidebarTab === 'interactive'
-                    ? 'Поставь шипы на игровое поле!'
-                    : 'Нажми на вкладку «Интерактив»!',
+                wrongClickMsg: 'Поставь шипы на игровое поле!',
               };
             case 9:
               return {

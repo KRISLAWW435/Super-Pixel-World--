@@ -1034,8 +1034,19 @@ export class SpriteRenderer {
       isSliding?: boolean;
     }
   ) {
+    // "Big Mario" 2-tile heroic proportions (height 80px, width ~36px)
+    // Scale visual hero sprites proportionally so the character stands 80px high
+    const s = Math.round(height * 0.94);
+
+    // Keep the hitbox aligned with the bottom-center of the sprite:
+    // Feet in all hero sprites reach down to ~s * 0.495.
+    // By anchoring vertical translation at (y + height - footOffset),
+    // the feet touch the ground (bottom of hitbox) at exactly y + height,
+    // and horizontal translation (x + width * 0.5) centers the sprite over the hitbox.
+    const footOffset = s * 0.495;
+
     ctx.save();
-    ctx.translate(x + width * 0.5, y + height * 0.5);
+    ctx.translate(x + width * 0.5, y + height - footOffset);
 
     if (!state.facingRight) {
       ctx.scale(-1, 1);
@@ -1045,28 +1056,27 @@ export class SpriteRenderer {
       ctx.globalAlpha = Math.sin(state.animTime * 25) > 0 ? 0.3 : 0.8;
     }
 
-    const s = width;
     const walkBob = state.isWalking && !state.isInAir ? Math.sin(state.animTime * 14) * 2 : 0;
     const legSwing = state.isWalking && !state.isInAir ? Math.cos(state.animTime * 14) * 6 : 0;
 
     // Visual effect: Translucent ice trail and frost sparks under feet when sliding
     if (state.isSliding) {
       ctx.save();
-      // Frost trail behind hero
-      const trailGrad = ctx.createLinearGradient(-s * 0.8, s * 0.42, 0, s * 0.42);
+      // Frost trail behind hero right at foot level
+      const trailGrad = ctx.createLinearGradient(-s * 0.8, footOffset - 2, 0, footOffset - 2);
       trailGrad.addColorStop(0, 'rgba(186, 230, 253, 0)');
       trailGrad.addColorStop(0.7, 'rgba(125, 211, 252, 0.45)');
       trailGrad.addColorStop(1, 'rgba(255, 255, 255, 0.7)');
       ctx.fillStyle = trailGrad;
       ctx.beginPath();
-      ctx.ellipse(-s * 0.35, s * 0.42, s * 0.42, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(-s * 0.35, footOffset - 2, s * 0.42, 4, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // Shiny frost sparks
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.fillRect(-s * 0.45, s * 0.38, 2.5, 2.5);
-      ctx.fillRect(-s * 0.65, s * 0.41, 2, 2);
-      ctx.fillRect(-s * 0.25, s * 0.44, 2, 2);
+      ctx.fillRect(-s * 0.45, footOffset - 4, 2.5, 2.5);
+      ctx.fillRect(-s * 0.65, footOffset - 1, 2, 2);
+      ctx.fillRect(-s * 0.25, footOffset + 1, 2, 2);
       ctx.restore();
     }
 
@@ -1141,18 +1151,18 @@ export class SpriteRenderer {
 
     // Hat band
     ctx.fillStyle = '#78350f';
-    ctx.fillRect(-s * 0.24, -s * 0.42, s * 0.48, 3);
+    ctx.fillRect(-s * 0.24, -s * 0.42, s * 0.48, Math.max(3, s * 0.05));
 
     // Cheerful eyes & smile
     ctx.fillStyle = '#1e293b';
     ctx.beginPath();
-    ctx.arc(s * 0.06, -s * 0.3, 2.2, 0, Math.PI * 2);
+    ctx.arc(s * 0.06, -s * 0.3, Math.max(2.2, s * 0.045), 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = '#b45309';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = Math.max(1.5, s * 0.035);
     ctx.beginPath();
-    ctx.arc(s * 0.06, -s * 0.25, 3, 0, Math.PI);
+    ctx.arc(s * 0.06, -s * 0.25, Math.max(3, s * 0.065), 0, Math.PI);
     ctx.stroke();
   }
 
@@ -1164,14 +1174,20 @@ export class SpriteRenderer {
     inAir: boolean,
     animTime: number
   ) {
-    // Metal legs
+    // Metal legs & foot pads
     ctx.fillStyle = '#475569';
     ctx.fillRect(-s * 0.2 + (inAir ? 0 : legSwing), s * 0.18, s * 0.14, s * 0.26);
     ctx.fillRect(s * 0.06 - (inAir ? 0 : legSwing), s * 0.18, s * 0.14, s * 0.26);
 
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.roundRect(-s * 0.24 + (inAir ? 0 : legSwing), s * 0.38, s * 0.20, s * 0.11, 2);
+    ctx.roundRect(s * 0.04 - (inAir ? 0 : legSwing), s * 0.38, s * 0.20, s * 0.11, 2);
+    ctx.fill();
+
     // Jet thruster flames if in air!
     if (inAir) {
-      const flame = Math.sin(animTime * 30) * 3 + 6;
+      const flame = Math.sin(animTime * 30) * 4 + s * 0.12;
       ctx.fillStyle = '#f97316';
       ctx.beginPath();
       ctx.moveTo(-s * 0.22, s * 0.44);
@@ -1196,7 +1212,7 @@ export class SpriteRenderer {
     // Chest gauge / heart
     ctx.fillStyle = '#fbbf24';
     ctx.beginPath();
-    ctx.arc(0, -s * 0.02, 5, 0, Math.PI * 2);
+    ctx.arc(0, -s * 0.02, Math.max(5, s * 0.09), 0, Math.PI * 2);
     ctx.fill();
 
     // Robot Head
@@ -1207,7 +1223,7 @@ export class SpriteRenderer {
 
     // Antenna on top
     ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = Math.max(2, s * 0.04);
     ctx.beginPath();
     ctx.moveTo(0, -s * 0.46);
     ctx.lineTo(0, -s * 0.56);
@@ -1216,7 +1232,7 @@ export class SpriteRenderer {
     // Glowing antenna bulb
     ctx.fillStyle = '#22c55e';
     ctx.beginPath();
-    ctx.arc(0, -s * 0.58, 3.5, 0, Math.PI * 2);
+    ctx.arc(0, -s * 0.58, Math.max(3.5, s * 0.065), 0, Math.PI * 2);
     ctx.fill();
 
     // Glowing Visor / Eyes
@@ -1233,20 +1249,26 @@ export class SpriteRenderer {
     animTime: number
   ) {
     // Fluffy tail
-    const tailWag = Math.sin(animTime * 12) * 4;
+    const tailWag = Math.sin(animTime * 12) * (s * 0.08);
     ctx.fillStyle = '#ea580c';
     ctx.beginPath();
     ctx.ellipse(-s * 0.35, 0 + tailWag, s * 0.2, s * 0.12, -0.4, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(-s * 0.45, -2 + tailWag, 5, 0, Math.PI * 2);
+    ctx.arc(-s * 0.45, -2 + tailWag, Math.max(5, s * 0.09), 0, Math.PI * 2);
     ctx.fill();
 
-    // Paws
+    // Paws & pads
     ctx.fillStyle = '#c2410c';
     ctx.fillRect(-s * 0.2 + (inAir ? -2 : legSwing), s * 0.18, s * 0.14, s * 0.26);
     ctx.fillRect(s * 0.06 - (inAir ? -2 : legSwing), s * 0.18, s * 0.14, s * 0.26);
+
+    ctx.fillStyle = '#9a3412';
+    ctx.beginPath();
+    ctx.roundRect(-s * 0.23 + (inAir ? -2 : legSwing), s * 0.38, s * 0.19, s * 0.11, 3);
+    ctx.roundRect(s * 0.04 - (inAir ? -2 : legSwing), s * 0.38, s * 0.19, s * 0.11, 3);
+    ctx.fill();
 
     // Orange Body
     ctx.fillStyle = '#f97316';
@@ -1285,8 +1307,8 @@ export class SpriteRenderer {
     // Cute nose & eyes
     ctx.fillStyle = '#1e293b';
     ctx.beginPath();
-    ctx.arc(s * 0.08, -s * 0.28, 2.5, 0, Math.PI * 2);
-    ctx.arc(s * 0.18, -s * 0.22, 2, 0, Math.PI * 2);
+    ctx.arc(s * 0.08, -s * 0.28, Math.max(2.5, s * 0.045), 0, Math.PI * 2);
+    ctx.arc(s * 0.18, -s * 0.22, Math.max(2, s * 0.035), 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -1304,10 +1326,10 @@ export class SpriteRenderer {
 
     if (inAir) {
       // Cosmic stardust particles
-      const spark = Math.sin(animTime * 20) * 2;
+      const spark = Math.sin(animTime * 20) * 3;
       ctx.fillStyle = '#a855f7';
       ctx.beginPath();
-      ctx.arc(-s * 0.26, s * 0.2 + spark, 4, 0, Math.PI * 2);
+      ctx.arc(-s * 0.26, s * 0.2 + spark, Math.max(4, s * 0.07), 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -1329,7 +1351,7 @@ export class SpriteRenderer {
 
     // Purple harness lines
     ctx.strokeStyle = '#7c3aed';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = Math.max(2.5, s * 0.045);
     ctx.strokeRect(-s * 0.2, -s * 0.15, s * 0.4, s * 0.25);
 
     // Round Astronaut Helmet
@@ -1350,7 +1372,7 @@ export class SpriteRenderer {
     // Star reflection in visor
     ctx.fillStyle = '#38bdf8';
     ctx.beginPath();
-    ctx.arc(s * 0.08, -s * 0.34, 2, 0, Math.PI * 2);
+    ctx.arc(s * 0.08, -s * 0.34, Math.max(2, s * 0.035), 0, Math.PI * 2);
     ctx.fill();
   }
 

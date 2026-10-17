@@ -161,3 +161,13 @@ export function generateTutorialSample(
 
   return newItems;
 }
+
+/**
+ * Standard Guided Tour step texts and metadata
+ */
+export const CAMERA_NAVIGATION_STEP = {
+  step: 5,
+  title: 'Навигация по уровню',
+  text: 'Крути колесико мыши вверх-вниз, чтобы двигать камеру вертикально. А если зажать колесико (или нажать Пробел и потянуть) — можно двигать холст горизонтально!',
+  shortHint: 'Покрути колёсико мыши или зажми Пробел для панорамирования!',
+};

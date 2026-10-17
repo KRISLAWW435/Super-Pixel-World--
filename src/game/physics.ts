@@ -85,7 +85,12 @@ export class PhysicsEngine {
     const startCellX = spawnItem ? spawnItem.x : 3;
     const startCellY = spawnItem ? spawnItem.y : 12;
 
-    const startPx = startCellX * CELL_SIZE + 4;
+    // Playable hero physical hitbox dimensions ("Big Mario" 2-tile height)
+    // Exactly 80px high (2 grid tiles of 40px) and ~36px wide
+    // Fits into 1-block vertical shafts while intentionally blocking 1-tile low gaps
+    const playerWidth = 36;
+    const playerHeight = 80;
+    const startPx = startCellX * CELL_SIZE + Math.floor((CELL_SIZE - playerWidth) * 0.5);
     const startPy = (startCellY - 1) * CELL_SIZE;
 
     this.player = {
@@ -93,8 +98,8 @@ export class PhysicsEngine {
       y: startPy,
       vx: 0,
       vy: 0,
-      width: 30,
-      height: 38,
+      width: playerWidth,
+      height: playerHeight,
       isGrounded: false,
       facingRight: true,
       isWalking: false,
@@ -358,7 +363,10 @@ export class PhysicsEngine {
     this.player.isWalking = Math.abs(this.player.vx) > 0.4;
 
     // --- Vertical Jump & Gravity ---
-    const gravity = 28.0;
+    // Calibrated so that default hero jump apex is exactly 5 grid tiles high (200px = 5 * CELL_SIZE)
+    // At 60fps (dt = 1/60), gravity = 25.4 and base jumpPower = 12.8 achieves exactly 200px jump peak
+    // Allows comfortably clearing a 5-block gap (clearing up to ~8.6 blocks at full run speed)
+    const gravity = 25.4;
     this.player.vy += gravity * clampedDt;
 
     // Variable jump height & bot glide
@@ -615,7 +623,7 @@ export class PhysicsEngine {
       if (item.variant !== 'active') {
         item.variant = 'active';
         sound.playCheckpoint();
-        this.player.checkpointX = col * CELL_SIZE;
+        this.player.checkpointX = col * CELL_SIZE + Math.floor((CELL_SIZE - this.player.width) * 0.5);
         this.player.checkpointY = (row - 1) * CELL_SIZE;
         this.stats.score += 300;
         this.emitStars(col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE);
@@ -952,11 +960,11 @@ export class PhysicsEngine {
         // Надежное определение прыжка сверху ("убить их можно если на них прыгнуть"):
         // - Игрок опускался вниз (fallingVy > 0 или в воздухе или vy >= 0)
         // - И находился выше центра врага / падал сверху
-        const isDescending = fallingVy > 0 || this.player.isInAir || this.player.vy >= 0;
+        const isDescending = (this.player.isInAir && this.player.vy >= -1.0) || fallingVy > 0;
         const cameFromAbove =
-          playerPreBottom <= enemyTop + 20 ||
-          this.player.y + this.player.height * 0.7 <= enemy.y + enemy.height ||
-          playerBottom <= enemyMidY + 20;
+          playerPreBottom <= enemyTop + 16 ||
+          playerBottom <= enemyTop + 18 ||
+          (this.player.y + this.player.height * 0.75 <= enemy.y + enemy.height && playerBottom <= enemyMidY + 8);
 
         const isStomp = isDescending && cameFromAbove;
 

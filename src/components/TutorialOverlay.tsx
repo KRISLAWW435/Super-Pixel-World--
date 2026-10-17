@@ -29,6 +29,11 @@ import {
   Move,
   ArrowUp,
   ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  Grab,
+  Flag,
+  ChevronRight,
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 
@@ -129,6 +134,11 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const [isIdleHelpActive, setIsIdleHelpActive] = useState<boolean>(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Gameplay Phase Toast Auto-Hide State (Steps 10-12)
+  const [isGameplayToastExpanded, setIsGameplayToastExpanded] = useState<boolean>(true);
+  const toastHideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const playerIdleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Measure target element bounding box
   const updateTargetRect = useCallback(() => {
     if (!targetElementId) {
@@ -168,19 +178,47 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     };
   }, [isOpen, step, targetElementId, updateTargetRect]);
 
-  // Step 5: Wheel listener (handles mouse wheel anywhere on window)
+  // Step 5: Camera navigation listener (handles wheel, middle-mouse drag, or space-pan)
   useEffect(() => {
     if (!isOpen || step !== 5) return;
 
+    let spacePressed = false;
+
     const handleWindowWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaX) > 5 || Math.abs(e.deltaY) > 5) {
+      if (Math.abs(e.deltaX) > 4 || Math.abs(e.deltaY) > 4) {
         onWheelAction?.();
       }
     };
 
+    const handleMouseDown = (e: MouseEvent) => {
+      // Middle mouse button pressed (wheel click) or space pressed while dragging
+      if (e.button === 1 || (e.button === 0 && spacePressed)) {
+        onWheelAction?.();
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        spacePressed = true;
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        spacePressed = false;
+      }
+    };
+
     window.addEventListener('wheel', handleWindowWheel, { passive: true });
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
     return () => {
       window.removeEventListener('wheel', handleWindowWheel);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, [isOpen, step, onWheelAction]);
 
@@ -208,6 +246,57 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     };
   }, [isOpen, step, totalSteps]);
+
+  // Auto-hide (4s) and idle reappear (10s) logic for gameplay steps (10-12)
+  useEffect(() => {
+    if (!isOpen || step < 10 || isVictory) {
+      if (toastHideTimerRef.current) clearTimeout(toastHideTimerRef.current);
+      if (playerIdleTimerRef.current) clearTimeout(playerIdleTimerRef.current);
+      return;
+    }
+
+    // Step just became active or changed: show toast for 4 seconds, then collapse to icon
+    setIsGameplayToastExpanded(true);
+
+    if (toastHideTimerRef.current) clearTimeout(toastHideTimerRef.current);
+    toastHideTimerRef.current = setTimeout(() => {
+      setIsGameplayToastExpanded(false);
+    }, 4000);
+
+    // Set up 10s idle reappear timer
+    const triggerIdleReappear = () => {
+      setIsGameplayToastExpanded(true);
+      if (toastHideTimerRef.current) clearTimeout(toastHideTimerRef.current);
+      toastHideTimerRef.current = setTimeout(() => {
+        setIsGameplayToastExpanded(false);
+      }, 4000);
+    };
+
+    const restartIdleTimer = () => {
+      if (playerIdleTimerRef.current) clearTimeout(playerIdleTimerRef.current);
+      playerIdleTimerRef.current = setTimeout(triggerIdleReappear, 10000);
+    };
+
+    restartIdleTimer();
+
+    const handlePlayerActivity = () => {
+      restartIdleTimer();
+    };
+
+    window.addEventListener('keydown', handlePlayerActivity, { passive: true });
+    window.addEventListener('mousedown', handlePlayerActivity, { passive: true });
+    window.addEventListener('mousemove', handlePlayerActivity, { passive: true });
+    window.addEventListener('touchstart', handlePlayerActivity, { passive: true });
+
+    return () => {
+      if (toastHideTimerRef.current) clearTimeout(toastHideTimerRef.current);
+      if (playerIdleTimerRef.current) clearTimeout(playerIdleTimerRef.current);
+      window.removeEventListener('keydown', handlePlayerActivity);
+      window.removeEventListener('mousedown', handlePlayerActivity);
+      window.removeEventListener('mousemove', handlePlayerActivity);
+      window.removeEventListener('touchstart', handlePlayerActivity);
+    };
+  }, [isOpen, step, isVictory]);
 
   // Shake effect when user clicks outside the spotlighted element
   const triggerShake = useCallback(() => {
@@ -310,10 +399,14 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   // Determine if this step is a free-canvas action (Step 4 "Road", Step 5 "Wheel", or in gameplay mode)
   const isRoadStep = step === 4;
   const isWheelStep = step === 5;
-  const isGameplayPhase = step >= 10;
+  const isGameplayPhase = step >= 10 && !isVictory;
   const isFreeCanvasStep = isRoadStep || isWheelStep || isGameplayPhase;
 
-  // Calculate Tooltip Position based on Target Rect
+  // Calculate Tooltip Position based on Target Rect with Dynamic Anti-Overlay logic
+  const tooltipWidth = 340;
+  const tooltipHeight = isWheelStep ? 240 : 180;
+  const gap = 16;
+
   let tooltipStyle: React.CSSProperties = {
     top: '50%',
     left: '50%',
@@ -321,6 +414,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   };
 
   let arrowPlacement: 'top' | 'bottom' | 'left' | 'right' | 'none' = 'none';
+  let arrowOffset: number = 24;
 
   if (isFreeCanvasStep) {
     // Pin tooltip to top center of screen so drawing area & game are 100% unobstructed
@@ -331,38 +425,63 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     };
     arrowPlacement = 'none';
   } else if (targetRect) {
-    const pad = 8;
     const viewW = window.innerWidth;
     const viewH = window.innerHeight;
 
-    const spaceLeft = targetRect.left;
-    const spaceBelow = viewH - targetRect.bottom;
     const spaceAbove = targetRect.top;
+    const spaceBelow = viewH - targetRect.bottom;
+    const spaceLeft = targetRect.left;
+    const spaceRight = viewW - targetRect.right;
+    const targetCenterX = targetRect.left + targetRect.width / 2;
+    const targetCenterY = targetRect.top + targetRect.height / 2;
 
-    if (spaceLeft > 320 && targetRect.width < 140) {
-      tooltipStyle = {
-        top: Math.max(20, Math.min(viewH - 180, targetRect.top + targetRect.height * 0.5 - 70)),
-        left: Math.max(16, targetRect.left - 315),
-      };
-      arrowPlacement = 'right';
-    } else if (spaceBelow > 180) {
-      tooltipStyle = {
-        top: targetRect.bottom + pad + 12,
-        left: Math.max(16, Math.min(viewW - 320, targetRect.left + targetRect.width * 0.5 - 140)),
-      };
+    // Rule 1: Target is near top (tabs like tour-tab-platforms, tour-tab-interactive, tour-tab-enemies)
+    if (targetRect.top < 110) {
+      const top = targetRect.bottom + gap;
+      const left = Math.max(gap, Math.min(viewW - tooltipWidth - gap, targetCenterX - tooltipWidth / 2));
+      tooltipStyle = { top, left };
       arrowPlacement = 'top';
-    } else if (spaceAbove > 180) {
-      tooltipStyle = {
-        top: Math.max(16, targetRect.top - pad - 140),
-        left: Math.max(16, Math.min(viewW - 320, targetRect.left + targetRect.width * 0.5 - 140)),
-      };
-      arrowPlacement = 'bottom';
-    } else {
-      tooltipStyle = {
-        top: Math.max(20, targetRect.top),
-        left: Math.min(viewW - 320, targetRect.right + pad + 12),
-      };
+      arrowOffset = Math.max(20, Math.min(tooltipWidth - 20, targetCenterX - left));
+    }
+    // Rule 2: Target is in bottom-right corner (Brush, Line, Eraser buttons at bottom of sidebar)
+    // Place strictly to the TOP-LEFT of the button so it never covers it
+    else if (targetRect.bottom > viewH - 140 && spaceLeft >= tooltipWidth + gap) {
+      const left = Math.max(gap, targetRect.left - tooltipWidth - gap);
+      const top = Math.max(gap, Math.min(viewH - tooltipHeight - gap, targetRect.top - tooltipHeight + 50));
+      tooltipStyle = { top, left };
+      arrowPlacement = 'right';
+      arrowOffset = Math.max(20, Math.min(tooltipHeight - 20, targetCenterY - top));
+    }
+    // Rule 3: Target is inside the sidebar or right side (palette items: grass_dirt, coin, enemies, spikes)
+    // Place strictly to the LEFT of the sidebar, hovering over the open canvas
+    else if (spaceLeft >= tooltipWidth + gap) {
+      const left = Math.max(gap, targetRect.left - tooltipWidth - gap);
+      const top = Math.max(gap, Math.min(viewH - tooltipHeight - gap, targetCenterY - tooltipHeight / 2));
+      tooltipStyle = { top, left };
+      arrowPlacement = 'right';
+      arrowOffset = Math.max(20, Math.min(tooltipHeight - 20, targetCenterY - top));
+    }
+    // Rule 4: Target is on the left side of screen
+    else if (spaceRight >= tooltipWidth + gap) {
+      const left = Math.min(viewW - tooltipWidth - gap, targetRect.right + gap);
+      const top = Math.max(gap, Math.min(viewH - tooltipHeight - gap, targetCenterY - tooltipHeight / 2));
+      tooltipStyle = { top, left };
       arrowPlacement = 'left';
+      arrowOffset = Math.max(20, Math.min(tooltipHeight - 20, targetCenterY - top));
+    }
+    // Rule 5: Fallback below or above
+    else if (spaceBelow >= tooltipHeight + gap) {
+      const top = targetRect.bottom + gap;
+      const left = Math.max(gap, Math.min(viewW - tooltipWidth - gap, targetCenterX - tooltipWidth / 2));
+      tooltipStyle = { top, left };
+      arrowPlacement = 'top';
+      arrowOffset = Math.max(20, Math.min(tooltipWidth - 20, targetCenterX - left));
+    } else {
+      const top = Math.max(gap, targetRect.top - tooltipHeight - gap);
+      const left = Math.max(gap, Math.min(viewW - tooltipWidth - gap, targetCenterX - tooltipWidth / 2));
+      tooltipStyle = { top, left };
+      arrowPlacement = 'bottom';
+      arrowOffset = Math.max(20, Math.min(tooltipWidth - 20, targetCenterX - left));
     }
   }
 
@@ -374,13 +493,8 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   return (
     <div className="fixed inset-0 z-40 select-none overflow-hidden pointer-events-none">
-      {/* 1a. Step 10 Gameplay Dimming Backdrop */}
-      {step === 10 && (
-        <div className="fixed inset-0 bg-black/60 pointer-events-none z-30 animate-in fade-in duration-300" />
-      )}
-
-      {/* 1b. Spotlight Cutout & Backdrop (DISABLED completely on drawing/wheel/gameplay steps) */}
-      {!isFreeCanvasStep && targetRect ? (
+      {/* 1. Spotlight Cutout & Backdrop (DISABLED completely on drawing/wheel/gameplay steps) */}
+      {!isFreeCanvasStep && !isGameplayPhase && targetRect ? (
         <>
           <div
             style={{
@@ -460,8 +574,8 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         </div>
       )}
 
-      {/* 4. Ghost Pointer Hand for Target Elements */}
-      {!isFreeCanvasStep && targetRect && handAction !== 'none' && (
+      {/* 4. Ghost Pointer Hand for Target Elements (Editor only) */}
+      {!isFreeCanvasStep && !isGameplayPhase && targetRect && handAction !== 'none' && (
         <div
           key={`hand-${step}-${handAnimationKey}`}
           style={{
@@ -485,177 +599,271 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         </div>
       )}
 
-      {/* 5. Tooltip Card */}
-      <div
-        style={tooltipStyle}
-        className={`fixed z-50 w-72 sm:w-88 pointer-events-auto transition-transform ${
-          isShaking ? 'animate-shake' : ''
-        }`}
-      >
+      {/* 5. Large Tooltip Card (Editor Phase only - Steps 2-9) */}
+      {!isGameplayPhase && (
         <div
-          className={`relative p-4 rounded-2xl border-2 text-white shadow-2xl shadow-black/80 backdrop-blur-md space-y-2.5 transition-all ${
-            isSuccess
-              ? 'bg-gradient-to-b from-[#064E3B] to-[#0B0F19] border-emerald-400 shadow-emerald-500/20'
-              : 'bg-gradient-to-b from-[#1E293B] to-[#0F172A] border-amber-400 shadow-black/80'
+          style={tooltipStyle}
+          className={`fixed z-50 w-72 sm:w-88 pointer-events-auto transition-transform ${
+            isShaking ? 'animate-shake' : ''
           }`}
         >
-          {/* Arrow */}
-          {arrowPlacement === 'top' && (
-            <div
-              className={`absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 border-t-2 border-l-2 transform rotate-45 ${
-                isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
-              }`}
-            />
-          )}
-          {arrowPlacement === 'bottom' && (
-            <div
-              className={`absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 border-b-2 border-r-2 transform rotate-45 ${
-                isSuccess ? 'bg-[#0B0F19] border-emerald-400' : 'bg-[#0F172A] border-amber-400'
-              }`}
-            />
-          )}
-          {arrowPlacement === 'right' && (
-            <div
-              className={`absolute top-1/2 -right-2.5 -translate-y-1/2 w-4 h-4 border-t-2 border-r-2 transform rotate-45 ${
-                isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
-              }`}
-            />
-          )}
-          {arrowPlacement === 'left' && (
-            <div
-              className={`absolute top-1/2 -left-2.5 -translate-y-1/2 w-4 h-4 border-b-2 border-l-2 transform rotate-45 ${
-                isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
-              }`}
-            />
-          )}
-
-          {/* Header Pill & Skip Step Button */}
-          <div className="flex items-center justify-between gap-1">
-            <div className="flex items-center gap-1.5">
-              <span
-                className={`px-2 py-0.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
-                  isSuccess
-                    ? 'bg-emerald-500/30 text-emerald-300'
-                    : 'bg-amber-400/20 text-amber-300'
+          <div
+            className={`relative p-4 rounded-2xl border-2 text-white shadow-2xl shadow-black/80 backdrop-blur-md space-y-2.5 transition-all ${
+              isSuccess
+                ? 'bg-gradient-to-b from-[#064E3B] to-[#0B0F19] border-emerald-400 shadow-emerald-500/20'
+                : 'bg-gradient-to-b from-[#1E293B] to-[#0F172A] border-amber-400 shadow-black/80'
+            }`}
+          >
+            {/* Dynamic Arrow */}
+            {arrowPlacement === 'top' && (
+              <div
+                style={{ left: arrowOffset }}
+                className={`absolute -top-2.5 -translate-x-1/2 w-4 h-4 border-t-2 border-l-2 transform rotate-45 ${
+                  isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
                 }`}
-              >
-                {isSuccess ? (
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                ) : (
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                )}
-                <span>Шаг {step} из {totalSteps}</span>
-              </span>
-
-              {/* Progress counter on Step 4 */}
-              {step === 4 && (
-                <span className="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-950/80 px-1.5 py-0.5 rounded-md border border-emerald-500/40">
-                  {placedCount} / {targetPlacedCount} блока
-                </span>
-              )}
-            </div>
-
-            {/* Skip current step button */}
-            {onSkipStep && step > 0 && !isSuccess && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  sound.playClick();
-                  onSkipStep();
-                }}
-                title="Пропустить этот шаг обучения"
-                className="text-[10px] text-amber-300 hover:text-white underline font-semibold cursor-pointer transition-colors shrink-0"
-              >
-                Пропустить шаг ⏭
-              </button>
+              />
             )}
-          </div>
+            {arrowPlacement === 'bottom' && (
+              <div
+                style={{ left: arrowOffset }}
+                className={`absolute -bottom-2.5 -translate-x-1/2 w-4 h-4 border-b-2 border-r-2 transform rotate-45 ${
+                  isSuccess ? 'bg-[#0B0F19] border-emerald-400' : 'bg-[#0F172A] border-amber-400'
+                }`}
+              />
+            )}
+            {arrowPlacement === 'right' && (
+              <div
+                style={{ top: arrowOffset }}
+                className={`absolute -right-2.5 -translate-y-1/2 w-4 h-4 border-t-2 border-r-2 transform rotate-45 ${
+                  isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
+                }`}
+              />
+            )}
+            {arrowPlacement === 'left' && (
+              <div
+                style={{ top: arrowOffset }}
+                className={`absolute -left-2.5 -translate-y-1/2 w-4 h-4 border-b-2 border-l-2 transform rotate-45 ${
+                  isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
+                }`}
+              />
+            )}
 
-          {/* Title */}
-          {title && !isSuccess && (
-            <div className="text-xs font-black text-amber-300 uppercase tracking-wide">
-              {title}
-            </div>
-          )}
+            {/* Header Pill & Skip Step Button */}
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`px-2 py-0.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+                    isSuccess
+                      ? 'bg-emerald-500/30 text-emerald-300'
+                      : 'bg-amber-400/20 text-amber-300'
+                  }`}
+                >
+                  {isSuccess ? (
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  ) : (
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                  )}
+                  <span>Шаг {step} из {totalSteps}</span>
+                </span>
 
-          {/* Mouse Wheel Visual Demo (Step 5) */}
-          {isWheelStep && !isSuccess && (
-            <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/80 border border-slate-700">
-              <div className="relative w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0">
-                <Mouse className="w-5 h-5 text-amber-400 animate-pulse" />
-                <ArrowUp className="w-3 h-3 text-amber-300 absolute -top-1" />
-                <ArrowDown className="w-3 h-3 text-amber-300 absolute -bottom-1" />
+                {/* Progress counter on Step 4 */}
+                {step === 4 && (
+                  <span className="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-950/80 px-1.5 py-0.5 rounded-md border border-emerald-500/40">
+                    {placedCount} / {targetPlacedCount} блока
+                  </span>
+                )}
               </div>
-              <div className="text-xs text-slate-300 font-medium leading-snug">
-                Покрути колёсико мыши вперёд или назад, чтобы подвинуть камеру!
-              </div>
-            </div>
-          )}
 
-          {/* Gameplay Keys Demo (Step 10: A/D) */}
-          {step === 10 && !isSuccess && (
-            <div className="flex items-center justify-center gap-2 py-1">
-              <div className="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black text-sm shadow-md flex items-center gap-1 animate-bounce">
-                <span>◀ A</span>
-              </div>
-              <div className="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black text-sm shadow-md flex items-center gap-1 animate-bounce">
-                <span>D ▶</span>
-              </div>
-            </div>
-          )}
-
-          {/* Gameplay Keys Demo (Step 11: Space) */}
-          {step === 11 && !isSuccess && (
-            <div className="flex items-center justify-center gap-2 py-1">
-              <div className="px-6 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black text-sm shadow-lg flex items-center gap-2 animate-bounce">
-                <span>⇧ ПРОБЕЛ (Прыжок)</span>
-              </div>
-            </div>
-          )}
-
-          {/* Message or Success Feedback */}
-          {isSuccess ? (
-            <div className="space-y-2">
-              <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/60 flex items-center gap-2.5 text-emerald-200 text-xs sm:text-sm font-bold shadow-lg">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 stroke-[2.5]" />
-                <span>{successMessage || 'Отлично! Шаг выполнен!'}</span>
-              </div>
-              {onNextStep && (
+              {/* Skip current step button */}
+              {onSkipStep && step > 0 && !isSuccess && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     sound.playClick();
-                    onNextStep();
+                    onSkipStep();
                   }}
-                  className="w-full py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/25 transition-all cursor-pointer active:scale-95"
+                  title="Пропустить этот шаг обучения"
+                  className="text-[10px] text-amber-300 hover:text-white underline font-semibold cursor-pointer transition-colors shrink-0"
                 >
-                  <span>Дальше</span>
-                  <span className="text-sm">→</span>
+                  Пропустить шаг ⏭
+                </button>
+              )}
+            </div>
+
+            {/* Title */}
+            {title && !isSuccess && (
+              <div className="text-xs font-black text-amber-300 uppercase tracking-wide">
+                {title}
+              </div>
+            )}
+
+            {/* Mouse Wheel & Grab Panning Visual Demo (Step 5) */}
+            {isWheelStep && !isSuccess && (
+              <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-slate-900/90 border border-slate-700/80">
+                {/* 1. Mouse with Up/Down arrows (vertical wheel) */}
+                <div className="flex flex-col items-center text-center p-2 rounded-xl bg-slate-800/80 border border-amber-400/30">
+                  <div className="relative w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center mb-1 shadow-sm">
+                    <Mouse className="w-5 h-5 text-amber-400 animate-pulse" />
+                    <ArrowUp className="w-3 h-3 text-amber-300 absolute -top-1" />
+                    <ArrowDown className="w-3 h-3 text-amber-300 absolute -bottom-1" />
+                  </div>
+                  <div className="text-[11px] font-black text-amber-300 leading-tight">Колёсико мыши</div>
+                  <div className="text-[10px] text-slate-300 mt-0.5">Вверх / Вниз</div>
+                </div>
+
+                {/* 2. Grab Hand holding Mouse with Left/Right arrows (horizontal pan) */}
+                <div className="flex flex-col items-center text-center p-2 rounded-xl bg-slate-800/80 border border-cyan-400/30">
+                  <div className="relative w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center mb-1 shadow-sm">
+                    <div className="relative flex items-center justify-center">
+                      <Grab className="w-5 h-5 text-cyan-300" />
+                      <Mouse className="w-3 h-3 text-cyan-400 absolute opacity-70" />
+                    </div>
+                    <ArrowLeft className="w-3 h-3 text-cyan-300 absolute -left-1" />
+                    <ArrowRight className="w-3 h-3 text-cyan-300 absolute -right-1" />
+                  </div>
+                  <div className="text-[11px] font-black text-cyan-300 leading-tight">Зажать колёсико</div>
+                  <div className="text-[10px] text-slate-300 mt-0.5">или Пробел + тяни</div>
+                </div>
+              </div>
+            )}
+
+            {/* Message or Success Feedback */}
+            {isSuccess ? (
+              <div className="space-y-2">
+                <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/60 flex items-center gap-2.5 text-emerald-200 text-xs sm:text-sm font-bold shadow-lg">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 stroke-[2.5]" />
+                  <span>{successMessage || 'Отлично! Шаг выполнен!'}</span>
+                </div>
+                {onNextStep && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sound.playClick();
+                      onNextStep();
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/25 transition-all cursor-pointer active:scale-95"
+                  >
+                    <span>Дальше</span>
+                    <span className="text-sm">→</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="text-xs sm:text-sm font-bold text-slate-100 leading-snug">
+                {message}
+              </div>
+            )}
+
+            {/* Idle Reminder Help if stuck > 15s */}
+            {isIdleHelpActive && !isSuccess && (
+              <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-300 text-[11px] font-bold flex items-center gap-2 animate-pulse-help">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>💡 Нажми сюда! Подсвеченная кнопка ждёт твоего клика!</span>
+              </div>
+            )}
+
+            {/* Contextual Warning Reminder if user clicked wrong element */}
+            {isShaking && (
+              <div className="text-[11px] font-bold text-rose-400 bg-rose-950/60 p-1.5 rounded-lg border border-rose-500/40 flex items-center gap-1.5 animate-pulse">
+                <span>⚠️ {wrongClickMessage || 'Нажми на подсвеченный элемент!'}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 6. Gameplay Phase Compact Toast Notification (Steps 10-12) */}
+      {isGameplayPhase && (
+        <div className="fixed top-3.5 left-4 z-50 select-none pointer-events-auto">
+          {isGameplayToastExpanded ? (
+            /* Expanded Compact Toast (Shows for 4s, or when reappearing after 10s idle) */
+            <div
+              className={`flex items-center gap-2.5 p-2 sm:p-2.5 pr-3.5 rounded-2xl border-2 backdrop-blur-md shadow-2xl transition-all duration-300 max-w-[calc(100vw-140px)] sm:max-w-md animate-in fade-in slide-in-from-top-2 ${
+                isSuccess
+                  ? 'bg-gradient-to-r from-emerald-950/95 to-slate-900/95 border-emerald-400 text-emerald-200 shadow-emerald-500/20'
+                  : 'bg-gradient-to-r from-slate-900/95 via-[#131B2E]/95 to-slate-900/95 border-amber-400/80 text-white shadow-black/80'
+              }`}
+            >
+              {/* Step Icon Badge */}
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm shadow-inner ${
+                  isSuccess
+                    ? 'bg-emerald-500/20 border border-emerald-400/50 text-emerald-300'
+                    : 'bg-amber-500/20 border border-amber-400/50 text-amber-300'
+                }`}
+              >
+                {step === 10 ? (
+                  <span>🏃</span>
+                ) : step === 11 ? (
+                  <span>⬆️</span>
+                ) : (
+                  <Flag className="w-4 h-4 text-emerald-400" />
+                )}
+              </div>
+
+              {/* Message Content */}
+              <div className="flex-1 min-w-0 pr-1">
+                <div className="flex items-center gap-1.5 leading-none mb-0.5">
+                  <span className="text-[10px] font-mono font-black uppercase tracking-wider text-amber-400">
+                    Шаг {step} из {totalSteps}
+                  </span>
+                  {title && (
+                    <span className="text-[10px] text-slate-400 font-bold truncate">
+                      • {title}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs sm:text-[13px] font-bold text-slate-100 leading-snug">
+                  {isSuccess ? (successMessage || 'Отлично!') : message}
+                </div>
+              </div>
+
+              {/* Quick Skip Step Arrow */}
+              {onSkipStep && !isSuccess && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    sound.playClick();
+                    onSkipStep();
+                  }}
+                  title="Пропустить этот шаг"
+                  className="p-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors shrink-0 cursor-pointer"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
           ) : (
-            <div className="text-xs sm:text-sm font-bold text-slate-100 leading-snug">
-              {message}
-            </div>
-          )}
-
-          {/* Idle Reminder Help if stuck > 15s */}
-          {isIdleHelpActive && !isSuccess && (
-            <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-300 text-[11px] font-bold flex items-center gap-2 animate-pulse-help">
-              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>💡 Нажми сюда! Подсвеченная кнопка ждёт твоего клика!</span>
-            </div>
-          )}
-
-          {/* Contextual Warning Reminder if user clicked wrong element */}
-          {isShaking && (
-            <div className="text-[11px] font-bold text-rose-400 bg-rose-950/60 p-1.5 rounded-lg border border-rose-500/40 flex items-center gap-1.5 animate-pulse">
-              <span>⚠️ {wrongClickMessage || 'Нажми на подсвеченный элемент!'}</span>
-            </div>
+            /* Collapsed Small Icon Badge (faded out to keep view 100% clean while playing) */
+            <button
+              onClick={() => {
+                sound.playSelect();
+                setIsGameplayToastExpanded(true);
+                if (toastHideTimerRef.current) clearTimeout(toastHideTimerRef.current);
+                toastHideTimerRef.current = setTimeout(() => {
+                  setIsGameplayToastExpanded(false);
+                }, 4000);
+              }}
+              title="Нажми, чтобы развернуть подсказку"
+              className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 border border-amber-400/50 hover:border-amber-400 backdrop-blur-md shadow-lg transition-all duration-300 cursor-pointer active:scale-95 animate-in fade-in"
+            >
+              <div className="relative flex items-center justify-center">
+                {step === 10 ? (
+                  <span className="text-xs">🏃</span>
+                ) : step === 11 ? (
+                  <span className="text-xs">⬆️</span>
+                ) : (
+                  <Flag className="w-3.5 h-3.5 text-emerald-400" />
+                )}
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 animate-ping opacity-75" />
+              </div>
+              <span className="text-[11px] font-mono font-bold text-amber-300">
+                Шаг {step}
+              </span>
+            </button>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 };
