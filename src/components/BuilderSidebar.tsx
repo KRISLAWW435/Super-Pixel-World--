@@ -37,7 +37,7 @@ import { TutorialManager } from '../services/TutorialManager';
 import { HeroId, ThemeId, TileId, ToolMode } from '../types/game';
 import { PaletteTilePreview } from './PaletteTilePreview';
 
-export type StudioSidebarTab = 'platforms' | 'interactive' | 'world';
+export type StudioSidebarTab = 'platforms' | 'interactive' | 'enemies' | 'world';
 
 interface BuilderSidebarProps {
   activeTab?: StudioSidebarTab;
@@ -256,8 +256,8 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         </div>
       </div>
 
-      {/* 2. Three Unified Studio Tabs (Platforms, Interactive, World) */}
-      <div className="grid grid-cols-3 bg-[#0B0F19] border-b border-slate-800 p-1.5 gap-1 shrink-0">
+      {/* 2. Four Unified Studio Tabs (Platforms, Interactive, Enemies, World) */}
+      <div className="grid grid-cols-4 bg-[#0B0F19] border-b border-slate-800 p-1.5 gap-1 shrink-0">
         <button
           id="tour-tab-platforms"
           onClick={() => {
@@ -266,14 +266,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             sound.playClick();
           }}
           style={{ pointerEvents: 'auto' }}
-          className={`tutorial-target py-2 px-1 text-xs font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+          className={`tutorial-target py-2 px-0.5 text-[11px] font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
             activeTab === 'platforms'
               ? 'bg-[#1E293B] text-amber-300 border border-amber-400/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>Платформы</span>
+          <span className="truncate">Блоки</span>
         </button>
 
         <button
@@ -284,14 +284,32 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             sound.playClick();
           }}
           style={{ pointerEvents: 'auto' }}
-          className={`tutorial-target py-2 px-1 text-xs font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+          className={`tutorial-target py-2 px-0.5 text-[11px] font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
             activeTab === 'interactive'
               ? 'bg-[#1E293B] text-amber-300 border border-amber-400/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
           <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-          <span>Интерактив</span>
+          <span className="truncate">Бонусы</span>
+        </button>
+
+        <button
+          id="tour-tab-enemies"
+          onClick={() => {
+            handleSelectTab('enemies');
+            if (activeTool === 'erase') onSelectTool('brush');
+            sound.playClick();
+          }}
+          style={{ pointerEvents: 'auto' }}
+          className={`tutorial-target py-2 px-0.5 text-[11px] font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+            activeTab === 'enemies'
+              ? 'bg-[#1E293B] text-rose-300 border border-rose-400/40 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+        >
+          <Swords className="w-3.5 h-3.5 text-rose-400" />
+          <span className="truncate">Враги</span>
         </button>
 
         <button
@@ -301,14 +319,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             sound.playClick();
           }}
           style={{ pointerEvents: 'auto' }}
-          className={`tutorial-target py-2 px-1 text-xs font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+          className={`tutorial-target py-2 px-0.5 text-[11px] font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
             activeTab === 'world'
               ? 'bg-[#1E293B] text-amber-300 border border-amber-400/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
           <Palette className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Мир и герой</span>
+          <span className="truncate">Мир</span>
         </button>
       </div>
 
@@ -352,13 +370,12 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           </div>
         )}
 
-        {/* TAB 2: INTERACTIVE & ENEMIES */}
+        {/* TAB 2: INTERACTIVE OBJECTS */}
         {activeTab === 'interactive' && (
           <div className="space-y-3.5">
-            {/* Interactive Items Section */}
             <div className="space-y-2">
               <div className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">
-                Бонусы и механизмы:
+                Бонусы и интерактивные объекты:
               </div>
               <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                 {interactiveItems.map((item) => {
@@ -390,9 +407,13 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                 })}
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Enemies Section with Ground Requirement Note */}
-            <div className="space-y-2 pt-2 border-t border-slate-800">
+        {/* TAB 3: ENEMIES */}
+        {activeTab === 'enemies' && (
+          <div className="space-y-3.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-[11px] font-semibold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Swords className="w-3.5 h-3.5" />

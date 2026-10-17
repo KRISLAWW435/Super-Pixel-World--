@@ -26,14 +26,14 @@ const SKIPPED_KEY = 'super_pixel_world_tutorial_skipped_v3';
 const GUIDED_TOUR_KEY = 'super_pixel_world_tutorial';
 const TOUR_STEP_KEY = 'super_pixel_world_tour_step_v4';
 
-export type TutorialTabType = 'platforms' | 'interactive' | 'world';
+export type TutorialTabType = 'platforms' | 'interactive' | 'enemies' | 'world';
 export type TutorialPhase = 'EDITOR' | 'GAMEPLAY';
 
 export class TutorialManager {
   /**
-   * Total steps in the full academy curriculum (Steps 0 to 11)
+   * Total steps in the full academy curriculum (Steps 1 to 12)
    */
-  public static readonly TOTAL_STEPS = 11;
+  public static readonly TOTAL_STEPS = 12;
 
   /**
    * Log step changes for diagnostic inspection
@@ -46,7 +46,7 @@ export class TutorialManager {
    * Retrieves whether the step belongs to EDITOR or GAMEPLAY phase
    */
   public static getPhase(step: number): TutorialPhase {
-    return step >= 9 ? 'GAMEPLAY' : 'EDITOR';
+    return step >= 10 ? 'GAMEPLAY' : 'EDITOR';
   }
 
   /**

@@ -26,6 +26,7 @@ import { sound } from '../audio/soundEngine';
 import { CELL_SIZE, GRID_ROWS, THEMES } from '../game/constants';
 import { PhysicsEngine } from '../game/physics';
 import { SpriteRenderer } from '../graphics/spriteRenderer';
+import { TutorialManager } from '../services/TutorialManager';
 import { HeroId, LevelData, ThemeId } from '../types/game';
 
 interface GamePlayerProps {
@@ -39,6 +40,7 @@ interface GamePlayerProps {
   onToggleFullscreen: () => void;
   onToggleMute: () => void;
   isTutorialMode?: boolean;
+  isGuidedTour?: boolean;
   onCompleteTutorial?: () => void;
 }
 
@@ -53,6 +55,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
   onToggleFullscreen,
   onToggleMute,
   isTutorialMode = false,
+  isGuidedTour = false,
   onCompleteTutorial,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -109,15 +112,15 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
     jumpJustPressed: false,
   });
 
-  // Camera State
-  const cameraRef = useRef<{ x: number }>({ x: 0 });
+  // Camera State (2D follow for expanded height)
+  const cameraRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Initialize Game & Sound
   const initGame = () => {
     // Deep clone levelData so that collected items & broken bricks reset on restart
     const clonedData: LevelData = JSON.parse(JSON.stringify(levelData));
     physicsRef.current = new PhysicsEngine(clonedData, heroId);
-    cameraRef.current = { x: 0 };
+    cameraRef.current = { x: 0, y: 0 };
     setIsVictory(false);
     setIsGameOver(false);
     setIsPaused(false);
@@ -150,10 +153,12 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
         keysRef.current.left = true;
         setHasMoved(true);
+        TutorialManager.emitGameplayAction('move');
       }
       if (e.code === 'KeyD' || e.code === 'ArrowRight') {
         keysRef.current.right = true;
         setHasMoved(true);
+        TutorialManager.emitGameplayAction('move');
       }
       if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp') {
         if (!keysRef.current.jump) {
@@ -161,6 +166,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
         }
         keysRef.current.jump = true;
         setHasJumped(true);
+        TutorialManager.emitGameplayAction('jump');
         e.preventDefault();
       }
     };
@@ -217,23 +223,35 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
         setStats({ ...engine.stats });
         if (engine.isVictory && !isVictory) {
           setIsVictory(true);
+          TutorialManager.emitGameplayAction('victory');
         }
         if (engine.isGameOver && !isGameOver) {
           setIsGameOver(true);
         }
 
-        // Camera Follow Logic (smooth lerp with lookahead)
+        // Camera Follow Logic (smooth lerp in X & Y with lookahead)
         const canvasW = canvas.width;
+        const canvasH = canvas.height;
         const targetCamX = engine.player.x - canvasW * 0.38;
         const maxCamX = Math.max(0, engine.levelData.width * CELL_SIZE - canvasW);
-        const clampedTarget = Math.max(0, Math.min(maxCamX, targetCamX));
-        cameraRef.current.x += (clampedTarget - cameraRef.current.x) * 0.12;
+        const clampedTargetX = Math.max(0, Math.min(maxCamX, targetCamX));
+        cameraRef.current.x += (clampedTargetX - cameraRef.current.x) * 0.12;
+
+        const totalLevelHeightPx = (engine.levelData.height || GRID_ROWS) * CELL_SIZE;
+        const maxCamY = Math.max(0, totalLevelHeightPx - canvasH);
+        if (maxCamY > 0) {
+          const targetCamY = Math.max(0, Math.min(maxCamY, engine.player.y - canvasH * 0.55));
+          cameraRef.current.y += (targetCamY - cameraRef.current.y) * 0.12;
+        } else {
+          cameraRef.current.y = 0;
+        }
       }
 
       // --- Canvas Render ---
       const width = canvas.width;
       const height = canvas.height;
       const camX = cameraRef.current.x;
+      const camY = cameraRef.current.y;
 
       // 1. Panoramic Parallax Background
       if (bgImageRef.current && bgImageRef.current.complete) {
@@ -267,7 +285,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       }
 
       ctx.save();
-      ctx.translate(-camX, 0);
+      ctx.translate(-camX, -camY);
 
       if (engine) {
         // 2. Render Level Tiles
@@ -759,7 +777,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       )}
 
       {/* CELEBRATORY VICTORY MODAL */}
-      {isVictory && (
+      {isVictory && !isGuidedTour && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in zoom-in-95 duration-300">
           <div className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-400 rounded-3xl p-6 shadow-2xl text-center space-y-4">
             <div className="w-20 h-20 rounded-full bg-amber-400/20 border-2 border-amber-400 mx-auto flex items-center justify-center text-amber-400">

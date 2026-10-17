@@ -6,7 +6,7 @@ import bgGreenIslands from '../assets/images/bg_green_islands.webp';
 import { HeroConfig, HeroId, PaletteCategory, ThemeConfig, ThemeId, TileId } from '../types/game';
 
 export const CELL_SIZE = 40; // 40px per tile
-export const GRID_ROWS = 16; // Standard 16 cells high
+export const GRID_ROWS = 24; // 24 cells high (expanded from 16 to allow building 8 rows below)
 export const DEFAULT_GRID_COLS = 160; // 160 cells long world (~6400px)
 
 // High-resolution generated panoramic background images

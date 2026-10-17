@@ -162,7 +162,20 @@ export class ProfileManager {
 export class SaveManager {
   public static getSavedGames(): SavedGame[] {
     const data = storageService.getRawData();
-    return data.savedGames || [];
+    const games = data.savedGames || [];
+    // Ensure backward compatibility: normalize older 16-row saves to 24 rows
+    return games.map((g) => {
+      if (g.levelData && (!g.levelData.height || g.levelData.height < 24)) {
+        return {
+          ...g,
+          levelData: {
+            ...g.levelData,
+            height: 24,
+          },
+        };
+      }
+      return g;
+    });
   }
 
   public static getGameById(id: string): SavedGame | null {

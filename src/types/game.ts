@@ -60,7 +60,7 @@ export interface LevelData {
   name: string;
   author?: string;
   width: number; // grid columns, e.g. 160
-  height: number; // grid rows, fixed 16
+  height: number; // grid rows, default 24
   bgTheme: ThemeId;
   heroId: HeroId;
   items: LevelItem[];

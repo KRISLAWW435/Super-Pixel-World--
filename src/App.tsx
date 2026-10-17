@@ -63,13 +63,13 @@ export default function App() {
   const [history, setHistory] = useState<LevelItem[][]>([levelData.items]);
   const [historyIndex, setHistoryIndex] = useState<number>(0);
 
-  // Interactive Onboarding Guided Tour State
-  // Interactive Onboarding Guided Tour State
+  // Interactive Onboarding Guided Tour State (Full 12-Step Curriculum)
   const [isGuidedTourOpen, setIsGuidedTourOpen] = useState<boolean>(() => {
     return !TutorialManager.isGuidedTourCompleted();
   });
-  const [guidedTourStep, setGuidedTourStep] = useState<number>(0);
+  const [guidedTourStep, setGuidedTourStep] = useState<number>(1);
   const [tourBlocksPlaced, setTourBlocksPlaced] = useState<number>(0);
+  const [tourVictory, setTourVictory] = useState<boolean>(false);
 
   // Builder Sidebar Tab State (synchronized with TutorialManager & event bus)
   const [sidebarTab, setSidebarTab] = useState<StudioSidebarTab>('platforms');
@@ -87,96 +87,99 @@ export default function App() {
   // Fullscreen Container Ref
   const appContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Listen to tab changed events via TutorialManager (Task 2 Option B: Event Bus)
+  // Listen to tab changed events via TutorialManager (Event Bus)
   useEffect(() => {
     const unsubscribe = TutorialManager.onTabChanged((tab) => {
       setSidebarTab(tab as StudioSidebarTab);
-      if (isGuidedTourOpen && guidedTourStep === 4 && tab === 'interactive') {
-        TutorialManager.logStep(4, 'Tab "interactive" opened via event bus');
-        sound.playMissionComplete();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Listen to Phase 2 gameplay actions (move, jump, victory) from GamePlayer
+  useEffect(() => {
+    if (!isGuidedTourOpen) return;
+
+    const unsubscribe = TutorialManager.onGameplayAction((action) => {
+      console.log('[Tutorial] Gameplay action received:', action, 'at step:', guidedTourStep);
+      if (guidedTourStep === 10 && action === 'move') {
+        sound.playSelect();
         setTourStepSuccess(true);
-        setTourSuccessMsg('Отлично! Вкладка открыта! Теперь выбери бонус.');
+        setTourSuccessMsg('Отлично! Герой движется!');
         setTimeout(() => {
           setTourStepSuccess(false);
-          setGuidedTourStep(5);
-        }, 300);
+          setGuidedTourStep(11);
+        }, 350);
+      } else if (guidedTourStep === 11 && action === 'jump') {
+        sound.playJump();
+        setTourStepSuccess(true);
+        setTourSuccessMsg('Великолепный прыжок!');
+        setTimeout(() => {
+          setTourStepSuccess(false);
+          setGuidedTourStep(12);
+        }, 350);
+      } else if (guidedTourStep >= 10 && action === 'victory') {
+        sound.playVictory();
+        setTourVictory(true);
+        setGuidedTourStep(12);
       }
     });
+
     return () => {
       unsubscribe();
     };
   }, [isGuidedTourOpen, guidedTourStep]);
 
-  // Handle direct sidebar tab change (Task 2 Option A: React Props)
+  // Handle direct sidebar tab change
   const handleSidebarTabChange = (tab: StudioSidebarTab) => {
     setSidebarTab(tab);
-    if (isGuidedTourOpen && guidedTourStep === 4 && tab === 'interactive') {
-      TutorialManager.logStep(4, 'Tab "interactive" opened via props');
-      sound.playMissionComplete();
-      setTourStepSuccess(true);
-      setTourSuccessMsg('Отлично! Вкладка открыта! Теперь выбери бонус.');
-      setTimeout(() => {
-        setTourStepSuccess(false);
-        setGuidedTourStep(5);
-      }, 300);
-    }
   };
 
-  // Fallback / Auto-sync: if player is on step 4 and interactive tab is already active
-  useEffect(() => {
-    if (isGuidedTourOpen && guidedTourStep === 4 && sidebarTab === 'interactive') {
-      TutorialManager.logStep(4, 'Interactive tab already active - advancing to step 5');
-      sound.playMissionComplete();
-      setTourStepSuccess(true);
-      setTourSuccessMsg('Отлично! Теперь выбери бонус.');
-      const t = setTimeout(() => {
-        setTourStepSuccess(false);
-        setGuidedTourStep(5);
-      }, 300);
-      return () => clearTimeout(t);
-    }
-  }, [isGuidedTourOpen, guidedTourStep, sidebarTab]);
-
-  // Guided Tour Step Selection Handlers
+  // Guided Tour Step Selection Handlers (Step 2 Tool, Step 3 Tile)
   const handleSelectTool = (tool: ToolMode) => {
     setActiveTool(tool);
-    if (isGuidedTourOpen && guidedTourStep === 1 && tool === 'brush') {
+    if (isGuidedTourOpen && guidedTourStep === 2 && tool === 'brush') {
       sound.playSelect();
-      TutorialManager.logStep(1, 'Brush tool selected');
+      TutorialManager.logStep(2, 'Brush tool selected');
       setTourStepSuccess(true);
       setTourSuccessMsg('Отлично! Кисть выбрана.');
       setTimeout(() => {
         setTourStepSuccess(false);
-        setGuidedTourStep(2);
+        setSidebarTab('platforms');
+        setGuidedTourStep(3);
       }, 300);
     }
   };
 
   const handleSelectTile = (tile: TileId) => {
     setSelectedTile(tile);
-    if (isGuidedTourOpen && guidedTourStep === 2 && (tile === 'grass_dirt' || tile === 'ice_block' || tile === 'stone')) {
+    if (isGuidedTourOpen && guidedTourStep === 3 && (tile === 'grass_dirt' || tile === 'ice_block' || tile === 'stone')) {
       sound.playPlaceTile();
-      TutorialManager.logStep(2, 'Tile grass_dirt selected');
+      TutorialManager.logStep(3, 'Tile grass_dirt selected');
       setTourStepSuccess(true);
-      setTourSuccessMsg('Блок выбран! Теперь нарисуй дорогу.');
+      setTourSuccessMsg('Блок выбран! Теперь построй дорогу.');
       setTimeout(() => {
         setTourStepSuccess(false);
-        setGuidedTourStep(3);
+        setGuidedTourStep(4);
         setTourBlocksPlaced(0);
       }, 300);
-    } else if (
-      isGuidedTourOpen &&
-      (guidedTourStep === 5 || guidedTourStep === 4) &&
-      (tile === 'coin' || tile === 'star' || tile === 'bonus_heart' || tile === 'crystal' || tile === 'question_block')
-    ) {
-      sound.playCoin();
-      TutorialManager.logStep(guidedTourStep, `Tile ${tile} selected`);
+    }
+  };
+
+  // Step 5: Mouse Wheel Action
+  const handleWheelAction = () => {
+    if (isGuidedTourOpen && guidedTourStep === 5) {
+      sound.playSelect();
+      TutorialManager.logStep(5, 'Mouse wheel scrolled');
       setTourStepSuccess(true);
-      setTourSuccessMsg('Отлично! Бонус выбран! Теперь проверим уровень.');
+      setTourSuccessMsg('Отлично! Камера перемещается.');
       setTimeout(() => {
         setTourStepSuccess(false);
+        setSidebarTab('interactive');
+        setSelectedTile('coin');
         setGuidedTourStep(6);
-      }, 350);
+      }, 400);
     }
   };
 
@@ -184,20 +187,38 @@ export default function App() {
     sound.playClick();
     console.log('[Tutorial] Step skipped by user from:', guidedTourStep);
     if (guidedTourStep === 1) {
-      setActiveTool('brush');
       setGuidedTourStep(2);
     } else if (guidedTourStep === 2) {
-      setSelectedTile('grass_dirt');
+      setActiveTool('brush');
+      setSidebarTab('platforms');
       setGuidedTourStep(3);
     } else if (guidedTourStep === 3) {
+      setSelectedTile('grass_dirt');
       setGuidedTourStep(4);
     } else if (guidedTourStep === 4) {
-      setSidebarTab('interactive');
       setGuidedTourStep(5);
     } else if (guidedTourStep === 5) {
+      setSidebarTab('interactive');
       setSelectedTile('coin');
       setGuidedTourStep(6);
-    } else if (guidedTourStep >= 6) {
+    } else if (guidedTourStep === 6) {
+      setSidebarTab('enemies');
+      setSelectedTile('enemy_chaser');
+      setGuidedTourStep(7);
+    } else if (guidedTourStep === 7) {
+      setSidebarTab('interactive');
+      setSelectedTile('spikes');
+      setGuidedTourStep(8);
+    } else if (guidedTourStep === 8) {
+      setGuidedTourStep(9);
+    } else if (guidedTourStep === 9) {
+      setGuidedTourStep(10);
+      setScreenMode('playing');
+    } else if (guidedTourStep === 10) {
+      setGuidedTourStep(11);
+    } else if (guidedTourStep === 11) {
+      setGuidedTourStep(12);
+    } else if (guidedTourStep >= 12) {
       handleCompleteTour();
     } else {
       setGuidedTourStep((s) => s + 1);
@@ -205,25 +226,30 @@ export default function App() {
   };
 
   const handleStartTour = () => {
-    setGuidedTourStep(1);
-    TutorialManager.logStep(1, 'Tour started');
+    setGuidedTourStep(2);
+    TutorialManager.logStep(2, 'Tour started - step 2');
   };
 
   const handleCompleteTour = () => {
     TutorialManager.setGuidedTourCompleted(true);
     setIsGuidedTourOpen(false);
-    setScreenMode('playing');
+    setTourVictory(false);
+    setScreenMode('editor');
+    sound.playVictory();
   };
 
   const handleSkipTour = () => {
     TutorialManager.setGuidedTourCompleted(true);
     setIsGuidedTourOpen(false);
+    setTourVictory(false);
   };
 
   const handleRestartTour = () => {
-    setGuidedTourStep(0);
+    setGuidedTourStep(1);
     setTourBlocksPlaced(0);
+    setTourVictory(false);
     setIsGuidedTourOpen(true);
+    setScreenMode('editor');
   };
 
   // Initialize sound settings on launch
@@ -242,26 +268,75 @@ export default function App() {
     }));
   }, [selectedTheme, selectedHero]);
 
-  // Handle Items Update with History
+  // Handle Items Update with History and Tour Step validations (Steps 4, 6, 7, 8)
   const handleUpdateItems = (newItems: LevelItem[], recordHistory: boolean = true) => {
-    if (isGuidedTourOpen && guidedTourStep === 3) {
-      const prevCount = levelData.items.length;
-      const newCount = newItems.length;
-      const added = newCount > prevCount ? newCount - prevCount : 1;
-      setTourBlocksPlaced((cur) => {
-        const next = Math.min(3, cur + added);
-        if (next >= 3) {
-          sound.playMissionComplete();
-          TutorialManager.logStep(3, 'Road built - 3 blocks placed');
+    if (isGuidedTourOpen) {
+      if (guidedTourStep === 4) {
+        // Step 4: Build road (wait for 3 blocks placed)
+        const prevCount = levelData.items.length;
+        const newCount = newItems.length;
+        const added = newCount > prevCount ? newCount - prevCount : 1;
+        setTourBlocksPlaced((cur) => {
+          const next = Math.min(3, cur + added);
+          if (next >= 3) {
+            sound.playMissionComplete();
+            TutorialManager.logStep(4, 'Road built - 3 blocks placed');
+            setTourStepSuccess(true);
+            setTourSuccessMsg('Отлично! Дорога построена!');
+            setTimeout(() => {
+              setTourStepSuccess(false);
+              setGuidedTourStep(5);
+            }, 500);
+          }
+          return next;
+        });
+      } else if (guidedTourStep === 6) {
+        // Step 6: Golden coin placed
+        const hadCoin = levelData.items.some((it) => it.tileId === 'coin');
+        const hasCoin = newItems.some((it) => it.tileId === 'coin');
+        if (hasCoin && (!hadCoin || newItems.length > levelData.items.length)) {
+          sound.playCoin();
+          TutorialManager.logStep(6, 'Coin placed on canvas');
           setTourStepSuccess(true);
-          setTourSuccessMsg('Отлично! Дорога построена! Теперь открой вкладку «Интерактив».');
+          setTourSuccessMsg('Золотая монета размещена!');
           setTimeout(() => {
             setTourStepSuccess(false);
-            setGuidedTourStep(4);
-          }, 600);
+            setSidebarTab('enemies');
+            setSelectedTile('enemy_chaser');
+            setGuidedTourStep(7);
+          }, 450);
         }
-        return next;
-      });
+      } else if (guidedTourStep === 7) {
+        // Step 7: Beast hunter enemy placed
+        const hadEnemy = levelData.items.some((it) => it.tileId === 'enemy_chaser' || it.tileId.startsWith('enemy_'));
+        const hasEnemy = newItems.some((it) => it.tileId === 'enemy_chaser' || it.tileId.startsWith('enemy_'));
+        if (hasEnemy && (!hadEnemy || newItems.length > levelData.items.length)) {
+          sound.playBump();
+          TutorialManager.logStep(7, 'Enemy placed on canvas');
+          setTourStepSuccess(true);
+          setTourSuccessMsg('Зверь-охотник на страже!');
+          setTimeout(() => {
+            setTourStepSuccess(false);
+            setSidebarTab('interactive');
+            setSelectedTile('spikes');
+            setGuidedTourStep(8);
+          }, 450);
+        }
+      } else if (guidedTourStep === 8) {
+        // Step 8: Hazard spikes placed
+        const hadSpikes = levelData.items.some((it) => it.tileId === 'spikes');
+        const hasSpikes = newItems.some((it) => it.tileId === 'spikes');
+        if (hasSpikes && (!hadSpikes || newItems.length > levelData.items.length)) {
+          sound.playPlaceTile();
+          TutorialManager.logStep(8, 'Spikes placed on canvas');
+          setTourStepSuccess(true);
+          setTourSuccessMsg('Опасные шипы установлены!');
+          setTimeout(() => {
+            setTourStepSuccess(false);
+            setGuidedTourStep(9);
+          }, 450);
+        }
+      }
     }
 
     setLevelData((prev) => ({ ...prev, items: newItems }));
@@ -392,10 +467,12 @@ export default function App() {
 
   // Switch to Play Mode
   const handleStartPlay = () => {
-    if (isGuidedTourOpen && (guidedTourStep === 6 || guidedTourStep === 5)) {
-      sound.playVictory();
-      TutorialManager.logStep(guidedTourStep, 'Play button clicked during tour - showing completion');
-      setGuidedTourStep(7);
+    if (isGuidedTourOpen && guidedTourStep === 9) {
+      sound.playCoin();
+      TutorialManager.logStep(9, 'Play button clicked - starting phase 2 gameplay');
+      setTourStepSuccess(false);
+      setGuidedTourStep(10);
+      setScreenMode('playing');
       return;
     }
     setScreenMode('playing');
@@ -503,77 +580,183 @@ export default function App() {
           onExitToMenu={handleExitToMenu}
           onToggleFullscreen={handleToggleFullscreen}
           onToggleMute={handleToggleMute}
+          isGuidedTour={isGuidedTourOpen}
         />
       )}
 
       {/* 5. SCREEN: Level Editor Mode (78-82% Left Canvas, 18-22% Right Toolbox) */}
-      {screenMode === 'editor' && (() => {
+      {screenMode === 'editor' && (
+        <div className="w-full h-full flex flex-col md:flex-row overflow-hidden relative">
+          {/* Left Main Level Canvas & Minimap */}
+          <LevelEditor
+            levelData={levelData}
+            activeTool={activeTool}
+            selectedTile={selectedTile}
+            selectedTheme={selectedTheme}
+            onUpdateItems={handleUpdateItems}
+            onOpenTutorial={handleRestartTour}
+            onSelectTile={handleSelectTile}
+            onStartPlay={handleStartPlay}
+            canUndo={historyIndex > 0}
+            canRedo={historyIndex < history.length - 1}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onExitToMenu={handleExitToMenu}
+            onCameraAction={handleWheelAction}
+            isGuidedTourOpen={isGuidedTourOpen}
+            guidedTourStep={guidedTourStep}
+            tourBlocksPlaced={tourBlocksPlaced}
+          />
+
+          {/* Right Compact Level Builder Panel */}
+          <BuilderSidebar
+            activeTab={sidebarTab}
+            onTabChange={handleSidebarTabChange}
+            activeTool={activeTool}
+            selectedTile={selectedTile}
+            selectedTheme={selectedTheme}
+            selectedHero={selectedHero}
+            canUndo={historyIndex > 0}
+            canRedo={historyIndex < history.length - 1}
+            isFullscreen={isFullscreen}
+            isMuted={isMuted}
+            onSelectTool={handleSelectTool}
+            onSelectTile={handleSelectTile}
+            onSelectTheme={setSelectedTheme}
+            onSelectHero={setSelectedHero}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onClear={handleClearLevel}
+            onPlay={handleStartPlay}
+            onSave={() => setIsSaveModalOpen(true)}
+            onLoad={() => setIsLoadModalOpen(true)}
+            onToggleFullscreen={handleToggleFullscreen}
+            onToggleMute={handleToggleMute}
+            onOpenTutorial={handleRestartTour}
+            onExitToMenu={handleExitToMenu}
+            isGuidedTourOpen={isGuidedTourOpen}
+          />
+        </div>
+      )}
+
+      {/* Interactive Guided Tour Spotlight Overlay (Active in Editor and GamePlayer) */}
+      {(() => {
         const getTourStepConfig = () => {
           switch (guidedTourStep) {
             case 0:
+            case 1:
               return {
                 targetId: undefined,
                 title: 'Привет, Геймдизайнер!',
                 message:
-                  'Давай создадим твою первую игру! Я покажу тебе шаг за шагом, как строить уровни и оживлять миры.',
+                  'Давай создадим твою первую игру! Я покажу тебе шаг за шагом, как строить уровни, добавлять врагов и награды, а затем победить!',
                 handAction: 'none' as const,
                 wrongClickMsg: undefined,
               };
-            case 1:
+            case 2:
               return {
                 targetId: 'tour-tool-brush',
-                title: 'Инструмент Кисть',
+                title: 'Выбор кисти',
                 message: 'Это твоя кисть. Нажми на неё, чтобы рисовать блоки!',
                 handAction: 'click' as const,
-                wrongClickMsg: 'Нажми на значок кисти!',
+                wrongClickMsg: 'Нажми на значок кисти в панели инструментов!',
               };
-            case 2:
+            case 3:
               return {
                 targetId: 'tour-tile-grass_dirt',
                 title: 'Выбор блока',
                 message: 'Выбери блок травы с землёй! Это основа для дорог твоего мира.',
                 handAction: 'click' as const,
-                wrongClickMsg: 'Выбери блок травы в палитре!',
-              };
-            case 3:
-              return {
-                targetId: 'tour-canvas-zone',
-                title: 'Построй дорогу',
-                message: 'Нарисуй дорогу! Зажми левую кнопку мыши и протяни линию из 3 блоков на игровом поле!',
-                handAction: 'drag-horizontal' as const,
-                wrongClickMsg: 'Ставь блоки на игровом поле!',
+                wrongClickMsg: 'Выбери блок травы в палитре блоков!',
               };
             case 4:
               return {
-                targetId: 'tour-tab-interactive',
-                title: 'Вкладка «Интерактив»',
-                message: 'Открой вкладку «Интерактив», чтобы найти монеты, секреты и бонусы!',
-                handAction: 'click' as const,
-                wrongClickMsg: 'Нажми на вкладку «Интерактив»!',
+                targetId: undefined, // Free canvas: centered line animation, zero blackout
+                title: 'Построй дорогу',
+                message: 'Построй дорогу! Зажми левую кнопку мыши и протяни линию из 3 блоков на поле.',
+                handAction: 'drag-horizontal' as const,
+                wrongClickMsg: 'Ставь блоки на игровом поле!',
               };
             case 5:
               return {
-                targetId: 'tour-tile-coin',
-                title: 'Золотая награда',
-                message: 'Отлично! Теперь выбери золотую монетку, чтобы порадовать героя!',
-                handAction: 'click' as const,
-                wrongClickMsg: 'Нажми на монетку в палитре!',
+                targetId: undefined,
+                title: 'Управление камерой',
+                message: 'Покрути колёсико мыши, чтобы двигать камеру.',
+                handAction: 'wheel' as const,
+                wrongClickMsg: 'Покрути колёсико мыши вперёд или назад!',
               };
             case 6:
               return {
+                targetId: sidebarTab === 'interactive' ? 'tour-tile-coin' : 'tour-tab-interactive',
+                title: 'Золотая награда',
+                message:
+                  sidebarTab === 'interactive'
+                    ? 'Выбери золотую монету и поставь её на игровое поле!'
+                    : 'Открой вкладку «Интерактив», чтобы найти монеты!',
+                handAction: 'click' as const,
+                wrongClickMsg:
+                  sidebarTab === 'interactive'
+                    ? 'Поставь монету на игровое поле!'
+                    : 'Нажми на вкладку «Интерактив»!',
+              };
+            case 7:
+              return {
+                targetId: sidebarTab === 'enemies' ? 'tour-tile-enemy_chaser' : 'tour-tab-enemies',
+                title: 'Враг на карте',
+                message:
+                  sidebarTab === 'enemies'
+                    ? 'Выбери Зверя-охотника и поставь его на платформу!'
+                    : 'Открой вкладку «Враги», чтобы выбрать противника!',
+                handAction: 'click' as const,
+                wrongClickMsg:
+                  sidebarTab === 'enemies'
+                    ? 'Поставь Зверя-охотника на платформу!'
+                    : 'Нажми на вкладку «Враги»!',
+              };
+            case 8:
+              return {
+                targetId: sidebarTab === 'interactive' ? 'tour-tile-spikes' : 'tour-tab-interactive',
+                title: 'Опасные шипы',
+                message:
+                  sidebarTab === 'interactive'
+                    ? 'Выбери Опасные шипы и размести их на пути героя!'
+                    : 'Открой вкладку «Интерактив», чтобы найти шипы!',
+                handAction: 'click' as const,
+                wrongClickMsg:
+                  sidebarTab === 'interactive'
+                    ? 'Поставь шипы на игровое поле!'
+                    : 'Нажми на вкладку «Интерактив»!',
+              };
+            case 9:
+              return {
                 targetId: 'tour-play-button',
                 title: 'Проверка уровня',
-                message: 'Ты молодец! Теперь нажми на зелёную кнопку «ТЕСТ», чтобы сыграть на своём уровне!',
+                message: 'Уровень готов! Нажми ТЕСТ, чтобы проверить его.',
                 handAction: 'click' as const,
                 wrongClickMsg: 'Нажми зелёную кнопку «ТЕСТ»!',
               };
-            case 7:
+            case 10:
+              return {
+                targetId: undefined,
+                title: 'Бег героя',
+                message: 'Используй клавиши A и D (или стрелочки) для бега!',
+                handAction: 'keys-ad' as const,
+                wrongClickMsg: 'Нажми клавишу A или D!',
+              };
+            case 11:
+              return {
+                targetId: undefined,
+                title: 'Прыжок героя',
+                message: 'Нажми ПРОБЕЛ (или W / стрелочку вверх) для прыжка!',
+                handAction: 'keys-space' as const,
+                wrongClickMsg: 'Нажми Пробел для прыжка!',
+              };
+            case 12:
             default:
               return {
                 targetId: undefined,
-                title: 'Тур Завершён!',
-                message:
-                  'Поздравляю! Ты сделал свой первый шаг в создании игр! Теперь у тебя есть все необходимые инструменты — твори свободно!',
+                title: 'Финал обучения',
+                message: 'Отлично! Теперь доберись до флага победы в конце пути!',
                 handAction: 'none' as const,
                 wrongClickMsg: undefined,
               };
@@ -583,75 +766,26 @@ export default function App() {
         const currentTour = getTourStepConfig();
 
         return (
-          <>
-            <div className="w-full h-full flex flex-col md:flex-row overflow-hidden relative">
-              {/* Left Main Level Canvas & Minimap */}
-              <LevelEditor
-                levelData={levelData}
-                activeTool={activeTool}
-                selectedTile={selectedTile}
-                selectedTheme={selectedTheme}
-                onUpdateItems={handleUpdateItems}
-                onOpenTutorial={handleRestartTour}
-                onSelectTile={handleSelectTile}
-                onStartPlay={handleStartPlay}
-                canUndo={historyIndex > 0}
-                canRedo={historyIndex < history.length - 1}
-                onUndo={handleUndo}
-                onRedo={handleRedo}
-                onExitToMenu={handleExitToMenu}
-              />
-
-              {/* Right Compact Level Builder Panel */}
-              <BuilderSidebar
-                activeTab={sidebarTab}
-                onTabChange={handleSidebarTabChange}
-                activeTool={activeTool}
-                selectedTile={selectedTile}
-                selectedTheme={selectedTheme}
-                selectedHero={selectedHero}
-                canUndo={historyIndex > 0}
-                canRedo={historyIndex < history.length - 1}
-                isFullscreen={isFullscreen}
-                isMuted={isMuted}
-                onSelectTool={handleSelectTool}
-                onSelectTile={handleSelectTile}
-                onSelectTheme={setSelectedTheme}
-                onSelectHero={setSelectedHero}
-                onUndo={handleUndo}
-                onRedo={handleRedo}
-                onClear={handleClearLevel}
-                onPlay={handleStartPlay}
-                onSave={() => setIsSaveModalOpen(true)}
-                onLoad={() => setIsLoadModalOpen(true)}
-                onToggleFullscreen={handleToggleFullscreen}
-                onToggleMute={handleToggleMute}
-                onOpenTutorial={handleRestartTour}
-                onExitToMenu={handleExitToMenu}
-                isGuidedTourOpen={isGuidedTourOpen}
-              />
-            </div>
-
-            {/* Interactive Guided Tour Spotlight Overlay */}
-            <TutorialOverlay
-              isOpen={isGuidedTourOpen}
-              step={guidedTourStep}
-              totalSteps={6}
-              targetElementId={currentTour.targetId}
-              title={currentTour.title}
-              message={currentTour.message}
-              handAction={currentTour.handAction}
-              onSkip={handleSkipTour}
-              onStartTour={handleStartTour}
-              onCompleteTour={handleCompleteTour}
-              onSkipStep={handleSkipStep}
-              placedCount={tourBlocksPlaced}
-              targetPlacedCount={3}
-              wrongClickMessage={currentTour.wrongClickMsg}
-              isSuccess={tourStepSuccess}
-              successMessage={tourSuccessMsg}
-            />
-          </>
+          <TutorialOverlay
+            isOpen={isGuidedTourOpen && (screenMode === 'editor' || screenMode === 'playing')}
+            step={guidedTourStep}
+            totalSteps={12}
+            targetElementId={currentTour.targetId}
+            title={currentTour.title}
+            message={currentTour.message}
+            handAction={currentTour.handAction}
+            onSkip={handleSkipTour}
+            onStartTour={handleStartTour}
+            onCompleteTour={handleCompleteTour}
+            onSkipStep={handleSkipStep}
+            placedCount={tourBlocksPlaced}
+            targetPlacedCount={3}
+            wrongClickMessage={currentTour.wrongClickMsg}
+            isSuccess={tourStepSuccess}
+            successMessage={tourSuccessMsg}
+            onWheelAction={handleWheelAction}
+            isVictory={tourVictory}
+          />
         );
       })()}
 

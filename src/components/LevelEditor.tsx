@@ -40,6 +40,7 @@ import { generateTutorialSample } from '../game/tutorialPresets';
 import { SpriteRenderer } from '../graphics/spriteRenderer';
 import { LevelData, LevelItem, ThemeId, TileId, ToolMode } from '../types/game';
 import { EditorTutorialBar } from './EditorTutorialBar';
+import { useEditorCamera } from './useEditorCamera';
 
 interface LevelEditorProps {
   levelData: LevelData;
@@ -86,9 +87,36 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const minimapRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Viewport & Navigation
-  const [cameraX, setCameraX] = useState<number>(0);
-  const [zoom, setZoom] = useState<number>(1.0);
+  // Camera & Navigation Hook (Supports 2D camera bounds, vertical scrolling to bottom, and zoom)
+  const {
+    cameraX,
+    cameraY,
+    setCameraX,
+    setCameraY,
+    zoom,
+    setZoom,
+    effectiveCellSize,
+    totalWorldWidthPx,
+    totalWorldHeightPx,
+    getViewportSize,
+    getMaxCameraX,
+    getMaxCameraY,
+    clampCameraX,
+    clampCameraY,
+    getCellFromMouse,
+    handleWheel,
+    isPanningRef,
+    startPan,
+    updatePan,
+    endPan,
+  } = useEditorCamera({
+    levelWidth: levelData.width,
+    levelHeight: levelData.height || GRID_ROWS,
+    containerRef,
+    canvasRef,
+    onCameraAction,
+  });
+
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [hoverCell, setHoverCell] = useState<{ col: number; row: number } | null>(null);
   const [isSpaceHeld, setIsSpaceHeld] = useState<boolean>(false);
@@ -119,9 +147,6 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   // Continuous stroke buffer (accumulates all items changed during current mousedown stroke)
   const strokeDidModifyRef = useRef<boolean>(false);
 
-  const isPanningRef = useRef<boolean>(false);
-  const panStartRef = useRef<{ mouseX: number; camX: number }>({ mouseX: 0, camX: 0 });
-
   const themeConfig = THEMES[selectedTheme] || THEMES.green_islands;
   const bgImageRef = useRef<HTMLImageElement | null>(null);
 
@@ -133,28 +158,6 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
       bgImageRef.current = img;
     };
   }, [themeConfig.image]);
-
-  // Max camera scroll
-  const effectiveCellSize = CELL_SIZE * zoom;
-  const totalWorldPx = levelData.width * effectiveCellSize;
-
-  const getViewportWidth = useCallback(() => {
-    return containerRef.current ? containerRef.current.clientWidth : 1000;
-  }, []);
-
-  const getMaxCameraX = useCallback(() => {
-    const vpW = getViewportWidth();
-    return Math.max(0, totalWorldPx - vpW);
-  }, [getViewportWidth, totalWorldPx]);
-
-  // Clamp camera
-  const clampCameraX = useCallback(
-    (camX: number) => {
-      const maxCam = getMaxCameraX();
-      return Math.max(0, Math.min(maxCam, camX));
-    },
-    [getMaxCameraX]
-  );
 
   // Key listeners for Space (pan) and G (grid)
   useEffect(() => {
@@ -188,7 +191,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
   // Apply Sample for Current Tutorial Step
   const handleApplySample = (stepIndex: number) => {
-    const vpW = getViewportWidth();
+    const { width: vpW } = getViewportSize();
     const centerCol = Math.max(
       4,
       Math.min(levelData.width - 12, Math.floor((cameraX + vpW * 0.5) / effectiveCellSize))
@@ -238,28 +241,6 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     sound.playVictory();
   };
 
-  // Convert mouse event to grid col/row
-  const getCellFromMouse = useCallback(
-    (clientX: number, clientY: number) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return null;
-      const rect = canvas.getBoundingClientRect();
-      const canvasX = clientX - rect.left;
-      const canvasY = clientY - rect.top;
-
-      const worldX = canvasX + cameraX;
-      const worldY = canvasY;
-
-      const col = Math.floor(worldX / effectiveCellSize);
-      const row = Math.floor(worldY / effectiveCellSize);
-
-      if (col < 0 || col >= levelData.width || row < 0 || row >= GRID_ROWS) {
-        return null;
-      }
-      return { col, row };
-    },
-    [cameraX, effectiveCellSize, levelData.width]
-  );
 
   // Erase tile at (col, row)
   const eraseAt = useCallback(
@@ -332,7 +313,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
         if (imgAspect > 2.5) {
           // Ultra-wide single panorama
-          const maxCam = Math.max(1, totalWorldPx - width);
+          const maxCam = Math.max(1, totalWorldWidthPx - width);
           const progress = Math.max(0, Math.min(1, cameraX / maxCam));
           const bgW = Math.max(width, height * imgAspect);
           const bgX = -progress * Math.max(0, bgW - width);
@@ -376,10 +357,13 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         }
 
         // Horizontal rows
-        for (let r = 0; r <= GRID_ROWS; r++) {
-          const gy = Math.round(r * effectiveCellSize);
-          ctx.moveTo(0, gy);
-          ctx.lineTo(width, gy);
+        const maxLevelRows = levelData.height || GRID_ROWS;
+        for (let r = 0; r <= maxLevelRows; r++) {
+          const gy = Math.round(r * effectiveCellSize - cameraY);
+          if (gy >= 0 && gy <= height) {
+            ctx.moveTo(0, gy);
+            ctx.lineTo(width, gy);
+          }
         }
         ctx.stroke();
 
@@ -387,15 +371,18 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         ctx.strokeStyle = 'rgba(245, 158, 11, 0.22)';
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
-        ctx.moveTo(0, Math.round(14 * effectiveCellSize));
-        ctx.lineTo(width, Math.round(14 * effectiveCellSize));
+        const groundGy = Math.round(14 * effectiveCellSize - cameraY);
+        if (groundGy >= 0 && groundGy <= height) {
+          ctx.moveTo(0, groundGy);
+          ctx.lineTo(width, groundGy);
+        }
         ctx.stroke();
         ctx.setLineDash([]);
       }
 
       // 3. Draw Level Items
       ctx.save();
-      ctx.translate(-cameraX, 0);
+      ctx.translate(-cameraX, -cameraY);
 
       const itemMap = new Map<string, LevelItem>();
       levelData.items.forEach((it) => itemMap.set(`${it.x},${it.y}`, it));
@@ -405,9 +392,14 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         levelData.width,
         Math.ceil((cameraX + width) / effectiveCellSize) + 1
       );
+      const startRow = Math.max(0, Math.floor(cameraY / effectiveCellSize) - 1);
+      const endRow = Math.min(
+        levelData.height || GRID_ROWS,
+        Math.ceil((cameraY + height) / effectiveCellSize) + 1
+      );
 
       levelData.items.forEach((item) => {
-        if (item.x >= startCol && item.x <= endCol) {
+        if (item.x >= startCol && item.x <= endCol && item.y >= startRow && item.y <= endRow) {
           const px = item.x * effectiveCellSize;
           const py = item.y * effectiveCellSize;
 
@@ -765,9 +757,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         }
       }
 
-      // Guided Tour Visual Aids on Canvas (Drawing Step 3, 4, 5, 6 guidelines)
+      // Guided Tour Visual Aids on Canvas (Drawing Step 4 Road, Step 6 Coin, Step 7 Enemy, Step 8 Spikes)
       if (isGuidedTourOpen) {
-        if (guidedTourStep === 3) {
+        if (guidedTourStep === 4) {
           // Guide for road across cols 5..7, row 14
           ctx.save();
           ctx.strokeStyle = '#f59e0b';
@@ -784,24 +776,8 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             SpriteRenderer.drawTile(ctx, 'grass_dirt', px, py, effectiveCellSize, { animTime });
             ctx.globalAlpha = 1.0;
           }
-
-          // Animated pointer hand gliding across the 3 blocks
-          const tCycle = (animTime * 1.2) % 3.0; // 0 to 3
-          const handX = (5 + (tCycle / 3.0) * 2.8) * effectiveCellSize + 10;
-          const handY = 14 * effectiveCellSize - 16;
-          ctx.fillStyle = '#ffffff';
-          ctx.strokeStyle = '#0f172a';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(handX, handY, 14, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-          ctx.font = '14px system-ui';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('👉', handX, handY + 1);
           ctx.restore();
-        } else if (guidedTourStep === 4) {
+        } else if (guidedTourStep === 6) {
           // Guide for coin at col 6, row 11
           ctx.save();
           const px = 6 * effectiveCellSize;
@@ -813,10 +789,22 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           ctx.globalAlpha = 0.6;
           SpriteRenderer.drawTile(ctx, 'coin', px, py, effectiveCellSize, { animTime });
           ctx.restore();
-        } else if (guidedTourStep === 5) {
-          // Guide for spikes at col 7, row 13
+        } else if (guidedTourStep === 7) {
+          // Guide for enemy at col 7, row 13
           ctx.save();
           const px = 7 * effectiveCellSize;
+          const py = 13 * effectiveCellSize;
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(px + 2, py + 2, effectiveCellSize - 4, effectiveCellSize - 4);
+          ctx.globalAlpha = 0.6;
+          SpriteRenderer.drawTile(ctx, 'enemy_chaser', px, py, effectiveCellSize, { animTime });
+          ctx.restore();
+        } else if (guidedTourStep === 8) {
+          // Guide for spikes at col 8, row 13
+          ctx.save();
+          const px = 8 * effectiveCellSize;
           const py = 13 * effectiveCellSize;
           ctx.strokeStyle = '#f43f5e';
           ctx.lineWidth = 2;
@@ -824,18 +812,6 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           ctx.strokeRect(px + 2, py + 2, effectiveCellSize - 4, effectiveCellSize - 4);
           ctx.globalAlpha = 0.6;
           SpriteRenderer.drawTile(ctx, 'spikes', px, py, effectiveCellSize, { animTime });
-          ctx.restore();
-        } else if (guidedTourStep === 6) {
-          // Guide for goal gate at col 9, row 13
-          ctx.save();
-          const px = 9 * effectiveCellSize;
-          const py = 13 * effectiveCellSize;
-          ctx.strokeStyle = '#10b981';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([4, 4]);
-          ctx.strokeRect(px + 2, py + 2, effectiveCellSize - 4, effectiveCellSize - 4);
-          ctx.globalAlpha = 0.6;
-          SpriteRenderer.drawTile(ctx, 'goal', px, py, effectiveCellSize, { animTime });
           ctx.restore();
         }
       }
@@ -850,6 +826,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     return () => cancelAnimationFrame(animFrame);
   }, [
     cameraX,
+    cameraY,
     effectiveCellSize,
     hoverCell,
     isMouseDown,
@@ -861,6 +838,8 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     levelData,
     showGrid,
     themeConfig,
+    isGuidedTourOpen,
+    guidedTourStep,
   ]);
 
   // Render bottom interactive minimap
@@ -877,8 +856,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     mCtx.fillStyle = '#0B0F19';
     mCtx.fillRect(0, 0, mW, mH);
 
+    const totalRows = levelData.height || GRID_ROWS;
     const cellScaleX = mW / levelData.width;
-    const cellScaleY = mH / GRID_ROWS;
+    const cellScaleY = mH / totalRows;
 
     // Draw miniature tiles
     levelData.items.forEach((it) => {
@@ -910,16 +890,18 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     mCtx.fillStyle = '#3b82f6';
     mCtx.fillRect(mW - 4, 0, 4, mH);
 
-    // Draw Viewport Frame Box
-    const vpW = getViewportWidth();
-    const frameX = (cameraX / totalWorldPx) * mW;
-    const frameW = Math.max(18, (vpW / totalWorldPx) * mW);
+    // Draw Viewport Frame Box in 2D
+    const { width: vpW, height: vpH } = getViewportSize();
+    const frameX = (cameraX / totalWorldWidthPx) * mW;
+    const frameW = Math.max(16, (vpW / totalWorldWidthPx) * mW);
+    const frameY = (cameraY / totalWorldHeightPx) * mH;
+    const frameH = Math.max(8, (vpH / totalWorldHeightPx) * mH);
 
     mCtx.fillStyle = 'rgba(245, 158, 11, 0.25)';
-    mCtx.fillRect(frameX, 0, frameW, mH);
+    mCtx.fillRect(frameX, frameY, frameW, frameH);
     mCtx.strokeStyle = '#f59e0b';
-    mCtx.lineWidth = 2;
-    mCtx.strokeRect(frameX, 1, frameW, mH - 2);
+    mCtx.lineWidth = 1.5;
+    mCtx.strokeRect(frameX, frameY, frameW, frameH);
   };
 
   // Resize listener
@@ -946,8 +928,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     const isMiddleClick = e.button === 1 || e.altKey || isSpaceHeld;
 
     if (isMiddleClick) {
-      isPanningRef.current = true;
-      panStartRef.current = { mouseX: e.clientX, camX: cameraX };
+      startPan(e.clientX, e.clientY);
       return;
     }
 
@@ -972,8 +953,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanningRef.current) {
-      const dx = e.clientX - panStartRef.current.mouseX;
-      setCameraX(clampCameraX(panStartRef.current.camX - dx));
+      updatePan(e.clientX, e.clientY);
       return;
     }
 
@@ -984,22 +964,17 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     setDragCurrentCell(cell);
 
     if (mouseButton === 2 || activeTool === 'erase') {
-      // Continuous erase along mouse movement
       eraseAt(cell.col, cell.row);
     } else if (activeTool === 'brush' && mouseButton === 0) {
-      // Continuous freehand brush along mouse movement in both X & Y!
       paintAt(cell.col, cell.row);
     }
   };
 
   const handleMouseUp = () => {
-    if (isPanningRef.current) {
-      isPanningRef.current = false;
-    }
+    endPan();
 
     if (isMouseDown) {
       if (mouseButton === 0 && activeTool === 'line') {
-        // Place 2D rectangular box of tiles
         if (dragStartCell && dragCurrentCell) {
           const minC = Math.min(dragStartCell.col, dragCurrentCell.col);
           const maxC = Math.max(dragStartCell.col, dragCurrentCell.col);
@@ -1010,7 +985,6 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           let placedCount = 0;
 
           if (isGroundEnemy(selectedTile)) {
-            // For ground enemies: place strictly on solid ground for each column
             for (let c = minC; c <= maxC; c++) {
               const groundY = findGroundRowBelow(levelData.items, c, minR);
               if (groundY !== null && groundY > 0) {
@@ -1053,7 +1027,6 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           sound.playPlaceTile();
         }
       } else if (strokeDidModifyRef.current) {
-        // Record undo history for the completed brush/erase stroke
         onUpdateItems(levelData.items, true);
       }
     }
@@ -1064,29 +1037,24 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     strokeDidModifyRef.current = false;
   };
 
-  // Wheel horizontal scrolling & zoom
-  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-    onCameraAction?.();
-    if (e.ctrlKey) {
-      e.preventDefault();
-      const delta = e.deltaY < 0 ? 0.1 : -0.1;
-      setZoom((z) => Math.max(0.6, Math.min(1.5, Number((z + delta).toFixed(2)))));
-      return;
-    }
-    const deltaX = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    setCameraX((cam) => clampCameraX(cam + deltaX * 1.2));
-  };
-
-  // Minimap click / drag pan
-  const handleMinimapInteraction = (clientX: number) => {
+  // Minimap click / drag pan in 2D
+  const handleMinimapInteraction = (clientX: number, clientY?: number) => {
     onCameraAction?.();
     const mCanvas = minimapRef.current;
     if (!mCanvas) return;
     const rect = mCanvas.getBoundingClientRect();
     const relX = Math.max(0, Math.min(rect.width, clientX - rect.left));
-    const targetRatio = relX / rect.width;
-    const newCamX = targetRatio * totalWorldPx - getViewportWidth() * 0.5;
+    const targetRatioX = relX / rect.width;
+    const { width: vpW, height: vpH } = getViewportSize();
+    const newCamX = targetRatioX * totalWorldWidthPx - vpW * 0.5;
     setCameraX(clampCameraX(newCamX));
+
+    if (typeof clientY === 'number') {
+      const relY = Math.max(0, Math.min(rect.height, clientY - rect.top));
+      const targetRatioY = relY / rect.height;
+      const newCamY = targetRatioY * totalWorldHeightPx - vpH * 0.5;
+      setCameraY(clampCameraY(newCamY));
+    }
   };
 
   // Cursor state
@@ -1305,8 +1273,8 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         </div>
       </div>
 
-      {/* 4. BOTTOM MINIMAP & STATUS BAR (44px height) */}
-      <div className="h-11 bg-[#0F172A] border-t border-slate-800 flex items-center px-4 gap-3 shrink-0 z-20">
+      {/* 4. BOTTOM MINIMAP & STATUS BAR (48px height) */}
+      <div className="h-12 bg-[#0F172A] border-t border-slate-800 flex items-center px-4 gap-3 shrink-0 z-20">
         <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
           <Move className="w-3.5 h-3.5 text-amber-400" />
           <span className="hidden sm:inline">Карта уровня:</span>
@@ -1314,16 +1282,22 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
         {/* Minimap Canvas Container */}
         <div
-          className="flex-1 h-7 rounded-lg overflow-hidden border border-slate-700 bg-[#0B0F19] relative cursor-ew-resize"
-          onMouseDown={(e) => handleMinimapInteraction(e.clientX)}
+          className="flex-1 h-8 sm:h-9 rounded-lg overflow-hidden border border-slate-700 bg-[#0B0F19] relative cursor-move select-none"
+          onMouseDown={(e) => handleMinimapInteraction(e.clientX, e.clientY)}
           onMouseMove={(e) => {
-            if (e.buttons === 1) handleMinimapInteraction(e.clientX);
+            if (e.buttons === 1) handleMinimapInteraction(e.clientX, e.clientY);
+          }}
+          onTouchStart={(e) => {
+            if (e.touches[0]) handleMinimapInteraction(e.touches[0].clientX, e.touches[0].clientY);
+          }}
+          onTouchMove={(e) => {
+            if (e.touches[0]) handleMinimapInteraction(e.touches[0].clientX, e.touches[0].clientY);
           }}
         >
           <canvas
             ref={minimapRef}
             width={600}
-            height={28}
+            height={36}
             className="w-full h-full block"
           />
         </div>

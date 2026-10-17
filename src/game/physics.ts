@@ -411,7 +411,8 @@ export class PhysicsEngine {
     }
 
     // Fall into bottom chasm
-    if (this.player.y > (GRID_ROWS + 1) * CELL_SIZE) {
+    const maxLevelRow = this.levelData.height || GRID_ROWS;
+    if (this.player.y > (maxLevelRow + 1) * CELL_SIZE) {
       this.loseLife('Упал в пропасть!');
     }
 
@@ -935,7 +936,8 @@ export class PhysicsEngine {
       }
 
       // Check for falling into bottom abyss
-      if (enemy.y > (GRID_ROWS + 1) * CELL_SIZE) {
+      const maxEnemyLevelRow = this.levelData.height || GRID_ROWS;
+      if (enemy.y > (maxEnemyLevelRow + 1) * CELL_SIZE) {
         deadEnemyIds.add(enemy.id);
         continue;
       }
@@ -1269,7 +1271,8 @@ export class PhysicsEngine {
   }
 
   public hasGroundBelow(col: number, minRow: number, maxRow: number): boolean {
-    for (let r = Math.max(0, minRow); r <= Math.min(GRID_ROWS, maxRow); r++) {
+    const maxScanRow = this.levelData.height || GRID_ROWS;
+    for (let r = Math.max(0, minRow); r <= Math.min(maxScanRow, maxRow); r++) {
       if (this.solidGrid.get(`${col},${r}`)) {
         return true;
       }

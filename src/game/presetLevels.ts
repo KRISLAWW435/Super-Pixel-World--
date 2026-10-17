@@ -17,7 +17,7 @@ function makeItem(tileId: LevelItem['tileId'], x: number, y: number): LevelItem 
 
 /**
  * Default clean starter level: "Зелёное приключение" (Green Adventure)
- * 160 columns wide, 16 rows high.
+ * 160 columns wide, 24 rows high (expanded height).
  * Completely empty of enemies, coins, stars, and crystals so player can place them freely!
  */
 export function createDefaultLevel(): LevelData {
@@ -147,7 +147,7 @@ export function createDefaultLevel(): LevelData {
     name: 'Зелёное приключение (Уровень 1-1)',
     author: 'Super Pixel World',
     width: 160,
-    height: 16,
+    height: 24,
     bgTheme: 'green_islands',
     heroId: 'leo',
     items,
@@ -202,7 +202,7 @@ export function createCandyLevel(): LevelData {
     name: 'Конфетный раш',
     author: 'Super Pixel World',
     width: 140,
-    height: 16,
+    height: 24,
     bgTheme: 'candy_land',
     heroId: 'pippin',
     items,
@@ -249,7 +249,7 @@ export function createIceLevel(): LevelData {
     name: 'Ледяное восхождение',
     author: 'Super Pixel World',
     width: 130,
-    height: 16,
+    height: 24,
     bgTheme: 'ice_world',
     heroId: 'bolt',
     items,
@@ -293,7 +293,7 @@ export function createAlienLevel(): LevelData {
     name: 'Тайна космических джунглей',
     author: 'Super Pixel World',
     width: 130,
-    height: 16,
+    height: 24,
     bgTheme: 'alien_jungle',
     heroId: 'astro',
     items,
