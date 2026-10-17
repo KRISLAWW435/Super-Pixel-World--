@@ -25,7 +25,7 @@ export interface StudioModalProps {
   icon?: React.ReactNode;
   badge?: string;
   badgeColor?: 'amber' | 'emerald' | 'blue' | 'purple';
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   children: React.ReactNode;
   footer?: React.ReactNode;
 }
@@ -63,7 +63,9 @@ export const StudioModal: React.FC<StudioModalProps> = ({
       : maxWidth === 'lg'
       ? 'max-w-2xl'
       : maxWidth === 'xl'
-      ? 'max-w-4xl'
+      ? 'max-w-3xl'
+      : maxWidth === '2xl'
+      ? 'max-w-5xl'
       : 'max-w-lg';
 
   const badgeStyles = {

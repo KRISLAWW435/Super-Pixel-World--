@@ -18,14 +18,14 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
   onProfileCreated,
 }) => {
   const [name, setName] = useState<string>('');
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string>('fox');
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string>('avatar_1');
   const [errorText, setErrorText] = useState<string>('');
 
-  // Validate name (letters, numbers, underscores, max 12 chars)
+  // Validate name (letters, numbers, underscores, max 20 chars)
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     // Allow letters, numbers, spaces, dashes (Russian & English)
-    const filtered = val.replace(/[^a-zA-Zа-яА-ЯёЁ0-9\s_-]/g, '').slice(0, 12);
+    const filtered = val.replace(/[^a-zA-Zа-яА-ЯёЁ0-9\s_-]/g, '').slice(0, 20);
     setName(filtered);
     if (filtered.trim().length > 0) {
       setErrorText('');
@@ -43,7 +43,7 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
     e.preventDefault();
     if (!isReady) {
       if (name.trim().length < 2) {
-        setErrorText('Введи имя (от 2 до 12 букв)!');
+        setErrorText('Введи имя (от 2 до 20 букв)!');
       }
       return;
     }
@@ -79,12 +79,12 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
         🪙
       </div>
 
-      <div className="w-full max-w-2xl bg-slate-900/90 backdrop-blur-md border-4 border-amber-400/80 rounded-3xl shadow-2xl shadow-indigo-950/80 p-6 sm:p-8 flex flex-col items-center gap-6 z-10 animate-in fade-in zoom-in-95 duration-300">
+      <div className="w-full max-w-3xl bg-slate-900/90 backdrop-blur-md border-4 border-amber-400/80 rounded-3xl shadow-2xl shadow-indigo-950/80 p-6 sm:p-8 flex flex-col items-center gap-6 z-10 animate-in fade-in zoom-in-95 duration-300">
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-400/20 border-2 border-amber-400/50 text-amber-300 font-black text-xs uppercase tracking-wider">
             <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>Студия Super Pixel World — это не игра, а мастерская 2D-миров</span>
+            <span>Студия Super Pixel World — мастерская 2D-миров</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-black text-white tracking-wide drop-shadow-md">
             Профиль Автора Студии
@@ -99,7 +99,7 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
           <div className="space-y-2">
             <label className="block text-xs sm:text-sm font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
               <User className="w-4 h-4" />
-              <span>1. Как тебя зовут? (максимум 12 букв)</span>
+              <span>1. Как тебя зовут? (максимум 20 букв)</span>
             </label>
             <div className="relative">
               <input
@@ -108,11 +108,11 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
                 onChange={handleNameChange}
                 placeholder="Введи своё имя..."
                 autoFocus
-                maxLength={12}
+                maxLength={20}
                 className="w-full px-5 py-4 text-lg sm:text-xl font-bold bg-slate-950/80 border-3 border-slate-700 focus:border-amber-400 rounded-2xl text-white placeholder-slate-500 outline-none transition-all shadow-inner text-center sm:text-left"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-500">
-                {name.length}/12
+                {name.length}/20
               </div>
             </div>
             {errorText && (
@@ -129,7 +129,7 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
               <span>2. Выбери своего пиксельного героя:</span>
             </label>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-5 gap-2.5 sm:gap-4 p-2 sm:p-3 rounded-2xl bg-[#0B0F19]/60 border border-slate-800">
               {PRESET_AVATARS.map((avatar) => {
                 const isSelected = selectedAvatarId === avatar.id;
                 return (
@@ -137,43 +137,26 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
                     key={avatar.id}
                     type="button"
                     onClick={() => handleSelectAvatar(avatar.id)}
-                    className={`relative p-3 rounded-2xl border-3 flex flex-col items-center gap-2 transition-all cursor-pointer group active:scale-95 ${
+                    className={`aspect-square w-full rounded-2xl flex items-center justify-center p-1.5 sm:p-2.5 transition-all cursor-pointer relative select-none ${
                       isSelected
-                        ? `${avatar.borderColor} bg-slate-800/90 shadow-lg shadow-amber-500/20 scale-102 ring-2 ring-amber-400/50`
-                        : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/60 hover:border-slate-700'
+                        ? 'bg-gradient-to-b from-amber-500/25 to-amber-600/10 border-4 border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6),0_6px_0_#B45309] scale-105 ring-2 ring-amber-300/80 z-10'
+                        : 'bg-[#131B2E]/90 hover:bg-slate-800/90 border-2 border-slate-700/80 hover:border-slate-500 shadow-md hover:scale-105'
                     }`}
                   >
                     {/* Selected Badge */}
                     {isSelected && (
-                      <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black shadow-md border-2 border-slate-900 z-10">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <div className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-bold shadow-lg border-2 border-slate-900 z-20 animate-in zoom-in-75">
+                        <Check className="w-3.5 h-3.5 stroke-[3.5]" />
                       </div>
                     )}
 
                     {/* Pixel Art Avatar Box */}
-                    <div
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-700/80 shadow-md transition-transform group-hover:scale-108 shrink-0 relative"
-                    >
+                    <div className="w-full h-full rounded-xl overflow-hidden flex items-center justify-center">
                       <img
                         src={avatar.imageUrl}
-                        alt={avatar.name}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover"
-                        style={{ imageRendering: 'pixelated' }}
+                        alt=""
+                        className="w-full h-full object-contain pointer-events-none drop-shadow-md"
                       />
-                    </div>
-
-                    <div className="text-center">
-                      <div
-                        className={`text-xs font-black leading-tight ${
-                          isSelected ? 'text-amber-300' : 'text-slate-200'
-                        }`}
-                      >
-                        {avatar.name}
-                      </div>
-                      <div className="text-[10px] text-slate-400 line-clamp-1">
-                        {avatar.subtitle}
-                      </div>
                     </div>
                   </button>
                 );

@@ -440,6 +440,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
             isSliding: engine.player.isSliding,
             vx: engine.player.vx,
             vy: engine.player.vy,
+            jumpTime: engine.player.jumpTime,
           }
         );
 

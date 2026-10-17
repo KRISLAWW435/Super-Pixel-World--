@@ -7,6 +7,8 @@ import { CELL_SIZE } from '../game/constants';
 import { HeroId, Particle, TileId } from '../types/game';
 import heroIdleImgSrc from '../assets/animate/hero_idle.png';
 import heroRunImgSrc from '../assets/animate/hero_run.png';
+import heroJumpImgSrc from '../assets/animate/hero_jump.png';
+import heroFallImgSrc from '../assets/animate/hero_fall.png';
 
 // Pre-load hero animation sprite sheets
 const heroIdleImg: HTMLImageElement | null = typeof window !== 'undefined' ? new Image() : null;
@@ -17,6 +19,16 @@ if (heroIdleImg) {
 const heroRunImg: HTMLImageElement | null = typeof window !== 'undefined' ? new Image() : null;
 if (heroRunImg) {
   heroRunImg.src = heroRunImgSrc;
+}
+
+const heroJumpImg: HTMLImageElement | null = typeof window !== 'undefined' ? new Image() : null;
+if (heroJumpImg) {
+  heroJumpImg.src = heroJumpImgSrc;
+}
+
+const heroFallImg: HTMLImageElement | null = typeof window !== 'undefined' ? new Image() : null;
+if (heroFallImg) {
+  heroFallImg.src = heroFallImgSrc;
 }
 
 // Helper colors and gradients
@@ -223,38 +235,43 @@ export class SpriteRenderer {
   }
 
   private static drawWood(ctx: CanvasRenderingContext2D, s: number, hasL: boolean, hasR: boolean) {
-    // Wooden plank
+    // Wooden plank - fills from top (y=0) to bottom (y=s) flush with 40x40 collision grid
     const woodGrad = ctx.createLinearGradient(0, 0, 0, s);
     woodGrad.addColorStop(0, '#d97706');
     woodGrad.addColorStop(1, '#92400e');
     ctx.fillStyle = woodGrad;
 
+    const r = 4;
     ctx.beginPath();
-    ctx.roundRect(0, s * 0.15, s, s * 0.7, [!hasL ? 4 : 0, !hasR ? 4 : 0, !hasR ? 4 : 0, !hasL ? 4 : 0]);
+    ctx.roundRect(0, 0, s, s, [!hasL ? r : 0, !hasR ? r : 0, !hasR ? r : 0, !hasL ? r : 0]);
     ctx.fill();
 
-    // Wood grain lines
+    // Wood grain horizontal planks / lines
     ctx.strokeStyle = '#78350f';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(0, s * 0.38);
-    ctx.lineTo(s, s * 0.38);
-    ctx.moveTo(0, s * 0.62);
-    ctx.lineTo(s, s * 0.62);
+    ctx.moveTo(0, s * 0.33);
+    ctx.lineTo(s, s * 0.33);
+    ctx.moveTo(0, s * 0.67);
+    ctx.lineTo(s, s * 0.67);
     ctx.stroke();
 
-    // Rope / nail studs
+    // Plank studs / nails
     ctx.fillStyle = '#451a03';
     ctx.beginPath();
-    ctx.arc(s * 0.2, s * 0.28, 2.5, 0, Math.PI * 2);
-    ctx.arc(s * 0.8, s * 0.28, 2.5, 0, Math.PI * 2);
-    ctx.arc(s * 0.2, s * 0.72, 2.5, 0, Math.PI * 2);
-    ctx.arc(s * 0.8, s * 0.72, 2.5, 0, Math.PI * 2);
+    ctx.arc(s * 0.2, s * 0.18, 2.2, 0, Math.PI * 2);
+    ctx.arc(s * 0.8, s * 0.18, 2.2, 0, Math.PI * 2);
+    ctx.arc(s * 0.2, s * 0.82, 2.2, 0, Math.PI * 2);
+    ctx.arc(s * 0.8, s * 0.82, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Top highlight
-    ctx.fillStyle = 'rgba(254, 243, 199, 0.4)';
-    ctx.fillRect(0, s * 0.15, s, 2.5);
+    // Top highlight rim flush with top edge
+    ctx.fillStyle = 'rgba(254, 243, 199, 0.45)';
+    ctx.fillRect(hasL ? 0 : 2, 0, s - (hasL ? 0 : 2) - (hasR ? 0 : 2), 2.5);
+
+    // Bottom shadow
+    ctx.fillStyle = 'rgba(69, 26, 3, 0.4)';
+    ctx.fillRect(0, s - 3, s, 3);
   }
 
   private static drawBrick(ctx: CanvasRenderingContext2D, s: number) {
@@ -1219,14 +1236,16 @@ export class SpriteRenderer {
       isSliding?: boolean;
       vx?: number;
       vy?: number;
+      jumpTime?: number;
     }
   ) {
     const isThumbnail = width <= 48 && height <= 48;
 
     // Animation State Machine:
-    // - If vx === 0 and vy === 0 (standing still) -> Play hero_idle.png (frames 0 to 2) at 3 FPS (slow, natural breathing/blinking)
-    // - If moving -> Play hero_run.png (frames 0 to 5)
-    // - For Jump and Fall states -> Use frame 0 of hero_idle.png as a placeholder
+    // - If vy < 0 (moving up) -> Play hero_jump.png (frames 0-1 at 6 FPS, do not loop, hold last frame)
+    // - If vy > 0 (moving down) -> Draw hero_fall.png (frame 0, static)
+    // - If on ground & moving -> Play hero_run.png (frames 0 to 5)
+    // - If on ground & standing still -> Play hero_idle.png (frames 0 to 2 at 3 FPS)
     const vx = state.vx !== undefined ? state.vx : (state.isWalking ? 1 : 0);
     const vy = state.vy !== undefined ? state.vy : (state.isInAir ? 1 : 0);
     const inAir = state.isInAir || Math.abs(vy) > 0.05;
@@ -1234,30 +1253,42 @@ export class SpriteRenderer {
 
     let spriteImg: HTMLImageElement | null = null;
     let frameIndex = 0;
-    const frameWidth = 64;
+    let frameWidth = 64;
     let sourceHeight = 96;
 
     if (inAir) {
-      // Jump and Fall states: frame 0 of hero_idle.png as a placeholder
-      spriteImg = heroIdleImg;
-      frameIndex = 0;
-      sourceHeight = 96;
+      if (vy < 0) {
+        // Jumping up (vy < 0) -> Play hero_jump.png (frames 0-1 at 6 FPS, do not loop, hold last frame)
+        spriteImg = heroJumpImg;
+        sourceHeight = 96;
+        frameWidth = heroJumpImg && heroJumpImg.naturalWidth > 0 ? (heroJumpImg.naturalWidth / 2) : 64;
+        const jumpTime = state.jumpTime !== undefined ? state.jumpTime : state.animTime;
+        frameIndex = Math.min(1, Math.max(0, Math.floor(jumpTime * 6)));
+      } else {
+        // Moving down (vy > 0 or apex descent) -> Draw hero_fall.png (frame 0, static)
+        spriteImg = heroFallImg;
+        sourceHeight = 96;
+        frameWidth = 64;
+        frameIndex = 0;
+      }
     } else if (isMoving) {
       // Moving state: hero_run.png (6 frames)
       spriteImg = heroRunImg;
-      sourceHeight = (heroRunImg && heroRunImg.naturalHeight) || 97;
+      sourceHeight = 96;
+      frameWidth = 64;
       frameIndex = Math.floor(state.animTime * 10) % 6;
     } else {
       // Standing still (vx === 0 and vy === 0): hero_idle.png (3 frames at 3 FPS)
       spriteImg = heroIdleImg;
       sourceHeight = 96;
+      frameWidth = 64;
       frameIndex = Math.floor(state.animTime * 3) % 3;
     }
 
     ctx.save();
 
     // Alignment: Keep the bottom-center alignment exactly as before
-    // (bottom of the 64x96 frame matches the bottom of the 24x80 hitbox)
+    // (bottom of the 64x96 frame matches the bottom of the 24x80 hitbox, sitting flush with the top of the collision grid)
     if (isThumbnail) {
       const scale = Math.min(width / 64, height / 96);
       ctx.translate(x + width * 0.5, y + height);

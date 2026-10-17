@@ -28,7 +28,7 @@ export default function App() {
   const [profile, setProfile] = useState<UserProfile>(() => {
     const existing = ProfileManager.getProfile();
     if (existing) return existing;
-    return ProfileManager.createProfile('Создатель', 'fox');
+    return ProfileManager.createProfile('Создатель', 'avatar_1');
   });
 
   // Screen Mode: 'profile_create' | 'main_menu' | 'my_games' | 'editor' | 'playing'
@@ -530,6 +530,23 @@ export default function App() {
     document.addEventListener('fullscreenchange', handleFsChange);
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
+
+  // Sync isMuted state with sound engine
+  useEffect(() => {
+    const unsub = sound.onSettingsChange((s) => {
+      setIsMuted(s.isMuted);
+    });
+    return () => unsub();
+  }, []);
+
+  // Global BGM Switcher: 'Save State' for Menu & Editor, 'Pixel Bounce' for GamePlayer
+  useEffect(() => {
+    if (screenMode === 'playing') {
+      sound.playBgm('gameplay');
+    } else {
+      sound.playBgm('menu_editor');
+    }
+  }, [screenMode]);
 
   // Mute Toggle
   const handleToggleMute = () => {

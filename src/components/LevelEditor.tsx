@@ -40,6 +40,7 @@ import { generateTutorialSample } from '../game/tutorialPresets';
 import { SpriteRenderer } from '../graphics/spriteRenderer';
 import { LevelData, LevelItem, ThemeId, TileId, ToolMode } from '../types/game';
 import { EditorTutorialBar } from './EditorTutorialBar';
+import { SoundControl } from './SoundControl';
 import { useEditorCamera } from './useEditorCamera';
 
 interface LevelEditorProps {
@@ -1228,6 +1229,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {/* Sound Settings Popover */}
+          <SoundControl compact align="right" />
 
           {/* Primary High-Contrast Playtest Button (44px target) */}
           <button

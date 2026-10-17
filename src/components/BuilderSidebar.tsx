@@ -36,6 +36,7 @@ import { HEROES, PALETTE_ITEMS, THEMES } from '../game/constants';
 import { TutorialManager } from '../services/TutorialManager';
 import { HeroId, ThemeId, TileId, ToolMode } from '../types/game';
 import { PaletteTilePreview } from './PaletteTilePreview';
+import { SoundControl } from './SoundControl';
 
 export type StudioSidebarTab = 'platforms' | 'interactive' | 'enemies' | 'world';
 
@@ -232,13 +233,11 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={onToggleMute}
-            title={isMuted ? 'Включить звук' : 'Выключить звук'}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-          </button>
+          <SoundControl
+            compact
+            align="right"
+            buttonClassName="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+          />
           <button
             onClick={onToggleFullscreen}
             title={isFullscreen ? 'Оконный режим' : 'Во весь экран'}

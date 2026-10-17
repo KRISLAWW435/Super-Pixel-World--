@@ -17,7 +17,8 @@ const LEGACY_STORAGE_KEY = 'super_pixel_world_level_v5';
 const DEFAULT_SETTINGS: GameSettings = {
   sound: true,
   music: true,
-  volume: 0.8,
+  volume: 0.4,
+  isMuted: false,
 };
 
 /**
@@ -39,7 +40,13 @@ class StorageService {
             settings: {
               sound: parsed.settings?.sound ?? DEFAULT_SETTINGS.sound,
               music: parsed.settings?.music ?? DEFAULT_SETTINGS.music,
-              volume: typeof parsed.settings?.volume === 'number' ? parsed.settings.volume : DEFAULT_SETTINGS.volume,
+              volume:
+                typeof parsed.settings?.volume === 'number'
+                  ? parsed.settings.volume === 0.8
+                    ? 0.4 // Migrate default 0.8 to 0.4
+                    : parsed.settings.volume
+                  : DEFAULT_SETTINGS.volume,
+              isMuted: parsed.settings?.isMuted ?? false,
             },
             savedGames: Array.isArray(parsed.savedGames) ? parsed.savedGames : [],
           };
@@ -115,11 +122,11 @@ export class ProfileManager {
   }
 
   public static createProfile(name: string, avatarId: string): UserProfile {
-    const cleanName = name.trim().slice(0, 12);
+    const cleanName = name.trim().slice(0, 20);
     const now = new Date().toISOString();
     const profile: UserProfile = {
       name: cleanName,
-      avatarId: avatarId || 'fox',
+      avatarId: avatarId || 'avatar_1',
       createdAt: now,
       lastLogin: now,
     };
@@ -134,7 +141,7 @@ export class ProfileManager {
   public static updateName(name: string): UserProfile | null {
     const data = storageService.getRawData();
     if (!data.userProfile) return null;
-    data.userProfile.name = name.trim().slice(0, 12);
+    data.userProfile.name = name.trim().slice(0, 20);
     data.userProfile.lastLogin = new Date().toISOString();
     storageService.saveRawData(data);
     return data.userProfile;
@@ -292,5 +299,9 @@ export class SettingsManager {
   public static setVolume(volume: number): GameSettings {
     const clamped = Math.max(0, Math.min(1, volume));
     return this.updateSettings({ volume: clamped });
+  }
+
+  public static setMuted(muted: boolean): GameSettings {
+    return this.updateSettings({ isMuted: muted });
   }
 }
