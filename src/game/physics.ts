@@ -8,6 +8,7 @@ import { sound } from '../audio/soundEngine';
 import {
   ActiveBlockBump,
   ActiveEnemy,
+  CloudIsland,
   EnemyTileId,
   GameStats,
   HeroId,
@@ -34,6 +35,7 @@ export interface PlayerState {
   jumpBufferTimer: number;
   springLaunchTimer: number;
   animTime: number;
+  jumpTime?: number;
   spawnX: number;
   spawnY: number;
   checkpointX: number;
@@ -66,6 +68,8 @@ export class PhysicsEngine {
   public particles: Particle[] = [];
   public blockBumps: ActiveBlockBump[] = [];
   public floatingTexts: FloatingText[] = [];
+  public cloudIslands: CloudIsland[] = [];
+  public standingCloudIsland: CloudIsland | null = null;
   public stats: GameStats;
   public isVictory: boolean = false;
   public isGameOver: boolean = false;
@@ -85,10 +89,8 @@ export class PhysicsEngine {
     const startCellX = spawnItem ? spawnItem.x : 3;
     const startCellY = spawnItem ? spawnItem.y : 12;
 
-    // Playable hero physical hitbox dimensions ("Big Mario" 2-tile height)
-    // Exactly 80px high (2 grid tiles of 40px) and ~36px wide
-    // Fits into 1-block vertical shafts while intentionally blocking 1-tile low gaps
-    const playerWidth = 36;
+    // Playable hero physical hitbox dimensions ("Big Mario" 1:2 ratio: height 80px, slim width 24px)
+    const playerWidth = 24;
     const playerHeight = 80;
     const startPx = startCellX * CELL_SIZE + Math.floor((CELL_SIZE - playerWidth) * 0.5);
     const startPy = (startCellY - 1) * CELL_SIZE;
@@ -110,6 +112,7 @@ export class PhysicsEngine {
       jumpBufferTimer: 0,
       springLaunchTimer: 0,
       animTime: 0,
+      jumpTime: 0,
       spawnX: startPx,
       spawnY: startPy,
       checkpointX: startPx,
@@ -157,9 +160,131 @@ export class PhysicsEngine {
     this.levelData.items.forEach((item) => {
       const key = `${item.x},${item.y}`;
       this.itemMap.set(key, item);
-      if (solidSet.has(item.tileId)) {
+
+      if (this.isPipeTile(item.tileId)) {
+        // Pipes are 2x2 tiles (80x80px)
+        // Cover all 4 cells: (x, y), (x+1, y), (x, y+1), (x+1, y+1)
+        this.solidGrid.set(`${item.x},${item.y}`, item);
+        this.solidGrid.set(`${item.x + 1},${item.y}`, item);
+        this.solidGrid.set(`${item.x},${item.y + 1}`, item);
+        this.solidGrid.set(`${item.x + 1},${item.y + 1}`, item);
+      } else if (solidSet.has(item.tileId)) {
         this.solidGrid.set(key, item);
       }
+    });
+
+    this.buildCloudIslands();
+  }
+
+  private buildCloudIslands() {
+    this.cloudIslands = [];
+
+    // Find all cloud_platform items
+    const cloudItems = this.levelData.items.filter((it) => it.tileId === 'cloud_platform');
+    if (cloudItems.length === 0) return;
+
+    // Disjoint set / Connected components via BFS
+    const cloudCoordMap = new Map<string, LevelItem>();
+    cloudItems.forEach((it) => cloudCoordMap.set(`${it.x},${it.y}`, it));
+
+    const visited = new Set<string>();
+    let islandIdx = 0;
+
+    cloudItems.forEach((item) => {
+      const startKey = `${item.x},${item.y}`;
+      if (visited.has(startKey)) return;
+
+      const group: LevelItem[] = [];
+      const queue: LevelItem[] = [item];
+      visited.add(startKey);
+
+      while (queue.length > 0) {
+        const curr = queue.shift()!;
+        group.push(curr);
+
+        // Check 4-connected neighbors
+        const neighbors = [
+          { x: curr.x - 1, y: curr.y },
+          { x: curr.x + 1, y: curr.y },
+          { x: curr.x, y: curr.y - 1 },
+          { x: curr.x, y: curr.y + 1 },
+        ];
+
+        for (const n of neighbors) {
+          const nKey = `${n.x},${n.y}`;
+          if (!visited.has(nKey) && cloudCoordMap.has(nKey)) {
+            visited.add(nKey);
+            queue.push(cloudCoordMap.get(nKey)!);
+          }
+        }
+      }
+
+      // Compute bounding box in grid coordinates
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      group.forEach((t) => {
+        if (t.x < minX) minX = t.x;
+        if (t.x > maxX) maxX = t.x;
+        if (t.y < minY) minY = t.y;
+        if (t.y > maxY) maxY = t.y;
+      });
+
+      // Axis of movement: default 'y' (floating up/down with sine wave)
+      const axis: 'y' | 'x' = (group[0].properties as any)?.axis === 'x' ? 'x' : 'y';
+
+      // Check wall clipping: Ensure merged clouds don't clip into walls
+      let maxUp = 44;
+      let maxDown = 44;
+      let maxLeft = 44;
+      let maxRight = 44;
+
+      if (axis === 'y') {
+        for (const t of group) {
+          // Check cells above
+          for (let step = 1; step <= 2; step++) {
+            if (this.solidGrid.has(`${t.x},${t.y - step}`)) {
+              maxUp = Math.min(maxUp, Math.max(0, (step - 1) * CELL_SIZE - 4));
+            }
+          }
+          // Check cells below
+          for (let step = 1; step <= 2; step++) {
+            if (this.solidGrid.has(`${t.x},${t.y + step}`)) {
+              maxDown = Math.min(maxDown, Math.max(0, (step - 1) * CELL_SIZE - 4));
+            }
+          }
+        }
+      } else {
+        for (const t of group) {
+          for (let step = 1; step <= 2; step++) {
+            if (this.solidGrid.has(`${t.x - step},${t.y}`)) {
+              maxLeft = Math.min(maxLeft, Math.max(0, (step - 1) * CELL_SIZE - 4));
+            }
+            if (this.solidGrid.has(`${t.x + step},${t.y}`)) {
+              maxRight = Math.min(maxRight, Math.max(0, (step - 1) * CELL_SIZE - 4));
+            }
+          }
+        }
+      }
+
+      const amplitude = axis === 'y'
+        ? Math.min(maxUp, maxDown, 36)
+        : Math.min(maxLeft, maxRight, 36);
+
+      this.cloudIslands.push({
+        id: `cloud_island_${islandIdx++}`,
+        tiles: group.map((t) => ({ x: t.x, y: t.y, id: t.id })),
+        minX,
+        maxX,
+        minY,
+        maxY,
+        offsetX: 0,
+        offsetY: 0,
+        prevOffsetX: 0,
+        prevOffsetY: 0,
+        axis,
+        amplitude: Math.max(0, amplitude),
+        speed: 1.8,
+        phase: (minX * 0.75) % (Math.PI * 2),
+      });
     });
   }
 
@@ -264,7 +389,7 @@ export class PhysicsEngine {
       this.player.vy = 0;
       if (this.player.pipeWarpTimer <= 0) {
         this.player.x = this.player.pipeTargetX ?? this.player.x;
-        this.player.y = (this.player.pipeTargetY ?? this.player.y) + 32;
+        this.player.y = (this.player.pipeTargetY ?? this.player.y) + 40;
         this.player.pipeWarpState = 'exiting';
         this.player.pipeWarpTimer = 0.35;
         sound.playPipe();
@@ -393,6 +518,9 @@ export class PhysicsEngine {
 
     this.player.isInAir = !this.player.isGrounded;
 
+    // Update Cloud Platforms (Floating rigid bodies)
+    this.updateCloudIslands(clampedDt);
+
     // --- Sub-pixel Collision Resolution (X first, then Y) ---
     // Horizontal Movement Pass
     this.player.x += this.player.vx;
@@ -406,6 +534,16 @@ export class PhysicsEngine {
     this.player.y += this.player.vy;
     this.player.isGrounded = false;
     this.resolveVerticalCollision();
+
+    // Resolve Cloud Platform One-way collisions & platform carry
+    this.resolveCloudPlatformCollisions(playerPreY, fallingVy);
+
+    this.player.isInAir = !this.player.isGrounded;
+    if (this.player.vy < -0.05) {
+      this.player.jumpTime = (this.player.jumpTime || 0) + clampedDt;
+    } else {
+      this.player.jumpTime = 0;
+    }
 
     // Clamp inside world borders
     const worldPixelWidth = this.levelData.width * CELL_SIZE;
@@ -1236,6 +1374,73 @@ export class PhysicsEngine {
     }
   }
 
+  private updateCloudIslands(_dt: number) {
+    for (const island of this.cloudIslands) {
+      island.prevOffsetX = island.offsetX;
+      island.prevOffsetY = island.offsetY;
+
+      if (island.amplitude > 0) {
+        if (island.axis === 'y') {
+          island.offsetY = Math.sin(this.stats.timeTaken * island.speed + island.phase) * island.amplitude;
+          island.offsetX = 0;
+        } else {
+          island.offsetX = Math.sin(this.stats.timeTaken * island.speed + island.phase) * island.amplitude;
+          island.offsetY = 0;
+        }
+      }
+    }
+  }
+
+  private resolveCloudPlatformCollisions(playerPreY: number, fallingVy: number) {
+    let landedIsland: CloudIsland | null = null;
+    const playerBottom = this.player.y + this.player.height;
+    const playerPreBottom = playerPreY + this.player.height;
+
+    // Check one-way top landing on all cloud platform tiles
+    for (const island of this.cloudIslands) {
+      for (const tile of island.tiles) {
+        const cloudTop = tile.y * CELL_SIZE + island.offsetY;
+        const cloudLeft = tile.x * CELL_SIZE + island.offsetX;
+        const cloudRight = cloudLeft + CELL_SIZE;
+
+        // Check horizontal overlap with cloud tile
+        const overlapX =
+          this.player.x + this.player.width > cloudLeft + 2 &&
+          this.player.x < cloudRight - 2;
+
+        if (overlapX) {
+          // One-way platform criteria:
+          // 1. Player is descending or horizontal (not jumping upwards)
+          // 2. Pre-step bottom was above or at platform top
+          // 3. Current bottom has penetrated or reached the top surface
+          const isFalling = fallingVy >= 0 || this.player.vy >= 0;
+          const wasAbove = playerPreBottom <= cloudTop + Math.max(14, fallingVy + 6);
+          const reachedTop = playerBottom >= cloudTop - 4 && playerBottom <= cloudTop + 24;
+
+          if (isFalling && wasAbove && reachedTop) {
+            this.player.y = cloudTop - this.player.height;
+            this.player.vy = 0;
+            this.player.isGrounded = true;
+            this.player.coyoteTimer = 0.1;
+            landedIsland = island;
+            break;
+          }
+        }
+      }
+      if (landedIsland) break;
+    }
+
+    this.standingCloudIsland = landedIsland;
+
+    // Apply cloud's delta movement to the player when standing on it
+    if (this.standingCloudIsland) {
+      const deltaX = this.standingCloudIsland.offsetX - this.standingCloudIsland.prevOffsetX;
+      const deltaY = this.standingCloudIsland.offsetY - this.standingCloudIsland.prevOffsetY;
+      this.player.x += deltaX;
+      this.player.y += deltaY;
+    }
+  }
+
   public checkPipeTeleportation() {
     if (
       !this.player.isGrounded ||
@@ -1252,10 +1457,14 @@ export class PhysicsEngine {
     const pipeItem = this.solidGrid.get(`${centerCol},${pipeRow}`);
 
     if (pipeItem && this.isPipeTile(pipeItem.tileId)) {
-      const pipeCenterX = pipeItem.x * CELL_SIZE + CELL_SIZE * 0.5;
+      // 2x2 pipe: width is 80px (2 * CELL_SIZE), top-left is at (pipeItem.x, pipeItem.y)
+      const pipeCenterX = pipeItem.x * CELL_SIZE + CELL_SIZE;
       const playerCenterX = this.player.x + this.player.width * 0.5;
 
-      if (Math.abs(playerCenterX - pipeCenterX) < 18) {
+      // Check if player is standing on the top rim of the 2x2 pipe (at pipeItem.y)
+      const isTopEntrance = Math.abs(footY - pipeItem.y * CELL_SIZE) < 8;
+
+      if (isTopEntrance && Math.abs(playerCenterX - pipeCenterX) < 28) {
         const pair = this.getPairedPipe(pipeItem);
         if (!pair) {
           // No paired pipe placed!
@@ -1263,14 +1472,15 @@ export class PhysicsEngine {
           this.addFloatingText('Нет выхода!', pipeCenterX, pipeItem.y * CELL_SIZE - 12, '#f87171');
           this.player.pipeCooldown = 1.4; // prevent spam
         } else {
-          // Trigger suction animation
+          // Trigger suction animation into 2x2 pipe
           sound.playPipe();
           this.player.pipeWarpState = 'entering';
           this.player.pipeWarpTimer = 0.35;
           this.player.vx = 0;
           this.player.vy = 0;
-          this.player.pipeTargetX = pair.x * CELL_SIZE + (CELL_SIZE - this.player.width) * 0.5;
-          this.player.pipeTargetY = (pair.y - 1) * CELL_SIZE + (CELL_SIZE - this.player.height);
+          const pairCenterX = pair.x * CELL_SIZE + CELL_SIZE;
+          this.player.pipeTargetX = pairCenterX - this.player.width * 0.5;
+          this.player.pipeTargetY = pair.y * CELL_SIZE - this.player.height;
           const pColor = pipeItem.tileId.includes('red') ? '#ef4444' : '#22c55e';
           this.emitSparkles(pipeCenterX, pipeItem.y * CELL_SIZE + 4, pColor);
         }

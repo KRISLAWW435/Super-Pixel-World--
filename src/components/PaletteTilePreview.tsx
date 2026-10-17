@@ -33,6 +33,7 @@ export const PaletteTilePreview: React.FC<PaletteTilePreviewProps> = ({
         hasLeft: false,
         hasRight: false,
         animTime: 0.5,
+        isThumbnail: true,
       });
     } else if (heroId) {
       SpriteRenderer.drawHero(ctx, heroId, 2, 2, size - 4, size - 4, {

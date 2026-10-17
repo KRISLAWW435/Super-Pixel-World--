@@ -145,11 +145,19 @@ export const PALETTE_ITEMS: PaletteItemDef[] = [
   },
   {
     id: 'cloud',
-    name: 'Облачная платформа',
+    name: 'Облачный блок',
     category: 'platforms',
     solid: true,
     desc: 'Воздушное пушистое облако',
     hint: 'Легкие парящие островки высоко в небе.',
+  },
+  {
+    id: 'cloud_platform',
+    name: 'Парящее облако',
+    category: 'platforms',
+    solid: false, // Handled dynamically as one-way moving rigid body platform
+    desc: 'Летающая платформа. Соседние облака объединяются в единый парящий остров!',
+    hint: 'Ставьте облака рядом — они соединятся в один большой летающий остров и будут двигаться вместе!',
   },
   {
     id: 'mushroom',
@@ -177,18 +185,18 @@ export const PALETTE_ITEMS: PaletteItemDef[] = [
   },
   {
     id: 'pipe_green',
-    name: 'Зелёная труба',
+    name: 'Зелёная труба (2x2)',
     category: 'platforms',
     solid: true,
-    desc: 'Зелёная труба-телепорт',
+    desc: 'Большая зелёная труба-телепорт 2x2 клетки (80x80px)',
     hint: 'Связывается с парной зелёной трубой для мгновенного перемещения!',
   },
   {
     id: 'pipe_red',
-    name: 'Красная труба',
+    name: 'Красная труба (2x2)',
     category: 'platforms',
     solid: true,
-    desc: 'Красная труба-телепорт',
+    desc: 'Большая красная труба-телепорт 2x2 клетки (80x80px)',
     hint: 'Связывается с парной красной трубой для мгновенного перемещения!',
   },
 

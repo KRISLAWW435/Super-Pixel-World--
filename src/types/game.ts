@@ -19,6 +19,7 @@ export type TileId =
   | 'ice'
   | 'ice_block'
   | 'cloud'
+  | 'cloud_platform'
   | 'mushroom'
   | 'candy'
   | 'crystal_block'
@@ -45,6 +46,23 @@ export type TileId =
   | 'enemy_slime'
   // Markers
   | 'player_spawn';
+
+export interface CloudIsland {
+  id: string;
+  tiles: { x: number; y: number; id: string }[];
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  offsetX: number;
+  offsetY: number;
+  prevOffsetX: number;
+  prevOffsetY: number;
+  axis: 'y' | 'x';
+  amplitude: number;
+  speed: number;
+  phase: number;
+}
 
 export interface LevelItem {
   id: string; // unique id

@@ -307,6 +307,18 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
               return;
             }
 
+            // Cloud platforms are rendered below as animated moving rigid bodies
+            if (item.tileId === 'cloud_platform') {
+              return;
+            }
+
+            // For 2x2 pipes, skip bottom half of any legacy stacked pipe
+            if (item.tileId.startsWith('pipe_')) {
+              if (itemMap.has(`${item.x},${item.y - 1}`) && itemMap.get(`${item.x},${item.y - 1}`)?.tileId.startsWith('pipe_')) {
+                return;
+              }
+            }
+
             // Check if bumping
             const bump = engine.blockBumps.find(
               (b) => b.x === item.x * CELL_SIZE && b.y === item.y * CELL_SIZE
@@ -327,6 +339,28 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
               variant: item.variant,
             });
           }
+        });
+
+        // 2b. Render Floating Cloud Islands (merged rigid bodies moving together)
+        engine.cloudIslands.forEach((island) => {
+          const islandTilesMap = new Set(island.tiles.map((t) => `${t.x},${t.y}`));
+          island.tiles.forEach((tile) => {
+            const tx = tile.x * CELL_SIZE + island.offsetX;
+            const ty = tile.y * CELL_SIZE + island.offsetY;
+
+            const hasLeft = islandTilesMap.has(`${tile.x - 1},${tile.y}`);
+            const hasRight = islandTilesMap.has(`${tile.x + 1},${tile.y}`);
+            const hasTop = islandTilesMap.has(`${tile.x},${tile.y - 1}`);
+            const hasBottom = islandTilesMap.has(`${tile.x},${tile.y + 1}`);
+
+            SpriteRenderer.drawTile(ctx, 'cloud_platform', tx, ty, CELL_SIZE, {
+              hasLeft,
+              hasRight,
+              hasTop,
+              hasBottom,
+              animTime: engine.player.animTime,
+            });
+          });
         });
 
         // 3. Render Enemies
@@ -404,6 +438,8 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
             animTime: engine.player.animTime,
             isHurt: engine.player.isHurt,
             isSliding: engine.player.isSliding,
+            vx: engine.player.vx,
+            vy: engine.player.vy,
           }
         );
 

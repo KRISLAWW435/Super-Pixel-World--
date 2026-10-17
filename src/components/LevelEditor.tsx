@@ -245,7 +245,14 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   // Erase tile at (col, row)
   const eraseAt = useCallback(
     (col: number, row: number) => {
-      const filtered = levelData.items.filter((it) => !(it.x === col && it.y === row));
+      const filtered = levelData.items.filter((it) => {
+        if (it.tileId.startsWith('pipe_')) {
+          if (col >= it.x && col <= it.x + 1 && row >= it.y && row <= it.y + 1) {
+            return false;
+          }
+        }
+        return !(it.x === col && it.y === row);
+      });
       if (filtered.length !== levelData.items.length) {
         onUpdateItems(filtered, false);
         strokeDidModifyRef.current = true;
@@ -276,7 +283,21 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         return;
       }
 
-      const filtered = levelData.items.filter((it) => !(it.x === col && it.y === finalRow));
+      const isPipe = selectedTile.startsWith('pipe_');
+      const filtered = levelData.items.filter((it) => {
+        if (isPipe) {
+          if (it.x >= col && it.x <= col + 1 && it.y >= finalRow && it.y <= finalRow + 1) {
+            return false;
+          }
+        }
+        if (it.tileId.startsWith('pipe_')) {
+          if (col >= it.x && col <= it.x + 1 && finalRow >= it.y && finalRow <= it.y + 1) {
+            return false;
+          }
+        }
+        return !(it.x === col && it.y === finalRow);
+      });
+
       const newItem: LevelItem = {
         id: `item_${Date.now()}_${col}_${finalRow}_${Math.random().toString(36).substring(2, 6)}`,
         tileId: selectedTile,
@@ -400,6 +421,13 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
       levelData.items.forEach((item) => {
         if (item.x >= startCol && item.x <= endCol && item.y >= startRow && item.y <= endRow) {
+          // For 2x2 pipes, skip bottom half of any legacy stacked pipe
+          if (item.tileId.startsWith('pipe_')) {
+            if (itemMap.has(`${item.x},${item.y - 1}`) && itemMap.get(`${item.x},${item.y - 1}`)?.tileId.startsWith('pipe_')) {
+              return;
+            }
+          }
+
           const px = item.x * effectiveCellSize;
           const py = item.y * effectiveCellSize;
 
@@ -650,18 +678,28 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           });
           ctx.restore();
 
-          // Gold cursor boundary box
+          // Gold cursor boundary box (2x2 for pipes, 1x1 for standard blocks)
+          const isPipeSelected = selectedTile.startsWith('pipe_');
+          const cursorW = isPipeSelected ? effectiveCellSize * 2 : effectiveCellSize;
+          const cursorH = isPipeSelected ? effectiveCellSize * 2 : effectiveCellSize;
           ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
-          ctx.fillRect(hx, hy, effectiveCellSize, effectiveCellSize);
+          ctx.fillRect(hx, hy, cursorW, cursorH);
           ctx.strokeStyle = '#f59e0b';
           ctx.lineWidth = 2;
-          ctx.strokeRect(hx + 1, hy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+          ctx.strokeRect(hx + 1, hy + 1, cursorW - 2, cursorH - 2);
         }
       }
 
       // Pipe portal connections visualization (Task 4: Editor visualization)
       const isPipe = (t: string) => t.startsWith('pipe_');
-      const hoveredItem = hoverCell ? levelData.items.find((it) => it.x === hoverCell.col && it.y === hoverCell.row) : null;
+      const hoveredItem = hoverCell
+        ? levelData.items.find((it) => {
+            if (isPipe(it.tileId)) {
+              return hoverCell.col >= it.x && hoverCell.col <= it.x + 1 && hoverCell.row >= it.y && hoverCell.row <= it.y + 1;
+            }
+            return it.x === hoverCell.col && it.y === hoverCell.row;
+          })
+        : null;
       const isHoveringPipe = hoveredItem && isPipe(hoveredItem.tileId);
 
       if (isHoveringPipe && hoveredItem) {
@@ -677,10 +715,11 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           const paired = myIdx % 2 === 0 ? (sameColorPipes[myIdx + 1] ?? sameColorPipes[0]) : sameColorPipes[myIdx - 1];
 
           if (paired && paired.id !== hoveredItem.id) {
-            const startX = hoveredItem.x * effectiveCellSize + effectiveCellSize * 0.5;
-            const startY = hoveredItem.y * effectiveCellSize + effectiveCellSize * 0.5;
-            const endX = paired.x * effectiveCellSize + effectiveCellSize * 0.5;
-            const endY = paired.y * effectiveCellSize + effectiveCellSize * 0.5;
+            // 2x2 Pipe center is at x + 1.0 (effectiveCellSize) and y + 1.0 (effectiveCellSize)
+            const startX = hoveredItem.x * effectiveCellSize + effectiveCellSize;
+            const startY = hoveredItem.y * effectiveCellSize + effectiveCellSize;
+            const endX = paired.x * effectiveCellSize + effectiveCellSize;
+            const endY = paired.y * effectiveCellSize + effectiveCellSize;
 
             // Draw glowing curved arc connecting the paired pipes
             ctx.save();

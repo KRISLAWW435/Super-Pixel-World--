@@ -5,6 +5,19 @@
 
 import { CELL_SIZE } from '../game/constants';
 import { HeroId, Particle, TileId } from '../types/game';
+import heroIdleImgSrc from '../assets/animate/hero_idle.png';
+import heroRunImgSrc from '../assets/animate/hero_run.png';
+
+// Pre-load hero animation sprite sheets
+const heroIdleImg: HTMLImageElement | null = typeof window !== 'undefined' ? new Image() : null;
+if (heroIdleImg) {
+  heroIdleImg.src = heroIdleImgSrc;
+}
+
+const heroRunImg: HTMLImageElement | null = typeof window !== 'undefined' ? new Image() : null;
+if (heroRunImg) {
+  heroRunImg.src = heroRunImgSrc;
+}
 
 // Helper colors and gradients
 export class SpriteRenderer {
@@ -25,9 +38,10 @@ export class SpriteRenderer {
       animTime?: number;
       isSpent?: boolean;
       variant?: string;
+      isThumbnail?: boolean;
     } = {}
   ) {
-    const { hasLeft = false, hasRight = false, animTime = 0, isSpent = false } = options;
+    const { hasLeft = false, hasRight = false, animTime = 0, isSpent = false, isThumbnail = false } = options;
 
     ctx.save();
     ctx.translate(px, py);
@@ -52,6 +66,9 @@ export class SpriteRenderer {
       case 'cloud':
         this.drawCloud(ctx, size, animTime);
         break;
+      case 'cloud_platform':
+        this.drawCloudPlatform(ctx, size, animTime, hasLeft, hasRight, options.hasTop, options.hasBottom);
+        break;
       case 'mushroom':
         this.drawMushroomPlatform(ctx, size, hasLeft, hasRight);
         break;
@@ -64,12 +81,12 @@ export class SpriteRenderer {
       case 'pipe_green':
       case 'pipe_green_entrance':
       case 'pipe_green_exit':
-        this.drawPipe(ctx, size, 'green');
+        this.drawPipe(ctx, isThumbnail ? size : size * 2, 'green', isThumbnail);
         break;
       case 'pipe_red':
       case 'pipe_red_entrance':
       case 'pipe_red_exit':
-        this.drawPipe(ctx, size, 'red');
+        this.drawPipe(ctx, isThumbnail ? size : size * 2, 'red', isThumbnail);
         break;
       case 'bonus_heart':
         this.drawHeart(ctx, size, animTime);
@@ -338,6 +355,71 @@ export class SpriteRenderer {
     ctx.fill();
   }
 
+  private static drawCloudPlatform(
+    ctx: CanvasRenderingContext2D,
+    s: number,
+    animTime: number,
+    hasL: boolean = false,
+    hasR: boolean = false,
+    _hasT: boolean = false,
+    _hasB: boolean = false
+  ) {
+    // Cloud Platform: Soft, glowing, fluffy celestial cloud with seamless horizontal merging
+    const floatBob = Math.sin(animTime * 3) * 1.5;
+    ctx.translate(0, floatBob);
+
+    // Soft celestial ambient glow under the cloud
+    const glowGrad = ctx.createRadialGradient(s * 0.5, s * 0.6, s * 0.2, s * 0.5, s * 0.6, s * 0.65);
+    glowGrad.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
+    glowGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(hasL ? -4 : 0, s * 0.2, s + (hasL ? 4 : 0) + (hasR ? 4 : 0), s * 0.8);
+
+    // Base cloud body gradient
+    const cloudGrad = ctx.createLinearGradient(0, 0, 0, s);
+    cloudGrad.addColorStop(0, '#ffffff');
+    cloudGrad.addColorStop(0.5, '#f0f9ff');
+    cloudGrad.addColorStop(1, '#bae6fd');
+    ctx.fillStyle = cloudGrad;
+
+    const rL = !hasL ? 12 : 0;
+    const rR = !hasR ? 12 : 0;
+    ctx.beginPath();
+    ctx.roundRect(0, s * 0.24, s, s * 0.66, [rL, rR, rR, rL]);
+    ctx.fill();
+
+    // Top cloud puffs / domes
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    if (!hasL) {
+      // Left puff dome
+      ctx.arc(s * 0.22, s * 0.32, s * 0.26, 0, Math.PI * 2);
+    }
+    // Center puff dome
+    ctx.arc(s * 0.5, s * 0.22, s * 0.28, 0, Math.PI * 2);
+    if (!hasR) {
+      // Right puff dome
+      ctx.arc(s * 0.78, s * 0.32, s * 0.26, 0, Math.PI * 2);
+    }
+    ctx.fill();
+
+    // Bottom shadow layer for 3D depth
+    ctx.fillStyle = 'rgba(125, 211, 252, 0.5)';
+    ctx.beginPath();
+    ctx.roundRect(hasL ? 0 : 4, s * 0.72, s - (hasL ? 0 : 4) - (hasR ? 0 : 4), s * 0.16, 6);
+    ctx.fill();
+
+    // Subtle sparkle star on unmerged or edge cloud
+    if (!hasL || !hasR) {
+      const sparkleAlpha = 0.5 + Math.sin(animTime * 5 + (!hasL ? 0 : 2)) * 0.4;
+      ctx.fillStyle = `rgba(255, 255, 255, ${sparkleAlpha})`;
+      const sx = !hasL ? s * 0.28 : s * 0.72;
+      ctx.beginPath();
+      ctx.arc(sx, s * 0.24, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   private static drawMushroomPlatform(ctx: CanvasRenderingContext2D, s: number, hasL: boolean, hasR: boolean) {
     // Red mushroom cap with white dots
     const capGrad = ctx.createLinearGradient(0, 0, 0, s * 0.6);
@@ -419,40 +501,128 @@ export class SpriteRenderer {
     ctx.stroke();
   }
 
-  private static drawPipe(ctx: CanvasRenderingContext2D, s: number, color: 'green' | 'red' = 'green') {
+  private static drawPipe(
+    ctx: CanvasRenderingContext2D,
+    s: number,
+    color: 'green' | 'red' = 'green',
+    isThumbnail: boolean = false
+  ) {
     const isRed = color === 'red';
-    // Pipe body / rim
-    const pipeGrad = ctx.createLinearGradient(0, 0, s, 0);
-    if (isRed) {
-      pipeGrad.addColorStop(0, '#ef4444');
-      pipeGrad.addColorStop(0.3, '#fca5a5');
-      pipeGrad.addColorStop(0.7, '#dc2626');
-      pipeGrad.addColorStop(1, '#7f1d1d');
-    } else {
-      pipeGrad.addColorStop(0, '#22c55e');
-      pipeGrad.addColorStop(0.3, '#86efac');
-      pipeGrad.addColorStop(0.7, '#16a34a');
-      pipeGrad.addColorStop(1, '#14532d');
+
+    if (isThumbnail) {
+      // Compact thumbnail representation for sidebar palette
+      const pipeGrad = ctx.createLinearGradient(0, 0, s, 0);
+      if (isRed) {
+        pipeGrad.addColorStop(0, '#ef4444');
+        pipeGrad.addColorStop(0.35, '#fca5a5');
+        pipeGrad.addColorStop(0.7, '#dc2626');
+        pipeGrad.addColorStop(1, '#7f1d1d');
+      } else {
+        pipeGrad.addColorStop(0, '#22c55e');
+        pipeGrad.addColorStop(0.35, '#86efac');
+        pipeGrad.addColorStop(0.7, '#16a34a');
+        pipeGrad.addColorStop(1, '#14532d');
+      }
+      ctx.fillStyle = pipeGrad;
+
+      // Rim top
+      ctx.beginPath();
+      ctx.roundRect(1, 1, s - 2, s * 0.38, 3);
+      ctx.fill();
+      ctx.strokeStyle = isRed ? '#450a0a' : '#052e16';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Body below
+      ctx.beginPath();
+      ctx.rect(s * 0.12, s * 0.38, s * 0.76, s * 0.62);
+      ctx.fill();
+      ctx.stroke();
+
+      // Opening dark hole
+      ctx.fillStyle = isRed ? '#450a0a' : '#052e16';
+      ctx.beginPath();
+      ctx.ellipse(s * 0.5, 4, s * 0.36, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      return;
     }
-    ctx.fillStyle = pipeGrad;
 
-    // Rim top
-    ctx.fillRect(1, 0, s - 2, s * 0.35);
-    ctx.strokeStyle = isRed ? '#450a0a' : '#052e16';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 0, s - 2, s * 0.35);
+    // Full 2x2 Mario Pipe (80x80px)
+    const rimH = Math.round(s * 0.35); // ~28px
+    const bodyW = Math.round(s * 0.88); // ~70px
+    const bodyX = Math.round((s - bodyW) * 0.5); // ~5px
+    const bodyH = s - rimH; // ~52px
 
-    // Body
-    ctx.fillRect(3, s * 0.35, s - 6, s * 0.65);
-    ctx.strokeRect(3, s * 0.35, s - 6, s * 0.65);
+    // Main Pipe Colors & Shading
+    const darkEdge = isRed ? '#450a0a' : '#052e16';
+    const darkShadow = isRed ? '#7f1d1d' : '#14532d';
+    const baseColor = isRed ? '#dc2626' : '#16a34a';
+    const highlightColor = isRed ? '#fca5a5' : '#86efac';
+    const brightSpecular = '#ffffff';
 
-    // Dark opening on top
-    ctx.fillStyle = isRed ? '#450a0a' : '#052e16';
-    ctx.fillRect(4, 2, s - 8, 4);
+    // 1. Pipe Body (Bottom stem)
+    const bodyGrad = ctx.createLinearGradient(bodyX, 0, bodyX + bodyW, 0);
+    bodyGrad.addColorStop(0, darkShadow);
+    bodyGrad.addColorStop(0.08, baseColor);
+    bodyGrad.addColorStop(0.24, highlightColor);
+    bodyGrad.addColorStop(0.36, brightSpecular);
+    bodyGrad.addColorStop(0.48, highlightColor);
+    bodyGrad.addColorStop(0.72, baseColor);
+    bodyGrad.addColorStop(1, darkShadow);
 
-    // Swirl warp indicator glow in opening
-    ctx.fillStyle = isRed ? 'rgba(254, 202, 202, 0.8)' : 'rgba(187, 247, 208, 0.8)';
-    ctx.fillRect(s * 0.4, 2, s * 0.2, 3);
+    ctx.fillStyle = bodyGrad;
+    ctx.fillRect(bodyX, rimH, bodyW, bodyH);
+
+    // Body outline
+    ctx.strokeStyle = darkEdge;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(bodyX, rimH, bodyW, bodyH);
+
+    // Subtle vertical panel lines for high-quality arcade feel
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(bodyX + bodyW * 0.16, rimH);
+    ctx.lineTo(bodyX + bodyW * 0.16, s);
+    ctx.moveTo(bodyX + bodyW * 0.84, rimH);
+    ctx.lineTo(bodyX + bodyW * 0.84, s);
+    ctx.stroke();
+
+    // 2. Pipe Rim / Collar (Top portion - 80px wide)
+    const rimGrad = ctx.createLinearGradient(0, 0, s, 0);
+    rimGrad.addColorStop(0, darkShadow);
+    rimGrad.addColorStop(0.08, baseColor);
+    rimGrad.addColorStop(0.24, highlightColor);
+    rimGrad.addColorStop(0.36, brightSpecular);
+    rimGrad.addColorStop(0.48, highlightColor);
+    rimGrad.addColorStop(0.72, baseColor);
+    rimGrad.addColorStop(1, darkShadow);
+
+    ctx.fillStyle = rimGrad;
+    ctx.beginPath();
+    ctx.roundRect(1, 1, s - 2, rimH, 4);
+    ctx.fill();
+
+    ctx.strokeStyle = darkEdge;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Rim bottom lip drop shadow onto body
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.fillRect(bodyX, rimH, bodyW, 4);
+
+    // 3. Pipe Top Opening (Dark deep portal entrance with swirl)
+    ctx.fillStyle = darkEdge;
+    ctx.beginPath();
+    ctx.ellipse(s * 0.5, 6, s * 0.42, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Inner glowing portal indicator
+    const portalGlow = isRed ? 'rgba(254, 202, 202, 0.85)' : 'rgba(187, 247, 208, 0.85)';
+    ctx.fillStyle = portalGlow;
+    ctx.beginPath();
+    ctx.ellipse(s * 0.5, 6, s * 0.22, 2.2, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   private static drawHeart(ctx: CanvasRenderingContext2D, s: number, animTime: number) {
@@ -617,64 +787,79 @@ export class SpriteRenderer {
     animTime: number,
     isSpent: boolean = false
   ) {
+    // Slightly increase visual scale (~10% larger) centered
+    ctx.save();
+    ctx.translate(s * 0.5, s * 0.5);
+    ctx.scale(1.1, 1.1);
+    ctx.translate(-s * 0.5, -s * 0.5);
+
     if (isSpent) {
       // Empty/spent metal block
       ctx.fillStyle = '#64748b';
       ctx.beginPath();
-      ctx.roundRect(2, 2, s - 4, s - 4, 4);
+      ctx.roundRect(1, 1, s - 2, s - 2, 4);
       ctx.fill();
 
       ctx.fillStyle = '#475569';
-      ctx.fillRect(s * 0.2, s * 0.2, s * 0.6, s * 0.6);
+      ctx.fillRect(s * 0.18, s * 0.18, s * 0.64, s * 0.64);
 
       // Rivets
       ctx.fillStyle = '#334155';
       ctx.beginPath();
-      ctx.arc(6, 6, 2, 0, Math.PI * 2);
-      ctx.arc(s - 6, 6, 2, 0, Math.PI * 2);
-      ctx.arc(6, s - 6, 2, 0, Math.PI * 2);
-      ctx.arc(s - 6, s - 6, 2, 0, Math.PI * 2);
+      ctx.arc(5, 5, 2, 0, Math.PI * 2);
+      ctx.arc(s - 5, 5, 2, 0, Math.PI * 2);
+      ctx.arc(5, s - 5, 2, 0, Math.PI * 2);
+      ctx.arc(s - 5, s - 5, 2, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
       return;
     }
 
-    // Active Golden Question Block
+    // Active Golden Question Block - vibrant, prominent, and arcade-authentic
     const pulse = Math.sin(animTime * 4) * 0.05;
     const blockGrad = ctx.createLinearGradient(0, 0, s, s);
-    blockGrad.addColorStop(0, '#facc15');
-    blockGrad.addColorStop(1, '#d97706');
+    blockGrad.addColorStop(0, '#fde047');
+    blockGrad.addColorStop(0.3, '#facc15');
+    blockGrad.addColorStop(1, '#b45309');
     ctx.fillStyle = blockGrad;
 
     ctx.beginPath();
-    ctx.roundRect(2, 2, s - 4, s - 4, 5);
+    ctx.roundRect(1, 1, s - 2, s - 2, 5);
     ctx.fill();
 
-    // Outer border & rivets
+    // 3D Inner Bevel & Rivets
     ctx.strokeStyle = '#78350f';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(3, 3, s - 6, s - 6);
+    ctx.lineWidth = 2.2;
+    ctx.strokeRect(2.5, 2.5, s - 5, s - 5);
 
+    // Top highlight rim
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.fillRect(2.5, 2.5, s - 5, 2.5);
+
+    // Rivets
     ctx.fillStyle = '#78350f';
     ctx.beginPath();
-    ctx.arc(6, 6, 1.8, 0, Math.PI * 2);
-    ctx.arc(s - 6, 6, 1.8, 0, Math.PI * 2);
-    ctx.arc(6, s - 6, 1.8, 0, Math.PI * 2);
-    ctx.arc(s - 6, s - 6, 1.8, 0, Math.PI * 2);
+    ctx.arc(5.5, 5.5, 2, 0, Math.PI * 2);
+    ctx.arc(s - 5.5, 5.5, 2, 0, Math.PI * 2);
+    ctx.arc(5.5, s - 5.5, 2, 0, Math.PI * 2);
+    ctx.arc(s - 5.5, s - 5.5, 2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bouncing ? mark
+    // Bouncing ? mark (bold, enlarged, crisp)
     ctx.save();
-    ctx.translate(s * 0.5, s * 0.5 + pulse * 20);
-    ctx.font = 'bold 22px Fredoka, sans-serif';
+    ctx.translate(s * 0.5, s * 0.5 + pulse * 18);
+    ctx.font = 'bold 24px Fredoka, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     // Shadow
     ctx.fillStyle = '#78350f';
-    ctx.fillText('?', 1, 2);
+    ctx.fillText('?', 1.5, 2);
     // White text
     ctx.fillStyle = '#ffffff';
     ctx.fillText('?', 0, 0);
+    ctx.restore();
+
     ctx.restore();
   }
 
@@ -1032,21 +1217,54 @@ export class SpriteRenderer {
       animTime: number;
       isHurt?: boolean;
       isSliding?: boolean;
+      vx?: number;
+      vy?: number;
     }
   ) {
-    // "Big Mario" 2-tile heroic proportions (height 80px, width ~36px)
-    // Scale visual hero sprites proportionally so the character stands 80px high
-    const s = Math.round(height * 0.94);
+    const isThumbnail = width <= 48 && height <= 48;
 
-    // Keep the hitbox aligned with the bottom-center of the sprite:
-    // Feet in all hero sprites reach down to ~s * 0.495.
-    // By anchoring vertical translation at (y + height - footOffset),
-    // the feet touch the ground (bottom of hitbox) at exactly y + height,
-    // and horizontal translation (x + width * 0.5) centers the sprite over the hitbox.
-    const footOffset = s * 0.495;
+    // Animation State Machine:
+    // - If vx === 0 and vy === 0 (standing still) -> Play hero_idle.png (frames 0 to 2) at 3 FPS (slow, natural breathing/blinking)
+    // - If moving -> Play hero_run.png (frames 0 to 5)
+    // - For Jump and Fall states -> Use frame 0 of hero_idle.png as a placeholder
+    const vx = state.vx !== undefined ? state.vx : (state.isWalking ? 1 : 0);
+    const vy = state.vy !== undefined ? state.vy : (state.isInAir ? 1 : 0);
+    const inAir = state.isInAir || Math.abs(vy) > 0.05;
+    const isMoving = Math.abs(vx) > 0.05 || state.isWalking;
+
+    let spriteImg: HTMLImageElement | null = null;
+    let frameIndex = 0;
+    const frameWidth = 64;
+    let sourceHeight = 96;
+
+    if (inAir) {
+      // Jump and Fall states: frame 0 of hero_idle.png as a placeholder
+      spriteImg = heroIdleImg;
+      frameIndex = 0;
+      sourceHeight = 96;
+    } else if (isMoving) {
+      // Moving state: hero_run.png (6 frames)
+      spriteImg = heroRunImg;
+      sourceHeight = (heroRunImg && heroRunImg.naturalHeight) || 97;
+      frameIndex = Math.floor(state.animTime * 10) % 6;
+    } else {
+      // Standing still (vx === 0 and vy === 0): hero_idle.png (3 frames at 3 FPS)
+      spriteImg = heroIdleImg;
+      sourceHeight = 96;
+      frameIndex = Math.floor(state.animTime * 3) % 3;
+    }
 
     ctx.save();
-    ctx.translate(x + width * 0.5, y + height - footOffset);
+
+    // Alignment: Keep the bottom-center alignment exactly as before
+    // (bottom of the 64x96 frame matches the bottom of the 24x80 hitbox)
+    if (isThumbnail) {
+      const scale = Math.min(width / 64, height / 96);
+      ctx.translate(x + width * 0.5, y + height);
+      ctx.scale(scale, scale);
+    } else {
+      ctx.translate(x + width * 0.5, y + height);
+    }
 
     if (!state.facingRight) {
       ctx.scale(-1, 1);
@@ -1056,45 +1274,57 @@ export class SpriteRenderer {
       ctx.globalAlpha = Math.sin(state.animTime * 25) > 0 ? 0.3 : 0.8;
     }
 
-    const walkBob = state.isWalking && !state.isInAir ? Math.sin(state.animTime * 14) * 2 : 0;
-    const legSwing = state.isWalking && !state.isInAir ? Math.cos(state.animTime * 14) * 6 : 0;
-
     // Visual effect: Translucent ice trail and frost sparks under feet when sliding
     if (state.isSliding) {
       ctx.save();
-      // Frost trail behind hero right at foot level
-      const trailGrad = ctx.createLinearGradient(-s * 0.8, footOffset - 2, 0, footOffset - 2);
+      const trailGrad = ctx.createLinearGradient(-32, 0, 0, 0);
       trailGrad.addColorStop(0, 'rgba(186, 230, 253, 0)');
       trailGrad.addColorStop(0.7, 'rgba(125, 211, 252, 0.45)');
       trailGrad.addColorStop(1, 'rgba(255, 255, 255, 0.7)');
       ctx.fillStyle = trailGrad;
       ctx.beginPath();
-      ctx.ellipse(-s * 0.35, footOffset - 2, s * 0.42, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(-16, -2, 22, 4, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // Shiny frost sparks
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.fillRect(-s * 0.45, footOffset - 4, 2.5, 2.5);
-      ctx.fillRect(-s * 0.65, footOffset - 1, 2, 2);
-      ctx.fillRect(-s * 0.25, footOffset + 1, 2, 2);
+      ctx.fillRect(-22, -4, 2.5, 2.5);
+      ctx.fillRect(-30, -1, 2, 2);
+      ctx.fillRect(-12, 1, 2, 2);
       ctx.restore();
     }
 
-    ctx.translate(0, walkBob);
+    const dw = 64;
+    const dh = 96;
 
-    switch (heroId) {
-      case 'leo':
-        this.renderLeo(ctx, s, legSwing, state.isInAir);
-        break;
-      case 'bolt':
-        this.renderBolt(ctx, s, legSwing, state.isInAir, state.animTime);
-        break;
-      case 'pippin':
-        this.renderPippin(ctx, s, legSwing, state.isInAir, state.animTime);
-        break;
-      case 'astro':
-        this.renderAstro(ctx, s, legSwing, state.isInAir, state.animTime);
-        break;
+    if (spriteImg && spriteImg.complete && spriteImg.naturalWidth > 0) {
+      const sx = frameIndex * frameWidth;
+      const sy = 0;
+      ctx.drawImage(spriteImg, sx, sy, frameWidth, sourceHeight, -dw * 0.5, -dh, dw, dh);
+    } else {
+      // Fallback vector rendering while image is loading or if legacy hero requested
+      const s = Math.round(height * 0.94);
+      const footOffset = s * 0.495;
+      ctx.translate(0, -footOffset);
+      const slimScaleX = 0.58;
+      ctx.scale(slimScaleX, 1);
+      const legSwing = state.isWalking && !inAir ? Math.cos(state.animTime * 14) * 6 : 0;
+
+      switch (heroId) {
+        case 'leo':
+        default:
+          this.renderLeo(ctx, s, legSwing, inAir);
+          break;
+        case 'bolt':
+          this.renderBolt(ctx, s, legSwing, inAir, state.animTime);
+          break;
+        case 'pippin':
+          this.renderPippin(ctx, s, legSwing, inAir, state.animTime);
+          break;
+        case 'astro':
+          this.renderAstro(ctx, s, legSwing, inAir, state.animTime);
+          break;
+      }
     }
 
     ctx.restore();

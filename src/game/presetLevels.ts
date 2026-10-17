@@ -38,8 +38,7 @@ export function createDefaultLevel(): LevelData {
   items.push(makeItem('brick', 7, 9));
   items.push(makeItem('brick', 9, 9));
 
-  // Decorative pipe
-  items.push(makeItem('pipe_green', 14, 12));
+  // 2x2 Warp Pipe 1 (80x80px)
   items.push(makeItem('pipe_green', 14, 11));
 
   // 2. First Chasm & Stepping Platforms (x: 21 to 32)
@@ -48,9 +47,10 @@ export function createDefaultLevel(): LevelData {
     items.push(makeItem('grass_dirt', x, 13));
   }
 
-  // Cloud platform jump
-  items.push(makeItem('cloud', 28, 9));
-  items.push(makeItem('cloud', 29, 9));
+  // Floating Cloud Island (adjacent cloud_platform tiles merge into one moving platform!)
+  items.push(makeItem('cloud_platform', 28, 9));
+  items.push(makeItem('cloud_platform', 29, 9));
+  items.push(makeItem('cloud_platform', 30, 9));
 
   // 3. Elevated Stone Castle Steps (x: 34 to 48)
   for (let x = 33; x <= 45; x++) {
@@ -84,7 +84,7 @@ export function createDefaultLevel(): LevelData {
   }
   // Checkpoint Flag
   items.push(makeItem('checkpoint', 70, 12));
-  items.push(makeItem('pipe_green', 75, 12));
+  // 2x2 Warp Pipe 2 (80x80px paired with Pipe 1)
   items.push(makeItem('pipe_green', 75, 11));
 
   // 6. Super Spring Launch & High Cloud Route (x: 80 to 105)

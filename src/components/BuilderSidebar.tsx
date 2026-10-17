@@ -546,9 +546,9 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                 <User className="w-3.5 h-3.5 text-amber-400" />
                 <span>Главный герой:</span>
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {(Object.keys(HEROES) as HeroId[]).map((hId) => {
-                  const hero = HEROES[hId];
+              <div className="grid grid-cols-1 gap-1.5">
+                {(['leo'] as HeroId[]).map((hId) => {
+                  const hero = HEROES[hId] || HEROES.leo;
                   const isSelected = selectedHero === hId;
                   return (
                     <button
@@ -557,18 +557,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                         onSelectHero(hId);
                         sound.playJump();
                       }}
-                      className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
-                        isSelected
-                          ? 'bg-amber-500/20 border-amber-400 ring-1 ring-amber-400/50'
-                          : 'bg-[#0B0F19]/80 hover:bg-slate-800 border-slate-700/80'
-                      }`}
+                      className="p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 bg-amber-500/20 border-amber-400 ring-1 ring-amber-400/50"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center shrink-0">
-                        <PaletteTilePreview heroId={hId} size={28} />
+                      <div className="w-9 h-9 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center shrink-0">
+                        <PaletteTilePreview heroId={hId} size={30} />
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs font-bold text-white truncate">
-                          {hero.name}
+                          {hero.name} (Искатель приключений)
                         </div>
                         <div className="text-[10px] text-emerald-400 truncate">
                           {hero.perk}
