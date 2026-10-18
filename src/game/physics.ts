@@ -671,6 +671,7 @@ export class PhysicsEngine {
       // Mark as spent
       item.variant = 'spent';
       sound.playBump();
+      this.onJuiceTrigger?.('block_bump');
 
       // Add bumping block animation
       this.blockBumps.push({
@@ -808,7 +809,7 @@ export class PhysicsEngine {
       this.removeItem(item);
     } else if (item.tileId === 'star') {
       sound.playGem();
-      this.onJuiceTrigger?.('crystal');
+      this.onJuiceTrigger?.('star');
       this.stats.starsCollected++;
       this.stats.score += 500;
       this.emitStars(centerPx, centerPy);

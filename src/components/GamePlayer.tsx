@@ -33,6 +33,10 @@ import { SpriteRenderer } from '../graphics/spriteRenderer';
 import { SettingsManager } from '../services/storageManager';
 import { TutorialManager } from '../services/TutorialManager';
 import { HeroId, LevelData, ThemeId } from '../types/game';
+import GameJuicePopup, { getRandomJuiceText, JuiceActionType, JuiceEvent } from './GameJuicePopup';
+
+const bgImageCache = new Map<string, HTMLImageElement>();
+
 
 interface GamePlayerProps {
   levelData: LevelData;
@@ -84,9 +88,12 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [isVictory, setIsVictory] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
-  const [showControlsBanner, setShowControlsBanner] = useState(true);
   const [hasMoved, setHasMoved] = useState(false);
   const [hasJumped, setHasJumped] = useState(false);
+
+  // Game Juice Popup state
+  const [activeJuice, setActiveJuice] = useState<JuiceEvent | null>(null);
+  const juiceTimerRef = useRef<number | null>(null);
 
   // Goal & Challenge tracking state
   const [challengeCompleted, setChallengeCompleted] = useState<boolean>(false);
@@ -119,17 +126,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
     return levelData.items.filter((it) => it.tileId === 'star').length;
   }, [levelData.items]);
 
-  // Auto-hide standard controls banner if tutorial mode is active (tutorial has its own persistent bar)
-  useEffect(() => {
-    if (isTutorialMode) {
-      setShowControlsBanner(false);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setShowControlsBanner(false);
-    }, 7000);
-    return () => clearTimeout(timer);
-  }, [isTutorialMode]);
+
 
   // Background image
   const themeConfig = THEMES[themeId] || THEMES.green_islands;
@@ -210,7 +207,23 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
   const initGame = () => {
     // Deep clone levelData so that collected items & broken bricks reset on restart
     const clonedData: LevelData = JSON.parse(JSON.stringify(levelData));
-    physicsRef.current = new PhysicsEngine(clonedData, heroId);
+    const engine = new PhysicsEngine(clonedData, heroId);
+    engine.onJuiceTrigger = (type: JuiceActionType) => {
+      const text = getRandomJuiceText(type);
+      const newEvent: JuiceEvent = {
+        id: Date.now() + Math.random(),
+        type,
+        text,
+      };
+      setActiveJuice(newEvent);
+      if (juiceTimerRef.current) {
+        clearTimeout(juiceTimerRef.current);
+      }
+      juiceTimerRef.current = window.setTimeout(() => {
+        setActiveJuice((current) => (current?.id === newEvent.id ? null : current));
+      }, 2500);
+    };
+    physicsRef.current = engine;
     cameraRef.current = { x: 0, y: 0 };
     setIsVictory(false);
     setIsGameOver(false);
@@ -221,10 +234,15 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
     sound.playBgm('gameplay');
   };
 
-  // Preload and cache background image stably
+  // Preload and cache background image stably without flickering
   useEffect(() => {
-    const img = new Image();
-    img.src = themeConfig.image;
+    let img = bgImageCache.get(themeConfig.image);
+    if (!img) {
+      img = new Image();
+      img.src = themeConfig.image;
+      bgImageCache.set(themeConfig.image, img);
+    }
+    bgImageRef.current = img;
     if (img.complete && img.naturalWidth > 0) {
       bgImageRef.current = img;
     } else {
@@ -238,7 +256,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
     initGame();
 
     return () => {
-      sound.stopBgm();
+      if (juiceTimerRef.current) clearTimeout(juiceTimerRef.current);
     };
   }, [levelData, heroId, themeId]);
 
@@ -990,34 +1008,9 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
         </div>
       )}
 
-      {/* Intro Controls & Battle Guide Banner */}
-      {showControlsBanner && !isTutorialMode && !isVictory && !isGameOver && (
-        <div className="absolute top-16 left-4 right-4 z-40 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-3 duration-300">
-          <div data-dark-panel="true" className="dark-panel max-w-xl bg-slate-900 border-2 border-emerald-500/60 rounded-2xl p-3.5 shadow-2xl shadow-emerald-500/15 pointer-events-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 text-xl font-bold">
-                🎮
-              </div>
-              <div className="text-xs">
-                <div className="font-bold text-yellow-300 uppercase tracking-wider mb-0.5">
-                  Обучение: Управление и битва
-                </div>
-                <div className="text-white">
-                  <span className="font-semibold text-yellow-300">Бег:</span> ⬅ / ➡ или A, D (Стик / D-Pad) ·{' '}
-                  <span className="font-semibold text-yellow-300">Прыжок:</span> Пробел или W (кнопка Ⓐ) ·{' '}
-                  <span className="font-bold text-yellow-300">Врагов побеждайте прыжком СВЕРХУ!</span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowControlsBanner(false)}
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black shrink-0 transition-all cursor-pointer active:scale-95"
-            >
-              В бой!
-            </button>
-          </div>
-        </div>
-      )}
+      {/* GAME JUICE POP-UP SYSTEM */}
+      <GameJuicePopup currentEvent={activeJuice} />
+
 
 
       {/* MOBILE ON-SCREEN TOUCH CONTROLS (Always handy on touchscreens) */}
