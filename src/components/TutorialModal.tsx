@@ -184,10 +184,13 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-4xl lg:max-w-5xl bg-[#131B2E] border-[3px] sm:border-[4px] border-[#1E293B] rounded-3xl shadow-[6px_6px_0px_#000000] overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-transparent animate-in fade-in duration-150 select-none">
+      <div className="w-full max-w-4xl lg:max-w-5xl retro-modal overflow-hidden flex flex-col max-h-[92vh] text-[var(--text-main)]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 sm:px-8 py-5 bg-[#0F172A] border-b-[3px] border-[#1E293B]">
+        <div
+          className="flex items-center justify-between px-6 sm:px-8 py-4 border-b-4 border-black"
+          style={{ backgroundColor: 'var(--panel-header)' }}
+        >
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border-2 border-[#1E293B] shadow-[2px_2px_0px_#000000] flex items-center justify-center text-amber-400 shrink-0">
               <Icon className="w-6 h-6" />

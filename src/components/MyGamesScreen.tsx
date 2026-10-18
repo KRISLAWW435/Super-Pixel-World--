@@ -24,12 +24,14 @@ import {
   ArrowUpDown,
   X,
   Layers,
+  Settings,
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 import { THEMES } from '../game/constants';
 import { SaveManager } from '../services/storageManager';
 import { LevelData } from '../types/game';
 import { PRESET_AVATARS, SavedGame, UserProfile } from '../types/storage';
+import { SettingsModal } from './SettingsModal';
 import archiveBgImg from '../assets/images/pixel_archive_sky_bg_1792309583036.jpg';
 
 interface MyGamesScreenProps {
@@ -54,6 +56,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
     SaveManager.getSavedGamesForProfile(profile?.id)
   );
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -140,37 +143,36 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
   }, [games]);
 
   return (
-    <div className="relative w-full h-full min-h-screen flex flex-col p-4 sm:p-6 lg:p-8 overflow-y-auto select-none font-sans text-slate-100">
-      {/* 1. Light Sunny Pixel Art Sky Background */}
+    <div className="relative w-full h-full min-h-screen flex flex-col p-3 sm:p-5 lg:p-7 overflow-y-auto select-none bg-[var(--bg-color)] text-[var(--text-main)]">
+      {/* 1. Light Sunny Pixel Art Sky Background (Fully visible, no dark dimming) */}
       <img
         src={archiveBgImg}
         alt="Солнечный мир пиксельных игр"
         className="fixed inset-0 w-full h-full object-cover object-center pointer-events-none select-none -z-20"
       />
 
-      {/* 2. Darker, Softer Overlay for High Contrast and Legibility */}
-      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-[2px] pointer-events-none -z-10" />
-      <div className="fixed inset-0 bg-gradient-to-b from-slate-950/60 via-slate-900/40 to-slate-950/85 pointer-events-none -z-10" />
+      {/* 2. Subtle Retro Pixel Grid Pattern (No Muddy Dimming) */}
+      <div className="fixed inset-0 retro-grid-pattern pointer-events-none -z-10 opacity-60" />
 
       {/* ========================================================================= */}
-      {/* TOP HEADER: Chunky Pixel-Art Bar */}
+      {/* TOP HEADER: Retro Console Bar */}
       {/* ========================================================================= */}
-      <header className="w-full max-w-6xl mx-auto flex items-center justify-between pb-5 border-b-[3px] border-[#1E293B] gap-4">
+      <header className="w-full max-w-6xl mx-auto flex items-center justify-between pb-4 border-b-4 border-black gap-3 shrink-0">
         {/* Back Button */}
         <button
           onClick={() => {
             sound.playClick();
             onBackToMenu();
           }}
-          className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-2 border-[3px] border-[#1E293B] shadow-[3px_3px_0px_#000000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000000] transition-all cursor-pointer shrink-0"
+          className="retro-btn bg-[var(--panel-bg)] hover:bg-amber-400 hover:text-slate-950 text-[var(--text-main)] px-3 py-2 flex items-center gap-1.5 shrink-0"
         >
           <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
-          <span>В меню</span>
+          <span>В МЕНЮ</span>
         </button>
 
         {/* Creator Identity Centerpiece */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden border-[3px] border-[#1E293B] shadow-[3px_3px_0px_#000000] bg-amber-400 shrink-0">
+        <div className="retro-panel px-3 py-1.5 flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded border-2 border-black overflow-hidden bg-amber-400 shrink-0">
             <img
               src={avatar.imageUrl}
               alt={avatar.name}
@@ -180,28 +182,42 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
             />
           </div>
           <div className="min-w-0">
-            <div className="text-[10px] sm:text-xs font-pixel uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+            <div className="text-[9px] font-pixel uppercase tracking-wider text-amber-400 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>Архив проектов</span>
+              <span>Архив картриджей</span>
             </div>
-            <h1 className="text-sm sm:text-xl font-bold text-white truncate drop-shadow-sm">
-              Игры автора {profile?.name || 'студии'}
+            <h1 className="text-xs sm:text-sm font-bold text-[var(--text-main)] truncate font-pixel">
+              {profile?.name || 'Игры автора'}
             </h1>
           </div>
         </div>
 
-        {/* Create Level Action Button */}
-        <button
-          onClick={() => {
-            sound.playClick();
-            onCreateNewGame();
-          }}
-          className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white text-xs sm:text-sm font-bold flex items-center gap-2 border-[3px] border-[#1E293B] shadow-[3px_3px_0px_#000000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000000] transition-all cursor-pointer shrink-0"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span className="hidden sm:inline">Создать уровень</span>
-          <span className="sm:hidden">Создать</span>
-        </button>
+        {/* Right Header Actions: Settings & Create Level */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => {
+              sound.playClick();
+              setIsSettingsOpen(true);
+            }}
+            title="Настройки игры, звука, темы и масштаба"
+            className="retro-btn-sm bg-amber-400 hover:bg-amber-300 text-slate-950 px-2.5 py-2 flex items-center gap-1.5"
+          >
+            <Settings className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span className="hidden sm:inline text-[9px] font-pixel font-bold">НАСТРОЙКИ</span>
+          </button>
+
+          <button
+            onClick={() => {
+              sound.playClick();
+              onCreateNewGame();
+            }}
+            className="retro-btn bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3.5 py-2 flex items-center gap-1.5 shrink-0"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span className="hidden sm:inline text-xs font-pixel font-bold">СОЗДАТЬ</span>
+            <span className="sm:hidden text-xs font-pixel font-bold">+</span>
+          </button>
+        </div>
       </header>
 
       {/* ========================================================================= */}
@@ -352,7 +368,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
             </button>
           </div>
         ) : (
-          /* Grid of Chunky Pixel-Art Physical Cartridges */
+          /* Grid of Authentic Physical SNES / NES Cartridges */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {filteredAndSortedGames.map((game) => {
               const theme = THEMES[game.levelData?.bgTheme || 'green_islands'] || THEMES['green_islands'];
@@ -367,132 +383,138 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
               return (
                 <div
                   key={game.id}
-                  className="group relative bg-[#131B2E] border-[3px] border-[#1E293B] rounded-2xl overflow-hidden shadow-[4px_4px_0px_#000000] hover:shadow-[6px_6px_0px_#000000] hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between"
+                  className="group retro-cartridge overflow-hidden flex flex-col justify-between"
                 >
-                  {/* Cartridge Top Grip Ridges (Physical Cartridge Detail) */}
-                  <div className="w-full bg-slate-800/90 border-b-2 border-[#1E293B] px-3.5 py-1.5 flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <div className="w-4 h-1 rounded-full bg-slate-600" />
-                      <div className="w-4 h-1 rounded-full bg-slate-600" />
-                      <div className="w-4 h-1 rounded-full bg-slate-600" />
+                  {/* Top Cartridge Grip Ridges & Notches */}
+                  <div
+                    className="w-full border-b-4 border-black px-3.5 py-1.5 flex items-center justify-between"
+                    style={{ backgroundColor: 'var(--cartridge-notch)' }}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-4 h-1.5 rounded-xs bg-black/40" />
+                      <div className="w-4 h-1.5 rounded-xs bg-black/40" />
+                      <div className="w-4 h-1.5 rounded-xs bg-black/40" />
+                      <div className="w-4 h-1.5 rounded-xs bg-black/40" />
                     </div>
-                    <span className="text-[9px] font-pixel text-slate-400">
-                      SPW #{game.id.slice(-4).toUpperCase()}
+                    <span className="text-[9px] font-pixel text-[var(--text-muted)] font-bold">
+                      NES-SPW-{game.id.slice(-4).toUpperCase()}
                     </span>
                   </div>
 
-                  {/* Cartridge Sticker Window */}
-                  <div className="relative h-32 bg-slate-950 overflow-hidden border-b-2 border-[#1E293B]">
-                    <img
-                      src={theme.image}
-                      alt={theme.name}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover object-bottom group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30" />
-
-                    {/* Theme Badge */}
-                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-lg bg-slate-900/90 border border-slate-700 text-[10px] font-medium text-amber-300 flex items-center gap-1 shadow-sm backdrop-blur-xs">
-                      <Sparkles className="w-3 h-3 text-amber-400 fill-amber-400" />
-                      <span>{theme.name}</span>
-                    </div>
-
-                    {/* Star Favorite Button (Top Right of Cartridge Sticker) */}
-                    <button
-                      onClick={(e) => handleToggleFavorite(e, game.id)}
-                      title={isFav ? 'Убрать из избранного' : 'Добавить в избранное'}
-                      className={`absolute top-2 right-2 w-7 h-7 rounded-lg border-2 border-[#1E293B] flex items-center justify-center shadow-[2px_2px_0px_#000000] active:translate-y-0.5 transition-transform cursor-pointer ${
-                        isFav
-                          ? 'bg-amber-400 text-amber-950'
-                          : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-amber-400'
-                      }`}
-                    >
-                      <Star
-                        className={`w-3.5 h-3.5 transition-transform ${
-                          isFav ? 'fill-amber-950 scale-110' : ''
-                        }`}
+                  {/* Physical Cartridge Label Sticker */}
+                  <div
+                    className="m-2.5 p-2.5 border-2 border-black rounded-sm shadow-inner flex flex-col gap-2.5 flex-1 justify-between"
+                    style={{ backgroundColor: 'var(--cartridge-label-bg)' }}
+                  >
+                    {/* Artwork Preview Window with Retro Badge */}
+                    <div className="relative h-28 sm:h-32 bg-slate-950 rounded-xs overflow-hidden border-2 border-black">
+                      <img
+                        src={theme.image}
+                        alt={theme.name}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover object-bottom group-hover:scale-105 transition-transform duration-300"
                       />
-                    </button>
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/30 pointer-events-none" />
 
-                    {/* Block count pill bottom left of sticker */}
-                    <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/85 border border-slate-700 text-[10px] font-medium text-slate-300 backdrop-blur-xs">
-                      {itemCount} блоков
-                    </div>
-
-                    {/* Big Green Play Button floating on sticker corner */}
-                    <button
-                      onClick={() => handlePlay(game)}
-                      title="Играть в этот уровень"
-                      className="absolute bottom-2 right-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white text-xs font-bold flex items-center gap-1.5 border-2 border-[#1E293B] shadow-[2px_2px_0px_#000000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Играть</span>
-                    </button>
-                  </div>
-
-                  {/* Cartridge Info Body */}
-                  <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2.5 bg-[#182234]">
-                    <div>
-                      {/* Author badge */}
-                      <div className="flex items-center gap-1.5 mb-1.5 bg-slate-900/80 px-2 py-0.5 rounded-lg border border-slate-800 w-fit">
-                        <div className="w-4 h-4 rounded-md overflow-hidden border border-slate-700 bg-amber-400 shrink-0">
-                          <img
-                            src={authorAvatar.imageUrl}
-                            alt={authorName}
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover"
-                            style={{ imageRendering: 'pixelated' }}
-                          />
-                        </div>
-                        <span className="text-[11px] font-medium text-slate-300 truncate max-w-[150px]">
-                          {authorName}
-                        </span>
+                      {/* Theme Badge */}
+                      <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-xs bg-black/85 border border-amber-400/50 text-[9px] font-pixel text-amber-400 flex items-center gap-1 shadow-sm">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        <span>{theme.name}</span>
                       </div>
 
-                      {/* Level Name - Reduced font size so full name is visible and not cut off */}
+                      {/* Star Favorite Button */}
+                      <button
+                        onClick={(e) => handleToggleFavorite(e, game.id)}
+                        title={isFav ? 'Убрать из избранного' : 'Добавить в избранное'}
+                        className={`retro-btn-sm absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center cursor-pointer ${
+                          isFav
+                            ? 'bg-amber-400 text-slate-950'
+                            : 'bg-black/80 text-slate-400 hover:text-amber-400'
+                        }`}
+                      >
+                        <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
+                      </button>
+
+                      {/* Block count badge */}
+                      <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-xs bg-black/85 border border-slate-700 text-[9px] font-pixel text-slate-300">
+                        {itemCount} БЛОКОВ
+                      </div>
+                    </div>
+
+                    {/* Cartridge Title & Author Details */}
+                    <div className="space-y-1.5">
                       <h3
-                        className="text-xs sm:text-sm font-bold text-white group-hover:text-amber-400 transition-colors line-clamp-2 break-words leading-snug"
+                        className="text-xs font-pixel font-bold text-[var(--text-main)] group-hover:text-amber-400 transition-colors line-clamp-2 leading-relaxed"
                         title={game.name}
                       >
                         {game.name}
                       </h3>
 
-                      {/* Creation Date */}
-                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1 font-normal">
-                        <Calendar className="w-3 h-3 text-slate-500" />
-                        <span>Создан: {game.date}</span>
+                      <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-black/20">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-4 h-4 rounded-xs overflow-hidden border border-black bg-amber-400 shrink-0">
+                            <img
+                              src={authorAvatar.imageUrl}
+                              alt={authorName}
+                              className="w-full h-full object-cover"
+                              style={{ imageRendering: 'pixelated' }}
+                            />
+                          </div>
+                          <span className="font-semibold truncate max-w-[120px]">{authorName}</span>
+                        </div>
+                        <span className="flex items-center gap-1 text-[10px]">
+                          <Calendar className="w-3 h-3" />
+                          {game.date}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Cartridge Action Footer */}
-                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-800 gap-2">
+                    {/* Cartridge Chunky Retro Action Buttons */}
+                    <div className="flex items-center gap-2 pt-2 border-t-2 border-black/30">
+                      {/* Play Button */}
+                      <button
+                        onClick={() => handlePlay(game)}
+                        className="retro-btn flex-1 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center gap-1.5 text-xs"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>ИГРАТЬ</span>
+                      </button>
+
                       {/* Edit Button */}
                       <button
                         onClick={() => handleEdit(game)}
-                        className="flex-1 py-1.5 px-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 border-2 border-[#1E293B] text-slate-950 text-xs font-bold flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000000] hover:shadow-[1px_1px_0px_#000000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer"
+                        title="Открыть в конструкторе"
+                        className="retro-btn-sm py-1.5 px-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 flex items-center justify-center gap-1"
                       >
-                        <Hammer className="w-3.5 h-3.5" />
-                        <span>Изменить</span>
+                        <Hammer className="w-3 h-3" />
+                        <span>ИЗМЕНИТЬ</span>
                       </button>
 
                       {/* Duplicate Button */}
                       <button
                         onClick={() => handleDuplicate(game)}
                         title="Создать копию картриджа"
-                        className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border-2 border-[#1E293B] text-slate-300 shadow-[2px_2px_0px_#000000] hover:shadow-[1px_1px_0px_#000000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer"
+                        className="retro-btn-sm p-1.5 bg-[var(--card-subtle)] hover:bg-amber-400 hover:text-slate-950 text-[var(--text-main)]"
                       >
-                        <Copy className="w-3.5 h-3.5" />
+                        <Copy className="w-3 h-3" />
                       </button>
 
                       {/* Delete Button */}
                       <button
                         onClick={() => setDeleteConfirmId(game.id)}
-                        title="Удалить уровень"
-                        className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-900/60 border-2 border-[#1E293B] text-rose-400 shadow-[2px_2px_0px_#000000] hover:shadow-[1px_1px_0px_#000000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer"
+                        title="Удалить картридж"
+                        className="retro-btn-sm p-1.5 bg-rose-600 hover:bg-rose-500 text-white"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
+                  </div>
+
+                  {/* Physical Cartridge Bottom Connector Gold Pins */}
+                  <div className="w-full bg-black/90 py-1 px-4 flex items-center justify-center gap-1.5 border-t-2 border-black">
+                    {Array.from({ length: 12 }).map((_, i) => (
+                      <div key={i} className="w-2.5 h-1.5 bg-amber-400/80 rounded-xs shadow-xs" />
+                    ))}
                   </div>
                 </div>
               );
@@ -502,34 +524,34 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
       </main>
 
       {/* ========================================================================= */}
-      {/* DELETE CONFIRMATION MODAL: Chunky Pixel Style */}
+      {/* DELETE CONFIRMATION MODAL: Retro RPG Double Border Window */}
       {/* ========================================================================= */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-sm bg-[#131B2E] border-[3px] border-[#1E293B] rounded-2xl p-5 shadow-[6px_6px_0px_#000000] space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent select-none animate-in fade-in duration-150">
+          <div className="w-full max-w-sm retro-modal p-5 shadow-[6px_6px_0px_#000000] space-y-4 text-[var(--text-main)]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-900/50 border-2 border-[#1E293B] text-rose-400 flex items-center justify-center shrink-0 text-xl font-bold shadow-[2px_2px_0px_#000000]">
+              <div className="w-10 h-10 rounded bg-rose-500/20 text-rose-500 border-2 border-black flex items-center justify-center shrink-0 text-xl font-bold">
                 🗑️
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">
-                  Удалить картридж?
+                <h4 className="text-sm font-bold font-pixel text-[var(--text-main)]">
+                  УДАЛИТЬ КАРТРИДЖ?
                 </h4>
-                <p className="text-xs text-slate-400 font-normal">
+                <p className="text-xs text-[var(--text-muted)] font-normal mt-0.5">
                   Этот уровень будет безвозвратно удален из твоих проектов.
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t-2 border-black/30">
               <button
                 onClick={() => setDeleteConfirmId(null)}
-                className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border-2 border-[#1E293B] text-slate-300 text-xs font-bold shadow-[2px_2px_0px_#000000] active:translate-y-0.5 cursor-pointer"
+                className="retro-btn-sm px-3.5 py-1.5 bg-[var(--card-subtle)] text-[var(--text-main)]"
               >
                 Отмена
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirmId)}
-                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 border-2 border-[#1E293B] text-white text-xs font-bold shadow-[2px_2px_0px_#000000] active:translate-y-0.5 cursor-pointer"
+                className="retro-btn-sm px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold"
               >
                 Да, удалить
               </button>
@@ -537,6 +559,12 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
           </div>
         </div>
       )}
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 };

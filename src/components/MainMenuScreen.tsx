@@ -21,13 +21,14 @@ import {
   Info,
   Users,
   ChevronRight,
+  Settings,
 } from 'lucide-react';
 import menuBgImg from '../assets/menu_bg.webp';
 import { sound } from '../audio/soundEngine';
 import { EditProfileModal } from './EditProfileModal';
 import { ProfileSwitcherModal } from './ProfileSwitcherModal';
 import { AboutModal } from './AboutModal';
-import { SoundControl } from './SoundControl';
+import { SettingsModal } from './SettingsModal';
 import { PRESET_AVATARS, UserProfile } from '../types/storage';
 
 interface MainMenuScreenProps {
@@ -58,9 +59,10 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
   // Profile Switcher Modal State
   const [isProfileSwitcherOpen, setIsProfileSwitcherOpen] = useState<boolean>(false);
 
-  // Creator Profile and Studio Info Modals
+  // Creator Profile, Studio Info, and Settings Modals
   const [isEditProfileOpen, setIsEditProfileOpen] = useState<boolean>(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState<boolean>(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   const avatar =
     PRESET_AVATARS.find((a) => a.id === profile.avatarId) || PRESET_AVATARS[0];
@@ -118,11 +120,8 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
         alt="Super Pixel World Menu Background"
         className="fixed inset-0 w-full h-full object-cover object-center pointer-events-none select-none -z-10"
       />
-      {/* Subtle vignette overlay */}
-      <div className="fixed inset-0 bg-gradient-to-b from-slate-950/40 via-transparent to-slate-950/80 pointer-events-none -z-10" />
-
       {/* ========================================================================= */}
-      {/* TOP BAR: Creator Profile (Left) & Controls: Sound Settings + Fullscreen (Right) */}
+      {/* TOP BAR: Creator Profile (Left) & Controls: Settings Gear + Fullscreen (Right) */}
       {/* ========================================================================= */}
       <header className="w-full max-w-7xl mx-auto flex items-center justify-between p-3 sm:p-5 z-20">
         {/* Top-Left: Creator Profile Chip */}
@@ -133,9 +132,9 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
               setIsEditProfileOpen(true);
             }}
             title="Настроить профиль автора игры"
-            className="flex items-center gap-2.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border-2 border-amber-400/80 hover:border-amber-300 shadow-xl backdrop-blur-md transition-all cursor-pointer group active:scale-95"
+            className="retro-btn bg-[var(--panel-bg)] text-[var(--text-main)] hover:bg-amber-400 hover:text-slate-950 flex items-center gap-2.5 px-3 py-1.5 sm:px-3.5 sm:py-2"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden border border-amber-300/80 bg-slate-950 shrink-0">
+            <div className="w-8 h-8 rounded border-2 border-black overflow-hidden bg-slate-950 shrink-0">
               <img
                 src={avatar.imageUrl}
                 alt={avatar.name}
@@ -144,12 +143,12 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
               />
             </div>
             <div className="text-left hidden xs:block">
-              <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+              <div className="text-[10px] font-pixel text-amber-400 uppercase tracking-wider flex items-center gap-1">
                 <span>{profile.name}</span>
-                <span className="text-slate-400 group-hover:text-amber-300 text-[10px]">✏️</span>
+                <span className="text-[9px]">✏️</span>
               </div>
-              <div className="text-[11px] font-semibold text-slate-200">
-                Создатель миров
+              <div className="text-[10px] font-semibold text-[var(--text-main)]">
+                Создатель
               </div>
             </div>
           </button>
@@ -161,15 +160,25 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
               setIsInfoModalOpen(true);
             }}
             title="О конструкторе Super Pixel World"
-            className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border-2 border-slate-700 hover:border-amber-400 text-slate-300 hover:text-amber-300 shadow-xl backdrop-blur-md flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            className="retro-btn-sm w-9 h-9 sm:w-10 sm:h-10 bg-[var(--panel-bg)] hover:bg-amber-400 hover:text-slate-950 text-[var(--text-main)] flex items-center justify-center"
           >
-            <Info className="w-5 h-5" />
+            <Info className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
 
-        {/* Top-Right: Global Sound Control & Fullscreen Trigger */}
+        {/* Top-Right: Settings Gear Trigger & Fullscreen Toggle */}
         <div className="flex items-center gap-2 sm:gap-3 relative">
-          <SoundControl align="right" />
+          <button
+            onClick={() => {
+              sound.playClick();
+              setIsSettingsOpen(true);
+            }}
+            title="Настройки игры, звука, темы и масштаба"
+            className="retro-btn bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-2 flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4 stroke-[2.5]" />
+            <span className="hidden sm:inline text-[10px] font-pixel font-bold">НАСТРОЙКИ</span>
+          </button>
 
           {/* Fullscreen Toggle */}
           <button
@@ -178,12 +187,12 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
               onToggleFullscreen();
             }}
             title={isFullscreen ? 'Выйти из полноэкранного режима' : 'Во весь экран'}
-            className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-slate-900/85 hover:bg-slate-800 border-2 border-slate-700 hover:border-amber-400 text-slate-300 hover:text-white shadow-xl backdrop-blur-md flex items-center justify-center transition-all cursor-pointer active:scale-90 hover:scale-105 hidden sm:flex"
+            className="retro-btn-sm w-9 h-9 sm:w-10 sm:h-10 bg-[var(--panel-bg)] hover:bg-slate-700 text-[var(--text-main)] flex items-center justify-center hidden sm:flex"
           >
             {isFullscreen ? (
-              <Minimize2 className="w-5 h-5" />
+              <Minimize2 className="w-4 h-4 stroke-[2.5]" />
             ) : (
-              <Maximize2 className="w-5 h-5" />
+              <Maximize2 className="w-4 h-4 stroke-[2.5]" />
             )}
           </button>
         </div>
@@ -274,6 +283,14 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
       <AboutModal
         isOpen={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
+      />
+
+      {/* Comprehensive 3-Tab Retro Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={onToggleFullscreen}
       />
     </div>
   );

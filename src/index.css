@@ -24,7 +24,7 @@
   /* UI Scale (Responsive & User Adjustable) */
   --ui-scale: 1;
 
-  /* THEME: DARK (Default - Retro Arcade & Console) */
+  /* THEME: DARK (Default - Retro Arcade & 16-Bit Console) */
   --bg-color: #0b0f19;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
@@ -32,18 +32,22 @@
   --panel-header: #0f172a;
   --card-bg: #182234;
   --card-subtle: #1e293b;
-  --border-color: #1e293b;
+  --border-color: #000000;
   --border-dark: #000000;
   --border-highlight: #334155;
-  --slot-bg: #0b0f19;
-  --slot-border: #334155;
+  --slot-bg: #090d16;
+  --slot-border: #000000;
   --accent-amber: #f59e0b;
   --accent-emerald: #10b981;
   --accent-blue: #38bdf8;
   --accent-rose: #f43f5e;
+  --cartridge-body: #1e293b;
+  --cartridge-notch: #0f172a;
+  --cartridge-pins: #eab308;
+  --cartridge-label-bg: #0f172a;
 
   /* Pixel Art Chunky UI Design Tokens */
-  --pixel-border-color: #1e293b;
+  --pixel-border-color: #000000;
   --pixel-border-color-slate: #334155;
   --pixel-shadow: 4px 4px 0px #000000;
   --pixel-shadow-sm: 2px 2px 0px #000000;
@@ -61,25 +65,29 @@ body.theme-light,
   --bg-color: #e2e8f0;
   --text-main: #0f172a;
   --text-muted: #475569;
-  --panel-bg: #f8fafc;
+  --panel-bg: #ffffff;
   --panel-header: #e2e8f0;
-  --card-bg: #ffffff;
-  --card-subtle: #f1f5f9;
-  --border-color: #0f172a;
+  --card-bg: #f8fafc;
+  --card-subtle: #e2e8f0;
+  --border-color: #000000;
   --border-dark: #000000;
-  --border-highlight: #cbd5e1;
+  --border-highlight: #94a3b8;
   --slot-bg: #e2e8f0;
-  --slot-border: #94a3b8;
+  --slot-border: #000000;
   --accent-amber: #d97706;
   --accent-emerald: #059669;
   --accent-blue: #0284c7;
   --accent-rose: #e11d48;
+  --cartridge-body: #d1d5db;
+  --cartridge-notch: #9ca3af;
+  --cartridge-pins: #d97706;
+  --cartridge-label-bg: #ffffff;
 
-  --pixel-border-color: #0f172a;
+  --pixel-border-color: #000000;
   --pixel-border-color-slate: #94a3b8;
-  --pixel-panel-bg: #f8fafc;
+  --pixel-panel-bg: #ffffff;
   --pixel-panel-header: #e2e8f0;
-  --pixel-card-bg: #ffffff;
+  --pixel-card-bg: #f8fafc;
 }
 
 @layer base {
@@ -202,8 +210,24 @@ body.theme-light,
   background-size: 16px 16px;
 }
 body.theme-light .retro-grid-pattern {
-  background-image: radial-gradient(rgba(0, 0, 0, 0.15) 1.5px, transparent 1.5px);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.12) 1.5px, transparent 1.5px);
 }
+
+/* Physical SNES / NES / Game Boy Cartridge Styling */
+.retro-cartridge {
+  background-color: var(--cartridge-body);
+  color: var(--text-main);
+  border: 4px solid #000000;
+  box-shadow: 5px 5px 0px #000000;
+  border-radius: 8px 8px 4px 4px;
+  position: relative;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.retro-cartridge:hover {
+  transform: translateY(-2px);
+  box-shadow: 7px 7px 0px #000000;
+}
+
 
 /* Legacy helper classes kept for backward compatibility */
 .pixel-panel {

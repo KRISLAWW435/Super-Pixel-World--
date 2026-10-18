@@ -94,6 +94,14 @@ class StorageService {
                     : parsed.settings.volume
                   : DEFAULT_SETTINGS.volume,
               isMuted: parsed.settings?.isMuted ?? false,
+              themeMode:
+                parsed.settings?.themeMode === 'light' || parsed.settings?.themeMode === 'dark'
+                  ? parsed.settings.themeMode
+                  : DEFAULT_SETTINGS.themeMode,
+              uiScale:
+                typeof parsed.settings?.uiScale === 'number'
+                  ? parsed.settings.uiScale
+                  : DEFAULT_SETTINGS.uiScale,
             },
             savedGames,
           };

@@ -742,37 +742,37 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
       {/* PAUSE MODAL */}
       {isPaused && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
-          <div className="w-full max-w-sm bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-            <h3 className="font-black text-2xl text-amber-400 uppercase tracking-widest">
-              Пауза
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent select-none">
+          <div className="w-full max-w-sm retro-modal p-6 shadow-[6px_6px_0px_#000] text-center space-y-4 text-[var(--text-main)]">
+            <h3 className="font-pixel font-bold text-lg text-amber-400 uppercase tracking-wider">
+              ПАУЗА
             </h3>
-            <p className="text-xs text-slate-300">
-              Игра приостановлена. Нажмите «Продолжить» или вернитесь в редактор для изменения карты.
+            <p className="text-xs text-[var(--text-muted)]">
+              Игра приостановлена. Нажмите «Продолжить» или вернитесь в конструктор.
             </p>
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2.5 pt-2">
               <button
                 onClick={() => setIsPaused(false)}
-                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm uppercase tracking-wider transition-all cursor-pointer"
+                className="retro-btn w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950"
               >
-                Продолжить
+                ПРОДОЛЖИТЬ
               </button>
               <button
                 onClick={initGame}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="retro-btn-sm w-full py-2 bg-[var(--card-subtle)] hover:bg-slate-700 text-[var(--text-main)] flex items-center justify-center gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                Начать уровень сначала
+                <span>НАЧАТЬ ЗАНОВО</span>
               </button>
               <button
                 onClick={() => {
                   sound.stopBgm();
                   onExitToEditor();
                 }}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="retro-btn-sm w-full py-2 bg-[var(--card-subtle)] hover:bg-slate-700 text-amber-400 flex items-center justify-center gap-1.5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                Вернуться в конструктор
+                <span>В КОНСТРУКТОР</span>
               </button>
             </div>
           </div>
@@ -781,32 +781,32 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
       {/* GAME OVER MODAL */}
       {isGameOver && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in">
-          <div className="w-full max-w-sm bg-slate-900 border-2 border-rose-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-rose-500/20 text-rose-500 mx-auto flex items-center justify-center text-3xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent select-none animate-in fade-in">
+          <div className="w-full max-w-sm retro-modal p-6 shadow-[6px_6px_0px_#000] text-center space-y-4 text-[var(--text-main)]">
+            <div className="w-14 h-14 rounded-md border-2 border-black bg-rose-500/20 text-rose-500 mx-auto flex items-center justify-center text-2xl shadow-[2px_2px_0px_#000]">
               💀
             </div>
-            <h3 className="font-black text-2xl text-rose-400 uppercase tracking-widest">
-              Игра окончена
+            <h3 className="font-pixel font-bold text-base text-rose-400 uppercase tracking-wider">
+              ИГРА ОКОНЧЕНА
             </h3>
-            <p className="text-xs text-slate-300">
-              Закончились жизни! Но в редакторе вы всегда можете сделать уровень проще или попробовать снова.
+            <p className="text-xs text-[var(--text-muted)]">
+              Закончились жизни! В конструкторе вы всегда можете упростить уровень или попробовать снова.
             </p>
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2.5 pt-2">
               <button
                 onClick={initGame}
-                className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wider transition-all cursor-pointer"
+                className="retro-btn w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950"
               >
-                Попробовать снова
+                ПОПРОБОВАТЬ СНОВА
               </button>
               <button
                 onClick={() => {
                   sound.stopBgm();
                   onExitToEditor();
                 }}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all cursor-pointer"
+                className="retro-btn-sm w-full py-2 bg-[var(--card-subtle)] hover:bg-slate-700 text-[var(--text-main)]"
               >
-                Вернуться в конструктор
+                В КОНСТРУКТОР
               </button>
             </div>
           </div>
@@ -815,10 +815,10 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
       {/* CELEBRATORY VICTORY MODAL */}
       {isVictory && !isGuidedTour && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in zoom-in-95 duration-300">
-          <div className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-400 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-            <div className="w-20 h-20 rounded-full bg-amber-400/20 border-2 border-amber-400 mx-auto flex items-center justify-center text-amber-400">
-              <Trophy className="w-10 h-10 animate-bounce" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent select-none animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md retro-modal p-6 shadow-[6px_6px_0px_#000] text-center space-y-4 text-[var(--text-main)]">
+            <div className="w-16 h-16 rounded-md bg-amber-400 border-2 border-black mx-auto flex items-center justify-center text-slate-950 shadow-[3px_3px_0px_#000]">
+              <Trophy className="w-8 h-8 animate-bounce" />
             </div>
 
             <div>

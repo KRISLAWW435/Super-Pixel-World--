@@ -331,11 +331,40 @@ export default function App() {
     setScreenMode('editor');
   };
 
-  // Initialize sound settings on launch
+  // Initialize sound, theme, and desktop responsive UI scale on launch
   useEffect(() => {
     const settings = SettingsManager.getSettings();
     sound.applySettings(settings);
     setIsMuted(sound.getMuted());
+
+    // Apply Theme mode to document.body
+    if (settings.themeMode === 'light') {
+      document.body.classList.add('theme-light');
+    } else {
+      document.body.classList.remove('theme-light');
+    }
+
+    // Apply Responsive Desktop UI Scaling
+    const updateScaling = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const currentSettings = SettingsManager.getSettings();
+      const userScale = currentSettings.uiScale ?? 1.0;
+      let autoFactor = 1.0;
+      if (w >= 3400) {
+        autoFactor = 1.3; // 4K Display
+      } else if (w >= 2400) {
+        autoFactor = 1.15; // QHD / 2K
+      } else if (w <= 1280 || h <= 720) {
+        autoFactor = 0.9; // Compact laptop
+      }
+      const finalScale = Number((autoFactor * userScale).toFixed(2));
+      document.documentElement.style.setProperty('--ui-scale', String(finalScale));
+    };
+
+    updateScaling();
+    window.addEventListener('resize', updateScaling);
+    return () => window.removeEventListener('resize', updateScaling);
   }, []);
 
   // Sync theme/hero to levelData

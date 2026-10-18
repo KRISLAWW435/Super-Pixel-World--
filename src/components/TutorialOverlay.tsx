@@ -313,20 +313,20 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   // --- Step 1: Welcome Modal (Centered) ---
   if (step === 1 || step === 0) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none animate-in fade-in duration-200">
-        <div className="relative w-full max-w-md p-6 bg-gradient-to-b from-[#131B2E] to-[#0B0F19] border-2 border-amber-400/80 rounded-3xl shadow-2xl shadow-amber-500/10 text-center space-y-5">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center shadow-lg shadow-amber-500/30">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent select-none animate-in fade-in duration-200">
+        <div className="relative w-full max-w-md p-6 retro-modal text-center space-y-5 text-[var(--text-main)]">
+          <div className="w-16 h-16 mx-auto rounded-xl bg-amber-400 border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_#000]">
             <Sparkles className="w-8 h-8 text-slate-950 animate-spin-slow" />
           </div>
 
           <div className="space-y-2">
-            <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[11px] font-bold uppercase tracking-wider">
+            <span className="px-3 py-1 rounded-sm bg-amber-500/20 text-amber-400 border-2 border-black text-[10px] font-pixel uppercase tracking-wider shadow-[2px_2px_0px_#000]">
               Школа Геймдизайна
             </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white">
+            <h2 className="text-lg sm:text-xl font-black font-pixel text-[var(--text-main)]">
               Привет, Геймдизайнер!
             </h2>
-            <p className="text-sm text-slate-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
               Давай создадим твою первую игру! Я покажу тебе шаг за шагом, как строить уровни, размещать врагов и бонусы, а затем сыграть в них!
             </p>
           </div>
@@ -337,7 +337,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                 sound.playClick();
                 onStartTour?.();
               }}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 active:scale-95 transition-all cursor-pointer"
+              className="retro-btn w-full py-3 px-4 bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center gap-2"
             >
               <span>Я готов!</span>
               <Play className="w-4 h-4 fill-slate-950" />
@@ -348,7 +348,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                 sound.playClick();
                 onSkip();
               }}
-              className="text-xs text-slate-400 hover:text-slate-200 transition-colors py-1 cursor-pointer font-medium"
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors py-1 cursor-pointer font-medium"
             >
               Я уже умею, пропустить обучение
             </button>
@@ -361,8 +361,8 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   // --- Step 12: Final Victory Modal (Shown ONLY when player wins in gameplay mode) ---
   if (step >= 12 && isVictory) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md select-none animate-in zoom-in-95 duration-300">
-        <div className="relative w-full max-w-md p-6 bg-gradient-to-b from-[#131B2E] to-[#0B0F19] border-2 border-emerald-400/90 rounded-3xl shadow-2xl shadow-emerald-500/20 text-center space-y-5">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent select-none animate-in zoom-in-95 duration-200">
+        <div className="relative w-full max-w-md p-6 retro-modal text-center space-y-5 text-[var(--text-main)]">
           <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-emerald-500 to-green-400 flex items-center justify-center shadow-lg shadow-emerald-500/30">
             <Trophy className="w-10 h-10 text-slate-950" />
           </div>

@@ -95,11 +95,6 @@ export class SpriteRenderer {
       case 'pipe_green_exit':
         this.drawPipe(ctx, isThumbnail ? size : size * 2, 'green', isThumbnail);
         break;
-      case 'pipe_red':
-      case 'pipe_red_entrance':
-      case 'pipe_red_exit':
-        this.drawPipe(ctx, isThumbnail ? size : size * 2, 'red', isThumbnail);
-        break;
       case 'bonus_heart':
         this.drawHeart(ctx, size, animTime);
         break;

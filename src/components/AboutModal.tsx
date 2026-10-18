@@ -85,20 +85,20 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150 select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-transparent animate-in fade-in duration-150 select-none"
       onClick={handleClose}
     >
       <div
-        className="relative w-full max-w-[850px] bg-[#1E293B] border border-slate-700/80 rounded-3xl p-5 sm:p-8 md:p-9 shadow-2xl text-white flex flex-col max-h-[92vh] overflow-hidden animate-modal-pop-in"
+        className="relative w-full max-w-[850px] retro-modal p-5 sm:p-7 shadow-[6px_6px_0px_#000] flex flex-col max-h-[92vh] overflow-hidden animate-modal-pop-in text-[var(--text-main)]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Clean, Modern Close Button */}
+        {/* Chunky Retro Close Button */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 sm:top-5 sm:right-5 w-10 h-10 rounded-full bg-slate-800/90 hover:bg-slate-700 border border-slate-600/60 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shadow-sm z-30"
+          className="retro-btn-sm absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 rounded-md bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center cursor-pointer z-30"
           title="Закрыть"
         >
-          <X className="w-5 h-5 stroke-[2.2]" />
+          <X className="w-4 h-4 stroke-[3]" />
         </button>
 
         {/* Scrollable Content Container */}

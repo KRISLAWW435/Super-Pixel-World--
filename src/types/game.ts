@@ -24,11 +24,8 @@ export type TileId =
   | 'candy'
   | 'crystal_block'
   | 'pipe_green'
-  | 'pipe_red'
   | 'pipe_green_entrance'
   | 'pipe_green_exit'
-  | 'pipe_red_entrance'
-  | 'pipe_red_exit'
   // Interactive Items
   | 'coin'
   | 'star'

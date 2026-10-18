@@ -36,6 +36,7 @@ import {
   Undo2,
   ZoomIn,
   ZoomOut,
+  Settings,
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 import { CELL_SIZE, GRID_ROWS, THEMES, findGroundRowBelow, isGroundEnemy } from '../game/constants';
@@ -43,7 +44,7 @@ import { generateTutorialSample } from '../game/tutorialPresets';
 import { SpriteRenderer } from '../graphics/spriteRenderer';
 import { LevelData, LevelItem, ThemeId, TileId, ToolMode } from '../types/game';
 import { EditorTutorialBar } from './EditorTutorialBar';
-import { SoundControl } from './SoundControl';
+import { SettingsModal } from './SettingsModal';
 import { useEditorCamera } from './useEditorCamera';
 
 interface LevelEditorProps {
@@ -143,6 +144,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
       setToastMessage(null);
     }, 2600);
   }, []);
+
+  // Settings Modal State
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   // Drawing & Interaction State
   const [isMouseDown, setIsMouseDown] = useState<boolean>(false);
@@ -596,20 +600,41 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         ctx.save();
         const { item, targetCol, targetRow } = movingObject;
         const isGround = isGroundEnemy(item.tileId);
+        const isPipeItem = item.tileId.startsWith('pipe_');
+        const itemW = isPipeItem ? 2 : 1;
+        const itemH = isPipeItem ? 2 : 1;
+        const otherItems = levelData.items.filter((it) => it.id !== item.id);
+
+        let snappedCol = targetCol;
+        let snappedRow = targetRow;
+
+        // Check if current target overlaps any other item
+        let isOccupied = false;
+        for (const it of otherItems) {
+          const itIsPipe = it.tileId.startsWith('pipe_');
+          const itW = itIsPipe ? 2 : 1;
+          const itH = itIsPipe ? 2 : 1;
+          if (
+            snappedCol < it.x + itW &&
+            snappedCol + itemW > it.x &&
+            snappedRow < it.y + itH &&
+            snappedRow + itemH > it.y
+          ) {
+            isOccupied = true;
+            break;
+          }
+        }
 
         if (isGround) {
-          const otherItems = levelData.items.filter((it) => it.id !== item.id);
           const groundY = findGroundRowBelow(otherItems, targetCol, targetRow);
-
           if (groundY !== null && groundY > 0) {
-            const snappedRow = groundY - 1;
-            const gx = targetCol * effectiveCellSize;
+            snappedRow = groundY - 1;
+            const gx = snappedCol * effectiveCellSize;
             const gy = snappedRow * effectiveCellSize;
 
-            // Dotted guideline down to ground if elevated
             if (snappedRow > targetRow) {
               ctx.save();
-              ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+              ctx.strokeStyle = isOccupied ? 'rgba(239, 68, 68, 0.5)' : 'rgba(16, 185, 129, 0.5)';
               ctx.lineWidth = 2;
               ctx.setLineDash([3, 3]);
               ctx.beginPath();
@@ -619,29 +644,28 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
               ctx.restore();
             }
 
-            // Draw enemy ghost on ground
-            ctx.globalAlpha = 0.8;
+            ctx.globalAlpha = 0.85;
             SpriteRenderer.drawTile(ctx, item.tileId, gx, gy, effectiveCellSize, { animTime });
 
-            // Emerald landing highlight
-            ctx.strokeStyle = '#10b981';
+            const strokeColor = isOccupied ? '#ef4444' : '#10b981';
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 2.5;
             ctx.strokeRect(gx + 1, gy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
 
-            // Floating dimension / coord badge
             ctx.globalAlpha = 1.0;
             ctx.fillStyle = '#0f172a';
-            ctx.strokeStyle = '#10b981';
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 1;
-            const badgeText = `Перемещение: [X: ${targetCol}, Y: ${snappedRow}]`;
+            const badgeText = isOccupied
+              ? `⚠️ Занято! Будет смещено`
+              : `Перемещение: [${snappedCol}, ${snappedRow}]`;
             ctx.font = 'bold 11px system-ui, sans-serif';
             const bw = ctx.measureText(badgeText).width;
             ctx.fillRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
             ctx.strokeRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
-            ctx.fillStyle = '#6ee7b7';
+            ctx.fillStyle = isOccupied ? '#fca5a5' : '#6ee7b7';
             ctx.fillText(badgeText, gx + effectiveCellSize * 0.5 - bw * 0.5, gy - 7);
           } else {
-            // No ground warning indicator at current hovered cell
             const gx = targetCol * effectiveCellSize;
             const gy = targetRow * effectiveCellSize;
             ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
@@ -650,7 +674,6 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             ctx.lineWidth = 2;
             ctx.strokeRect(gx + 1, gy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
 
-            // Red cross
             ctx.beginPath();
             ctx.moveTo(gx + 8, gy + 8);
             ctx.lineTo(gx + effectiveCellSize - 8, gy + effectiveCellSize - 8);
@@ -658,11 +681,10 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             ctx.lineTo(gx + 8, gy + effectiveCellSize - 8);
             ctx.stroke();
 
-            // Floating warning badge
             ctx.fillStyle = '#0f172a';
             ctx.strokeStyle = '#ef4444';
             ctx.lineWidth = 1;
-            const warnText = '⚠️ Нужна твердая опора!';
+            const warnText = '⚠️ Нужна твёрдая опора!';
             ctx.font = 'bold 11px system-ui, sans-serif';
             const bw = ctx.measureText(warnText).width;
             ctx.fillRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
@@ -671,30 +693,33 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             ctx.fillText(warnText, gx + effectiveCellSize * 0.5 - bw * 0.5, gy - 7);
           }
         } else {
-          // Standard tile/object moving preview
-          const gx = targetCol * effectiveCellSize;
-          const gy = targetRow * effectiveCellSize;
+          // Standard tile / 2x2 Pipe moving preview
+          const gx = snappedCol * effectiveCellSize;
+          const gy = snappedRow * effectiveCellSize;
+          const boxW = itemW * effectiveCellSize;
+          const boxH = itemH * effectiveCellSize;
 
-          ctx.globalAlpha = 0.8;
+          ctx.globalAlpha = 0.85;
           SpriteRenderer.drawTile(ctx, item.tileId, gx, gy, effectiveCellSize, { animTime });
 
-          // Golden/amber snapping box
-          ctx.strokeStyle = '#f59e0b';
+          const strokeColor = isOccupied ? '#ef4444' : '#f59e0b';
+          ctx.strokeStyle = strokeColor;
           ctx.lineWidth = 2.5;
-          ctx.strokeRect(gx + 1, gy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+          ctx.strokeRect(gx + 1, gy + 1, boxW - 2, boxH - 2);
 
-          // Floating coords badge
           ctx.globalAlpha = 1.0;
           ctx.fillStyle = '#0f172a';
-          ctx.strokeStyle = '#f59e0b';
+          ctx.strokeStyle = strokeColor;
           ctx.lineWidth = 1;
-          const badgeText = `Перемещение: [X: ${targetCol}, Y: ${targetRow}]`;
+          const badgeText = isOccupied
+            ? `⚠️ Занято! Будет смещено`
+            : `Перемещение: [${snappedCol}, ${snappedRow}]`;
           ctx.font = 'bold 11px system-ui, sans-serif';
           const bw = ctx.measureText(badgeText).width;
-          ctx.fillRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
-          ctx.strokeRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
-          ctx.fillStyle = '#fef08a';
-          ctx.fillText(badgeText, gx + effectiveCellSize * 0.5 - bw * 0.5, gy - 7);
+          ctx.fillRect(gx + boxW * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
+          ctx.strokeRect(gx + boxW * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
+          ctx.fillStyle = isOccupied ? '#fca5a5' : '#fef08a';
+          ctx.fillText(badgeText, gx + boxW * 0.5 - bw * 0.5, gy - 7);
         }
 
         ctx.restore();
@@ -837,10 +862,84 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           ctx.strokeStyle = '#f59e0b';
           ctx.lineWidth = 2;
           ctx.strokeRect(hx + 1, hy + 1, cursorW - 2, cursorH - 2);
+
+          // Pipe Ghost Placement: if placing a green pipe and an unpaired pipe exists, draw preview connection arc!
+          if (isPipeSelected) {
+            const greenPipes = levelData.items
+              .filter((it) => it.tileId.startsWith('pipe_'))
+              .sort((a, b) => a.x - b.x || a.y - b.y);
+
+            if (greenPipes.length % 2 === 1) {
+              const waitingPipe = greenPipes[greenPipes.length - 1];
+              const startX = waitingPipe.x * effectiveCellSize + effectiveCellSize;
+              const startY = waitingPipe.y * effectiveCellSize + effectiveCellSize;
+              const endX = hx + effectiveCellSize;
+              const endY = hy + effectiveCellSize;
+
+              ctx.save();
+              ctx.strokeStyle = '#22c55e';
+              ctx.lineWidth = 3;
+              ctx.setLineDash([6, 4]);
+              ctx.lineDashOffset = -animTime * 30;
+
+              const midX = (startX + endX) * 0.5;
+              const midY = Math.min(startY, endY) - Math.min(80, Math.abs(endX - startX) * 0.25) - 30;
+
+              ctx.beginPath();
+              ctx.moveTo(startX, startY);
+              ctx.quadraticCurveTo(midX, midY, endX, endY);
+              ctx.stroke();
+
+              // Destination target dot and pulsing ring
+              ctx.setLineDash([]);
+              ctx.fillStyle = '#22c55e';
+              ctx.beginPath();
+              ctx.arc(endX, endY, 6, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.strokeStyle = '#22c55e';
+              ctx.lineWidth = 2;
+              const pulseR = 8 + Math.sin(animTime * 8) * 3;
+              ctx.beginPath();
+              ctx.arc(endX, endY, pulseR, 0, Math.PI * 2);
+              ctx.stroke();
+
+              // Preview pairing badge
+              const ghostBadge = `🌀 Двусторонняя пара с [${waitingPipe.x + 1}, ${waitingPipe.y + 1}]`;
+              ctx.font = 'bold 11px Fredoka, sans-serif';
+              const bw = ctx.measureText(ghostBadge).width;
+              ctx.fillStyle = '#0f172a';
+              ctx.fillRect(midX - bw * 0.5 - 6, midY - 14, bw + 12, 20);
+              ctx.strokeStyle = '#22c55e';
+              ctx.strokeRect(midX - bw * 0.5 - 6, midY - 14, bw + 12, 20);
+              ctx.fillStyle = '#86efac';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(ghostBadge, midX, midY - 4);
+
+              ctx.restore();
+            } else {
+              // Pipe requires a partner notice
+              const ghostNotice = '🟢 Зелёная труба (потребуется пара)';
+              ctx.save();
+              ctx.font = 'bold 10px Fredoka, sans-serif';
+              const bw = ctx.measureText(ghostNotice).width;
+              ctx.fillStyle = '#0f172a';
+              ctx.fillRect(hx + cursorW * 0.5 - bw * 0.5 - 6, hy - 18, bw + 12, 18);
+              ctx.strokeStyle = '#22c55e';
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(hx + cursorW * 0.5 - bw * 0.5 - 6, hy - 18, bw + 12, 18);
+              ctx.fillStyle = '#86efac';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(ghostNotice, hx + cursorW * 0.5, hy - 9);
+              ctx.restore();
+            }
+          }
         }
       }
 
-      // Pipe portal connections visualization (Task 4: Editor visualization)
+      // Pipe portal connections visualization on hover
       const isPipe = (t: string) => t.startsWith('pipe_');
       const hoveredItem = hoverCell
         ? levelData.items.find((it) => {
@@ -853,16 +952,14 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
       const isHoveringPipe = hoveredItem && isPipe(hoveredItem.tileId);
 
       if (isHoveringPipe && hoveredItem) {
-        const isRed = hoveredItem.tileId.includes('red');
-        const colorName = isRed ? 'Красный' : 'Зелёный';
-        const linkColor = isRed ? '#ef4444' : '#22c55e';
-        const sameColorPipes = levelData.items
-          .filter((it) => (isRed ? it.tileId.includes('red') : it.tileId.includes('green')) && isPipe(it.tileId))
+        const linkColor = '#22c55e';
+        const greenPipes = levelData.items
+          .filter((it) => isPipe(it.tileId))
           .sort((a, b) => a.x - b.x || a.y - b.y);
 
-        if (sameColorPipes.length >= 2) {
-          const myIdx = sameColorPipes.findIndex((it) => it.id === hoveredItem.id);
-          const paired = myIdx % 2 === 0 ? (sameColorPipes[myIdx + 1] ?? sameColorPipes[0]) : sameColorPipes[myIdx - 1];
+        if (greenPipes.length >= 2) {
+          const myIdx = greenPipes.findIndex((it) => it.id === hoveredItem.id);
+          const paired = myIdx % 2 === 0 ? (greenPipes[myIdx + 1] ?? null) : (greenPipes[myIdx - 1] ?? null);
 
           if (paired && paired.id !== hoveredItem.id) {
             // 2x2 Pipe center is at x + 1.0 (effectiveCellSize) and y + 1.0 (effectiveCellSize)
@@ -911,7 +1008,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             ctx.fill();
 
             // Badge near midpoint of curve
-            const badgeTxt = `🌀 ${colorName} портал ➔ [${paired.x + 1}, ${paired.y + 1}]`;
+            const badgeTxt = `🌀 Зелёный портал ⮂ [${paired.x + 1}, ${paired.y + 1}] (Двусторонний)`;
             ctx.font = 'bold 11px Fredoka, sans-serif';
             const bw = ctx.measureText(badgeTxt).width;
             ctx.fillStyle = '#0f172a';
@@ -924,10 +1021,28 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             ctx.fillText(badgeTxt, midX, midY - 4);
 
             ctx.restore();
+          } else {
+            // Unpaired pipe warning in editor
+            const px = hoveredItem.x * effectiveCellSize + effectiveCellSize;
+            const py = hoveredItem.y * effectiveCellSize - 12;
+            ctx.save();
+            const warnTxt = '⚠️ Нет выхода! Поставьте вторую трубу';
+            ctx.font = 'bold 10px system-ui, sans-serif';
+            const bw = ctx.measureText(warnTxt).width;
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(px - bw * 0.5 - 6, py - 12, bw + 12, 18);
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(px - bw * 0.5 - 6, py - 12, bw + 12, 18);
+            ctx.fillStyle = '#fca5a5';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(warnTxt, px, py - 3);
+            ctx.restore();
           }
         } else {
           // Unpaired pipe warning in editor
-          const px = hoveredItem.x * effectiveCellSize + effectiveCellSize * 0.5;
+          const px = hoveredItem.x * effectiveCellSize + effectiveCellSize;
           const py = hoveredItem.y * effectiveCellSize - 12;
           ctx.save();
           const warnTxt = '⚠️ Нет выхода! Поставьте вторую трубу';
@@ -1160,17 +1275,20 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
       paintAt(cell.col, cell.row);
       sound.playPlaceTile();
     } else if (activeTool === 'move') {
-      // Move tool: select object under cell and detach
-      const targetItem = levelData.items.find(
-        (it) => it.x === cell.col && it.y === cell.row
-      );
+      // Move tool: select object under cell and detach (support 2x2 pipes)
+      const targetItem = levelData.items.find((it) => {
+        if (it.tileId.startsWith('pipe_')) {
+          return cell.col >= it.x && cell.col <= it.x + 1 && cell.row >= it.y && cell.row <= it.y + 1;
+        }
+        return it.x === cell.col && it.y === cell.row;
+      });
       if (targetItem) {
         setMovingObject({
           item: targetItem,
-          startCol: cell.col,
-          startRow: cell.row,
-          targetCol: cell.col,
-          targetRow: cell.row,
+          startCol: targetItem.x,
+          startRow: targetItem.y,
+          targetCol: targetItem.x,
+          targetRow: targetItem.y,
         });
         sound.playSelect();
       }
@@ -1221,16 +1339,35 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     if (movingObject) {
       const { item, startCol, startRow, targetCol, targetRow } = movingObject;
       const isGround = isGroundEnemy(item.tileId);
+      const isPipeItem = item.tileId.startsWith('pipe_');
+      const itemW = isPipeItem ? 2 : 1;
+      const itemH = isPipeItem ? 2 : 1;
       const otherItems = levelData.items.filter((it) => it.id !== item.id);
+      const maxCols = 160;
+      const maxRows = levelData.height || GRID_ROWS;
 
-      let finalCol = targetCol;
-      let finalRow = targetRow;
+      const checkCollision = (c: number, r: number): boolean => {
+        if (c < 0 || c + itemW > maxCols || r < 0 || r + itemH > maxRows) return true;
+        for (const it of otherItems) {
+          const itIsPipe = it.tileId.startsWith('pipe_');
+          const itW = itIsPipe ? 2 : 1;
+          const itH = itIsPipe ? 2 : 1;
+          if (c < it.x + itW && c + itemW > it.x && r < it.y + itH && r + itemH > it.y) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      let finalCol = Math.max(0, Math.min(targetCol, maxCols - itemW));
+      let finalRow = Math.max(0, Math.min(targetRow, maxRows - itemH));
 
       if (isGround) {
-        const groundY = findGroundRowBelow(otherItems, finalCol, finalRow);
+        const groundY = findGroundRowBelow(otherItems, finalCol, targetRow);
         if (groundY !== null && groundY > 0) {
           finalRow = groundY - 1;
         } else {
+          // No ground below at target: snap back to start
           showToast('Врагов можно ставить только на твердую поверхность!');
           sound.playBump();
           setMovingObject(null);
@@ -1241,20 +1378,54 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         }
       }
 
-      // Bound checks
-      finalCol = Math.max(0, Math.min(finalCol, 159));
-      finalRow = Math.max(0, Math.min(finalRow, (levelData.height || GRID_ROWS) - 1));
+      const isColliding = checkCollision(finalCol, finalRow);
 
-      // Check if position changed or replaced another item
-      if (finalCol !== startCol || finalRow !== startRow) {
-        const updated = otherItems.filter((it) => !(it.x === finalCol && it.y === finalRow));
-        updated.push({
-          ...item,
-          x: finalCol,
-          y: finalRow,
-        });
-        onUpdateItems(updated, true);
-        sound.playPlaceTile();
+      if (isColliding) {
+        // Search for nearest valid empty cell
+        let nearest: { col: number; row: number; dist: number } | null = null;
+        for (let r = 1; r <= 4; r++) {
+          for (let dc = -r; dc <= r; dc++) {
+            for (let dr = -r; dr <= r; dr++) {
+              if (Math.abs(dc) !== r && Math.abs(dr) !== r) continue;
+              const nc = finalCol + dc;
+              let nr = finalRow + dr;
+              if (isGround) {
+                const gy = findGroundRowBelow(otherItems, nc, targetRow + dr);
+                if (gy !== null && gy > 0) {
+                  nr = gy - 1;
+                } else {
+                  continue;
+                }
+              }
+              if (!checkCollision(nc, nr)) {
+                const dist = Math.hypot(nc - finalCol, nr - finalRow);
+                if (!nearest || dist < nearest.dist) {
+                  nearest = { col: nc, row: nr, dist };
+                }
+              }
+            }
+          }
+          if (nearest) break;
+        }
+
+        if (nearest) {
+          finalCol = nearest.col;
+          finalRow = nearest.row;
+          const updated = [...otherItems, { ...item, x: finalCol, y: finalRow }];
+          onUpdateItems(updated, true);
+          sound.playPlaceTile();
+          showToast('Объект смещён в ближайшую свободную клетку');
+        } else {
+          // Snap back to start position
+          sound.playBump();
+          showToast('Клетка занята! Объект возвращён на место');
+        }
+      } else {
+        if (finalCol !== startCol || finalRow !== startRow) {
+          const updated = [...otherItems, { ...item, x: finalCol, y: finalRow }];
+          onUpdateItems(updated, true);
+          sound.playPlaceTile();
+        }
       }
 
       setMovingObject(null);
@@ -1498,8 +1669,18 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             </button>
           </div>
 
-          {/* Sound Settings Popover */}
-          <SoundControl compact align="right" />
+          {/* Global Settings Gear Button */}
+          <button
+            onClick={() => {
+              sound.playClick();
+              setIsSettingsOpen(true);
+            }}
+            title="Настройки игры, звука, темы и масштаба"
+            className="retro-btn-sm bg-[var(--card-subtle)] hover:bg-amber-400 hover:text-slate-950 text-[var(--text-main)] px-2.5 py-1.5 flex items-center gap-1.5 shrink-0"
+          >
+            <Settings className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span className="hidden lg:inline text-[9px] font-pixel font-bold">НАСТРОЙКИ</span>
+          </button>
 
           {/* Primary High-Contrast Playtest Button (Permanently fixed on far right) */}
           <button
@@ -1509,10 +1690,10 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
               onStartPlay();
             }}
             title="Запустить уровень и проверить физику (Enter или P)"
-            className="h-9 sm:h-9.5 px-3.5 sm:px-4.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer border border-emerald-300/40 shrink-0"
+            className="retro-btn bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3.5 py-1.5 flex items-center gap-1.5 shrink-0"
           >
             <Play className="w-4 h-4 fill-slate-950 stroke-[2.5]" />
-            <span>ТЕСТ</span>
+            <span className="text-xs font-pixel font-bold">ТЕСТ</span>
           </button>
         </div>
       </header>
@@ -1634,6 +1815,12 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     {/* Right: Toolbox Sidebar */}
     {sidebar}
   </div>
+
+  {/* Global Settings Modal */}
+  <SettingsModal
+    isOpen={isSettingsOpen}
+    onClose={() => setIsSettingsOpen(false)}
+  />
 </div>
 );
 };

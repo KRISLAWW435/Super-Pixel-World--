@@ -70,9 +70,9 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto select-none"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-transparent overflow-y-auto select-none"
     >
-      <div className="relative w-full max-w-2xl bg-[#131B2E] border-2 border-amber-400/90 rounded-3xl shadow-2xl shadow-black/80 p-6 sm:p-8 flex flex-col items-center gap-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-2xl retro-modal p-6 sm:p-8 flex flex-col items-center gap-6 animate-in fade-in zoom-in-95 duration-150 text-[var(--text-main)]">
         {/* Optional Close button if cancellation is supported */}
         {onCancel && (
           <button
@@ -82,7 +82,7 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
               onCancel();
             }}
             title="Закрыть"
-            className="absolute top-4 right-4 w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-rose-600 border border-slate-700 hover:border-rose-400 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-md"
+            className="retro-btn-sm absolute top-4 right-4 w-8 h-8 rounded-md bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>

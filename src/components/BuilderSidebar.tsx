@@ -269,8 +269,8 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         </div>
       </div>
 
-      {/* 2. Four Unified Studio Tabs (Platforms, Interactive, Enemies, World) */}
-      <div className="grid grid-cols-4 bg-[#0B0F19] border-b border-slate-800 p-1.5 gap-1 shrink-0">
+      {/* 2. Three Unified Studio Tabs (Platforms, Interactive, Enemies) */}
+      <div className="grid grid-cols-3 bg-[#0B0F19] border-b-2 border-black p-1.5 gap-1.5 shrink-0">
         <button
           id="tour-tab-platforms"
           onClick={() => {
@@ -279,14 +279,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             sound.playClick();
           }}
           style={{ pointerEvents: 'auto' }}
-          className={`tutorial-target py-2 px-0.5 text-[11px] font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+          className={`tutorial-target py-2 px-1 text-[11px] font-bold rounded-md transition-all text-center flex flex-col items-center gap-1 cursor-pointer border-2 ${
             activeTab === 'platforms'
-              ? 'bg-[#1E293B] text-amber-300 border border-amber-400/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              ? 'bg-amber-400 text-slate-950 border-black shadow-[2px_2px_0px_#000]'
+              : 'bg-[var(--card-subtle)] text-[var(--text-muted)] border-black hover:text-[var(--text-main)] hover:bg-slate-800'
           }`}
         >
-          <Layers className="w-3.5 h-3.5" />
-          <span className="truncate">Блоки</span>
+          <Layers className="w-4 h-4" />
+          <span className="truncate font-pixel text-[9px]">Блоки</span>
         </button>
 
         <button
@@ -297,14 +297,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             sound.playClick();
           }}
           style={{ pointerEvents: 'auto' }}
-          className={`tutorial-target py-2 px-0.5 text-[11px] font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+          className={`tutorial-target py-2 px-1 text-[11px] font-bold rounded-md transition-all text-center flex flex-col items-center gap-1 cursor-pointer border-2 ${
             activeTab === 'interactive'
-              ? 'bg-[#1E293B] text-amber-300 border border-amber-400/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              ? 'bg-amber-400 text-slate-950 border-black shadow-[2px_2px_0px_#000]'
+              : 'bg-[var(--card-subtle)] text-[var(--text-muted)] border-black hover:text-[var(--text-main)] hover:bg-slate-800'
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-          <span className="truncate">Бонусы</span>
+          <Sparkles className="w-4 h-4 text-yellow-400" />
+          <span className="truncate font-pixel text-[9px]">Бонусы</span>
         </button>
 
         <button
@@ -315,31 +315,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             sound.playClick();
           }}
           style={{ pointerEvents: 'auto' }}
-          className={`tutorial-target py-2 px-0.5 text-[11px] font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+          className={`tutorial-target py-2 px-1 text-[11px] font-bold rounded-md transition-all text-center flex flex-col items-center gap-1 cursor-pointer border-2 ${
             activeTab === 'enemies'
-              ? 'bg-[#1E293B] text-rose-300 border border-rose-400/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              ? 'bg-rose-500 text-white border-black shadow-[2px_2px_0px_#000]'
+              : 'bg-[var(--card-subtle)] text-[var(--text-muted)] border-black hover:text-[var(--text-main)] hover:bg-slate-800'
           }`}
         >
-          <Swords className="w-3.5 h-3.5 text-rose-400" />
-          <span className="truncate">Враги</span>
-        </button>
-
-        <button
-          id="tour-tab-world"
-          onClick={() => {
-            handleSelectTab('world');
-            sound.playClick();
-          }}
-          style={{ pointerEvents: 'auto' }}
-          className={`tutorial-target py-2 px-0.5 text-[11px] font-bold rounded-xl transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
-            activeTab === 'world'
-              ? 'bg-[#1E293B] text-amber-300 border border-amber-400/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-          }`}
-        >
-          <Palette className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="truncate">Мир</span>
+          <Swords className="w-4 h-4 text-rose-400" />
+          <span className="truncate font-pixel text-[9px]">Враги</span>
         </button>
       </div>
 
@@ -351,7 +334,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             <div className="text-[11px] font-semibold text-slate-400">
               Строительные блоки и платформы:
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               {platformItems.map((item) => {
                 const isSelected = activeTool !== 'erase' && selectedTile === item.id;
                 return (
@@ -365,16 +348,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                       sound.playPlaceTile();
                     }}
                     title={item.hint}
-                    className={`tutorial-target flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl text-left border transition-all cursor-pointer min-h-[58px] sm:min-h-[64px] select-none touch-manipulation ${
-                      isSelected
-                        ? 'bg-amber-500/25 border-amber-400 ring-2 ring-amber-400/60 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
-                        : 'bg-[#0B0F19]/90 hover:bg-slate-800 border-slate-700/80 text-slate-200 hover:border-slate-500 active:scale-95'
+                    className={`tutorial-target retro-slot flex items-center gap-2 p-2 text-left cursor-pointer select-none transition-all ${
+                      isSelected ? 'selected' : ''
                     }`}
                   >
-                    <div className="shrink-0 w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-xl bg-[#0F172A] flex items-center justify-center border border-slate-700/60 shadow-inner">
-                      <PaletteTilePreview tileId={item.id} size={36} />
+                    <div className="shrink-0 w-8.5 h-8.5 rounded bg-black/40 flex items-center justify-center border border-black shadow-inner">
+                      <PaletteTilePreview tileId={item.id} size={30} />
                     </div>
-                    <span className="text-xs sm:text-[13px] font-bold leading-snug line-clamp-2">
+                    <span className="text-[11px] font-bold text-[var(--text-main)] leading-snug line-clamp-2">
                       {item.name}
                     </span>
                   </button>
@@ -391,7 +372,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               <div className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">
                 Бонусы и интерактивные объекты:
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+              <div className="grid grid-cols-2 gap-2">
                 {interactiveItems.map((item) => {
                   const isSelected = activeTool !== 'erase' && selectedTile === item.id;
                   return (
@@ -405,16 +386,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                         sound.playPlaceTile();
                       }}
                       title={item.hint}
-                      className={`tutorial-target flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl text-left border transition-all cursor-pointer min-h-[58px] sm:min-h-[64px] select-none touch-manipulation ${
-                        isSelected
-                          ? 'bg-amber-500/25 border-amber-400 ring-2 ring-amber-400/60 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
-                          : 'bg-[#0B0F19]/90 hover:bg-slate-800 border-slate-700/80 text-slate-200 hover:border-slate-500 active:scale-95'
+                      className={`tutorial-target retro-slot flex items-center gap-2 p-2 text-left cursor-pointer select-none transition-all ${
+                        isSelected ? 'selected' : ''
                       }`}
                     >
-                      <div className="shrink-0 w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-xl bg-[#0F172A] flex items-center justify-center border border-slate-700/60 shadow-inner">
-                        <PaletteTilePreview tileId={item.id} size={36} />
+                      <div className="shrink-0 w-8.5 h-8.5 rounded bg-black/40 flex items-center justify-center border border-black shadow-inner">
+                        <PaletteTilePreview tileId={item.id} size={30} />
                       </div>
-                      <span className="text-xs sm:text-[13px] font-bold leading-snug line-clamp-2">
+                      <span className="text-[11px] font-bold text-[var(--text-main)] leading-snug line-clamp-2">
                         {item.name}
                       </span>
                     </button>
@@ -467,33 +446,27 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           ? `${item.name}: ставится только на твердую поверхность`
                           : `${item.name}: летает в воздухе`
                       }
-                      className={`tutorial-target flex items-center justify-between p-2.5 rounded-xl text-left border transition-all cursor-pointer min-h-[50px] select-none ${
-                        isSelected
-                          ? 'bg-rose-500/25 border-rose-400 ring-2 ring-rose-400/60 text-white shadow-md shadow-rose-500/20'
-                          : 'bg-[#0B0F19]/90 hover:bg-slate-800 border-slate-700/80 text-slate-300 hover:border-slate-500 active:scale-98'
+                      className={`tutorial-target retro-slot flex items-center justify-between p-2 text-left cursor-pointer select-none transition-all ${
+                        isSelected ? 'selected' : ''
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div className="shrink-0 w-8 h-8 rounded-lg bg-[#0F172A] flex items-center justify-center border border-slate-700/60">
-                          <PaletteTilePreview tileId={item.id} size={30} />
+                      <div className="flex items-center gap-2">
+                        <div className="shrink-0 w-8 h-8 rounded bg-black/40 flex items-center justify-center border border-black shadow-inner">
+                          <PaletteTilePreview tileId={item.id} size={28} />
                         </div>
                         <div>
-                          <div className="text-xs font-bold leading-tight text-white">
+                          <div className="text-[11px] font-bold leading-tight text-[var(--text-main)]">
                             {item.name}
                           </div>
-                          <div className="text-[10px] text-slate-400 line-clamp-1">
+                          <div className="text-[9px] text-[var(--text-muted)] line-clamp-1">
                             {roleLabel}
                           </div>
                         </div>
                       </div>
                       <span
-                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border shrink-0 ${
-                          isGround
-                            ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                            : 'bg-purple-500/15 text-purple-300 border-purple-500/30'
-                        }`}
+                        className="text-[8px] font-pixel px-1.5 py-0.5 rounded border border-black bg-black/30 text-amber-400 shrink-0"
                       >
-                        {isGround ? '🌱 на землю' : '☁️ в воздухе'}
+                        {isGround ? 'земля' : 'воздух'}
                       </span>
                     </button>
                   );
@@ -503,99 +476,13 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           </div>
         )}
 
-        {/* TAB 3: WORLD THEMES & HEROES */}
-        {activeTab === 'world' && (
-          <div className="space-y-3.5">
-            {/* World Biomes */}
-            <div className="space-y-2">
-              <div className="text-[11px] font-semibold text-slate-400">
-                Биом и панорамный фон:
-              </div>
-              <div className="space-y-1.5">
-                {(Object.keys(THEMES) as ThemeId[]).map((tId) => {
-                  const th = THEMES[tId];
-                  const isSelected = selectedTheme === tId;
-                  return (
-                    <button
-                      key={tId}
-                      onClick={() => {
-                        onSelectTheme(tId);
-                        sound.playCheckpoint();
-                      }}
-                      className={`w-full text-left rounded-xl overflow-hidden border transition-all group cursor-pointer ${
-                        isSelected
-                          ? 'border-amber-400 ring-2 ring-amber-400/40 shadow-md'
-                          : 'border-slate-700/80 hover:border-slate-500'
-                      }`}
-                    >
-                      <div className="relative h-14 w-full overflow-hidden bg-slate-950">
-                        <img
-                          src={th.image}
-                          alt={th.name}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover object-bottom transition-transform duration-300 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
-                        <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between">
-                          <span className="text-xs font-bold text-white">
-                            {th.name}
-                          </span>
-                          {isSelected && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
-                              Выбрано
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* Playable Heroes */}
-            <div className="space-y-2 pt-2 border-t border-slate-800">
-              <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-amber-400" />
-                <span>Главный герой:</span>
-              </div>
-              <div className="grid grid-cols-1 gap-1.5">
-                {(['leo'] as HeroId[]).map((hId) => {
-                  const hero = HEROES[hId] || HEROES.leo;
-                  const isSelected = selectedHero === hId;
-                  return (
-                    <button
-                      key={hId}
-                      onClick={() => {
-                        onSelectHero(hId);
-                        sound.playJump();
-                      }}
-                      className="p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 bg-amber-500/20 border-amber-400 ring-1 ring-amber-400/50"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center shrink-0">
-                        <PaletteTilePreview heroId={hId} size={30} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-white truncate">
-                          {hero.name} (Искатель приключений)
-                        </div>
-                        <div className="text-[10px] text-emerald-400 truncate">
-                          {hero.perk}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 4. Tools & Actions Bottom Panel with Hotkey Badges */}
-      <div className="p-3 bg-[#0F172A] border-t border-slate-800 space-y-2 shrink-0">
+      <div className="p-3 bg-[#0F172A] border-t-2 border-black space-y-2 shrink-0">
         {/* Tool Mode Buttons (Brush [B], Move [V], Area [R], Eraser [E], Clear) */}
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid grid-cols-5 gap-1.5">
           {/* Freehand Brush */}
           <button
             id="tour-tool-brush"
@@ -604,15 +491,15 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playSelect();
             }}
             title="Свободная кисть (B) — рисование блоков в любом направлении"
-            className={`py-2 px-0.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 transition-all cursor-pointer relative ${
+            className={`py-2 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative ${
               activeTool === 'brush'
-                ? 'bg-amber-500 text-slate-950 border-[#1E293B] shadow-[2px_2px_0px_#000000]'
-                : 'bg-slate-800 text-slate-300 border-[#1E293B] hover:bg-slate-700'
+                ? 'bg-amber-400 text-slate-950 font-bold shadow-[2px_2px_0px_#000]'
+                : 'bg-[var(--card-subtle)] text-[var(--text-main)] hover:bg-slate-700'
             }`}
           >
             <PenTool className="w-3.5 h-3.5" />
-            <span className="text-[9px]">Кисть</span>
-            <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[8px] font-mono text-[#F8FAFC]">
+            <span className="text-[9px] font-pixel">Кисть</span>
+            <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-black border border-slate-700 rounded text-[8px] font-mono text-amber-400">
               B
             </kbd>
           </button>
@@ -624,15 +511,15 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playSelect();
             }}
             title="Перемещение объектов (V или H) — перетаскивание блоков и врагов"
-            className={`py-2 px-0.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 transition-all cursor-pointer relative ${
+            className={`py-2 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative ${
               activeTool === 'move'
-                ? 'bg-amber-500 text-slate-950 border-[#1E293B] shadow-[2px_2px_0px_#000000]'
-                : 'bg-slate-800 text-slate-300 border-[#1E293B] hover:bg-slate-700'
+                ? 'bg-amber-400 text-slate-950 font-bold shadow-[2px_2px_0px_#000]'
+                : 'bg-[var(--card-subtle)] text-[var(--text-main)] hover:bg-slate-700'
             }`}
           >
             <Hand className="w-3.5 h-3.5" />
-            <span className="text-[9px]">Рука</span>
-            <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[8px] font-mono text-[#F8FAFC]">
+            <span className="text-[9px] font-pixel">Рука</span>
+            <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-black border border-slate-700 rounded text-[8px] font-mono text-amber-400">
               V
             </kbd>
           </button>
@@ -645,15 +532,15 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playSelect();
             }}
             title="Область (R) — прямоугольное заполнение стен или ям"
-            className={`py-2 px-0.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 transition-all cursor-pointer relative ${
+            className={`py-2 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative ${
               activeTool === 'line'
-                ? 'bg-amber-500 text-slate-950 border-[#1E293B] shadow-[2px_2px_0px_#000000]'
-                : 'bg-slate-800 text-slate-300 border-[#1E293B] hover:bg-slate-700'
+                ? 'bg-amber-400 text-slate-950 font-bold shadow-[2px_2px_0px_#000]'
+                : 'bg-[var(--card-subtle)] text-[var(--text-main)] hover:bg-slate-700'
             }`}
           >
             <Move className="w-3.5 h-3.5" />
-            <span className="text-[9px]">Область</span>
-            <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[8px] font-mono text-[#F8FAFC]">
+            <span className="text-[9px] font-pixel">Зона</span>
+            <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-black border border-slate-700 rounded text-[8px] font-mono text-amber-400">
               R
             </kbd>
           </button>
@@ -666,15 +553,15 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playErase();
             }}
             title="Ластик (E) — удаление блоков кликом или протяжкой"
-            className={`py-2 px-0.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 transition-all cursor-pointer relative ${
+            className={`py-2 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative ${
               activeTool === 'erase'
-                ? 'bg-rose-500 text-white border-[#1E293B] shadow-[2px_2px_0px_#000000]'
-                : 'bg-slate-800 text-rose-300 border-[#1E293B] hover:bg-slate-700'
+                ? 'bg-rose-500 text-white font-bold shadow-[2px_2px_0px_#000]'
+                : 'bg-[var(--card-subtle)] text-rose-400 hover:bg-slate-700'
             }`}
           >
             <Eraser className="w-3.5 h-3.5" />
-            <span className="text-[9px]">Ластик</span>
-            <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[8px] font-mono text-[#F8FAFC]">
+            <span className="text-[9px] font-pixel">Ластик</span>
+            <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-black border border-slate-700 rounded text-[8px] font-mono text-rose-300">
               E
             </kbd>
           </button>
@@ -683,25 +570,25 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           <button
             onClick={() => setConfirmClearOpen(true)}
             title="Очистить уровень"
-            className="py-2 px-0.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-[#1E293B] bg-slate-800 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-all cursor-pointer"
+            className="py-2 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black bg-[var(--card-subtle)] text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-950/30 transition-all cursor-pointer shadow-[1px_1px_0px_#000]"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span className="text-[9px]">Сброс</span>
+            <span className="text-[9px] font-pixel">Сброс</span>
           </button>
         </div>
 
         {/* Save / Presets Row with Hotkey badge Ctrl+S */}
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-2 gap-2 pt-1">
           <button
             onClick={onSave}
             title="Сохранить уровень в библиотеку проектов студии (Ctrl+S)"
-            className="py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer"
+            className="retro-btn-sm py-2 px-2 text-xs font-bold flex items-center justify-between bg-emerald-600 hover:bg-emerald-500 text-slate-950"
           >
             <div className="flex items-center gap-1.5">
-              <Download className="w-3.5 h-3.5" />
-              <span>Сохранить</span>
+              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="font-pixel text-[9px]">Сохранить</span>
             </div>
-            <kbd className="px-1.5 py-0.5 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-slate-300">
+            <kbd className="px-1 py-0.2 bg-black border border-emerald-400/50 rounded text-[8px] font-mono text-emerald-300">
               Ctrl+S
             </kbd>
           </button>
@@ -709,33 +596,34 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           <button
             onClick={onLoad}
             title="Готовые уровни студии и импорт JSON"
-            className="py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
+            className="retro-btn-sm py-2 px-2 text-xs font-bold flex items-center justify-center gap-1.5 bg-[var(--card-subtle)] text-[var(--text-main)]"
           >
             <Upload className="w-3.5 h-3.5 text-purple-400" />
-            <span>Готовые миры</span>
+            <span className="font-pixel text-[9px]">Готовые миры</span>
           </button>
         </div>
       </div>
 
+
       {/* Clear Confirmation Dialog */}
       {confirmClearOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B0F19]/80 backdrop-blur-xs">
-          <div className="w-full max-w-sm bg-[#131B2E] border border-rose-500/50 rounded-2xl p-5 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent select-none animate-in fade-in duration-150">
+          <div className="w-full max-w-sm retro-modal p-5 shadow-[6px_6px_0px_#000] space-y-4 text-[var(--text-main)]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded bg-rose-500/20 text-rose-500 border-2 border-black flex items-center justify-center shrink-0">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-white text-base">Очистить уровень?</h4>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Все расставленные блоки будут стёрты. Не волнуйтесь: действие можно вернуть кнопкой «Назад» (Ctrl+Z).
+                <h4 className="font-bold text-base font-pixel text-[var(--text-main)]">ОЧИСТИТЬ КАРТУ?</h4>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  Все расставленные блоки будут стёрты. Действие можно вернуть кнопкой «Назад» (Ctrl+Z).
                 </p>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setConfirmClearOpen(false)}
-                className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                className="retro-btn-sm px-3.5 py-1.5 bg-[var(--card-subtle)] text-[var(--text-main)]"
               >
                 Отмена
               </button>
@@ -744,7 +632,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                   setConfirmClearOpen(false);
                   onClear();
                 }}
-                className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer"
+                className="retro-btn-sm px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold"
               >
                 Да, очистить
               </button>

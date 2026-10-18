@@ -1345,32 +1345,25 @@ export class PhysicsEngine {
     return (
       tileId === 'pipe_green' ||
       tileId === 'pipe_green_entrance' ||
-      tileId === 'pipe_green_exit' ||
-      tileId === 'pipe_red' ||
-      tileId === 'pipe_red_entrance' ||
-      tileId === 'pipe_red_exit'
+      tileId === 'pipe_green_exit'
     );
   }
 
   public getPairedPipe(currentPipe: LevelItem): LevelItem | null {
-    const isRed = currentPipe.tileId.includes('red');
-    const sameColorPipes = this.levelData.items
-      .filter(
-        (it) =>
-          (isRed ? it.tileId.includes('red') : it.tileId.includes('green')) &&
-          this.isPipeTile(it.tileId)
-      )
+    const greenPipes = this.levelData.items
+      .filter((it) => this.isPipeTile(it.tileId))
       .sort((a, b) => a.x - b.x || a.y - b.y);
 
-    if (sameColorPipes.length < 2) return null;
+    if (greenPipes.length < 2) return null;
 
-    const myIdx = sameColorPipes.findIndex((it) => it.id === currentPipe.id);
+    const myIdx = greenPipes.findIndex((it) => it.id === currentPipe.id);
     if (myIdx === -1) return null;
 
+    // Strict bidirectional pairing: (0 <-> 1), (2 <-> 3), (4 <-> 5)...
     if (myIdx % 2 === 0) {
-      return sameColorPipes[myIdx + 1] ?? sameColorPipes[0];
+      return greenPipes[myIdx + 1] ?? null;
     } else {
-      return sameColorPipes[myIdx - 1];
+      return greenPipes[myIdx - 1] ?? null;
     }
   }
 
@@ -1481,7 +1474,7 @@ export class PhysicsEngine {
           const pairCenterX = pair.x * CELL_SIZE + CELL_SIZE;
           this.player.pipeTargetX = pairCenterX - this.player.width * 0.5;
           this.player.pipeTargetY = pair.y * CELL_SIZE - this.player.height;
-          const pColor = pipeItem.tileId.includes('red') ? '#ef4444' : '#22c55e';
+          const pColor = '#22c55e';
           this.emitSparkles(pipeCenterX, pipeItem.y * CELL_SIZE + 4, pColor);
         }
       }
