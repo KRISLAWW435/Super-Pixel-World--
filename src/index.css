@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/fredoka-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./assets/fonts/pressstart2p-cyrillic.woff2') format('woff2'),
+       url('./assets/fonts/pressstart2p-latin.woff2') format('woff2');
+}
+
 @layer base {
   html, body, #root {
     width: 100%;

@@ -62,6 +62,7 @@ interface LevelEditorProps {
   guidedTourStep?: number;
   tourBlocksPlaced?: number;
   onAdvanceTourStep?: (step: number) => void;
+  sidebar?: React.ReactNode;
 }
 
 export const LevelEditor: React.FC<LevelEditorProps> = ({
@@ -83,6 +84,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   guidedTourStep = 0,
   tourBlocksPlaced = 0,
   onAdvanceTourStep,
+  sidebar,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -944,21 +946,43 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     mCtx.strokeRect(frameX, frameY, frameW, frameH);
   };
 
-  // Resize listener
+  // ResizeObserver: perfectly syncs canvas pixel resolution with container
+  // Completely eliminates canvas stretching/distortion when sidebar collapses or window resizes
   useEffect(() => {
-    const handleResize = () => {
-      const container = containerRef.current;
-      const canvas = canvasRef.current;
-      if (!container || !canvas) return;
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
 
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
+    const syncCanvasSize = () => {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w > 0 && h > 0) {
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+          // Re-clamp camera bounds safely
+          setCameraX((cx) => clampCameraX(cx));
+          setCameraY((cy) => clampCameraY(cy));
+        }
+      }
     };
 
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    syncCanvasSize();
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        syncCanvasSize();
+      });
+      ro.observe(container);
+    }
+
+    window.addEventListener('resize', syncCanvasSize);
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', syncCanvasSize);
+    };
+  }, [clampCameraX, clampCameraY, setCameraX, setCameraY]);
 
   // --- Mouse / Touch Handlers for Editing ---
 
@@ -1106,11 +1130,11 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   };
 
   return (
-    <main className="flex-1 h-full flex flex-col bg-[#0B0F19] relative overflow-hidden select-none">
-      {/* 1. STUDIO HEADER BAR (Strictly 48px height, unblocks canvas completely) */}
-      <header className="h-12 bg-[#0F172A] border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between shrink-0 z-30 gap-2">
+    <div className="flex-1 w-full h-full flex flex-col bg-[#0B0F19] relative overflow-hidden select-none">
+      {/* 1. GLOBAL STUDIO HEADER BAR (Strictly 48px height, 100% width across canvas & sidebar) */}
+      <header className="h-12 bg-[#0F172A] border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between shrink-0 z-30 gap-2 w-full">
         {/* Left: Studio Back & Quick History */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {onExitToMenu && (
             <button
               onClick={() => {
@@ -1126,7 +1150,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           )}
 
           {/* Level Info Pill */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-xl bg-[#0B0F19] border border-slate-800 text-xs">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-xl bg-[#0B0F19] border border-slate-800 text-xs shrink-0">
             <span className="font-bold text-amber-400 truncate max-w-[140px]">
               {levelData.name || 'Новый уровень'}
             </span>
@@ -1136,7 +1160,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
           {/* Undo / Redo */}
           {onUndo && onRedo && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={onUndo}
                 disabled={!canUndo}
@@ -1158,7 +1182,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         </div>
 
         {/* Center: Inline Educational Mission Widget */}
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center min-w-0 flex-1 overflow-hidden px-2">
           {isTutorialBarOpen && (
             <EditorTutorialBar
               currentStep={tutorialStep}
@@ -1174,8 +1198,8 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           )}
         </div>
 
-        {/* Right: Viewport Controls & High-Contrast Playtest Action */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Right: Viewport Controls, Sound & Permanently Fixed Green ▶ ТЕСТ Action */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Jump to Start / Finish */}
           <div className="hidden md:flex items-center bg-slate-800/70 border border-slate-700/80 rounded-xl p-0.5">
             <button
@@ -1233,7 +1257,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           {/* Sound Settings Popover */}
           <SoundControl compact align="right" />
 
-          {/* Primary High-Contrast Playtest Button (44px target) */}
+          {/* Primary High-Contrast Playtest Button (Permanently fixed on far right) */}
           <button
             id="tour-play-button"
             onClick={() => {
@@ -1241,13 +1265,18 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
               onStartPlay();
             }}
             title="Запустить уровень и проверить физику (Enter или P)"
-            className="h-9 sm:h-10 px-3.5 sm:px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer border border-emerald-300/40 shrink-0"
+            className="h-9 sm:h-9.5 px-3.5 sm:px-4.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer border border-emerald-300/40 shrink-0"
           >
             <Play className="w-4 h-4 fill-slate-950 stroke-[2.5]" />
             <span>ТЕСТ</span>
           </button>
         </div>
       </header>
+
+      {/* 2. MAIN WORKSPACE: Canvas on Left, Sidebar on Right */}
+      <div className="flex-1 w-full flex flex-row overflow-hidden relative min-h-0">
+        {/* Left: Canvas & Minimap Column */}
+        <main className="flex-1 h-full min-w-0 flex flex-col bg-[#0B0F19] relative overflow-hidden select-none">
 
       {/* 2. FLOATING TOAST NOTIFICATION (Warnings, Feedback) */}
       {toastMessage && (
@@ -1350,5 +1379,10 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         </div>
       </div>
     </main>
-  );
+
+    {/* Right: Toolbox Sidebar */}
+    {sidebar}
+  </div>
+</div>
+);
 };

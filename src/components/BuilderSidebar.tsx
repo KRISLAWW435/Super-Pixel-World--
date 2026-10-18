@@ -36,7 +36,6 @@ import { HEROES, PALETTE_ITEMS, THEMES } from '../game/constants';
 import { TutorialManager } from '../services/TutorialManager';
 import { HeroId, ThemeId, TileId, ToolMode } from '../types/game';
 import { PaletteTilePreview } from './PaletteTilePreview';
-import { SoundControl } from './SoundControl';
 
 export type StudioSidebarTab = 'platforms' | 'interactive' | 'enemies' | 'world';
 
@@ -213,7 +212,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   }
 
   return (
-    <aside className="w-full md:w-80 lg:w-[280px] xl:w-[320px] h-full bg-[#131B2E] border-l border-slate-800 flex flex-col justify-between shrink-0 select-none shadow-2xl z-20 overflow-hidden">
+    <aside className="w-72 sm:w-80 lg:w-[280px] xl:w-[320px] h-full bg-[#131B2E] border-l border-slate-800 flex flex-col justify-between shrink-0 select-none shadow-2xl z-20 overflow-hidden">
       {/* 1. Header Toolbar (Title, Collapse, Utilities) */}
       <div className="px-3 py-2.5 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -233,11 +232,6 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <SoundControl
-            compact
-            align="right"
-            buttonClassName="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-          />
           <button
             onClick={onToggleFullscreen}
             title={isFullscreen ? 'Оконный режим' : 'Во весь экран'}

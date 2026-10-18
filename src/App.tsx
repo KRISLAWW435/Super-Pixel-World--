@@ -673,59 +673,56 @@ export default function App() {
         />
       )}
 
-      {/* 5. SCREEN: Level Editor Mode (78-82% Left Canvas, 18-22% Right Toolbox) */}
+      {/* 5. SCREEN: Level Editor Mode */}
       {screenMode === 'editor' && (
-        <div className="w-full h-full flex flex-col md:flex-row overflow-hidden relative">
-          {/* Left Main Level Canvas & Minimap */}
-          <LevelEditor
-            levelData={levelData}
-            activeTool={activeTool}
-            selectedTile={selectedTile}
-            selectedTheme={selectedTheme}
-            onUpdateItems={handleUpdateItems}
-            onOpenTutorial={handleRestartTour}
-            onSelectTile={handleSelectTile}
-            onStartPlay={handleStartPlay}
-            canUndo={historyIndex > 0}
-            canRedo={historyIndex < history.length - 1}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onExitToMenu={handleExitToMenu}
-            onCameraAction={handleWheelAction}
-            isGuidedTourOpen={isGuidedTourOpen}
-            guidedTourStep={guidedTourStep}
-            tourBlocksPlaced={tourBlocksPlaced}
-          />
-
-          {/* Right Compact Level Builder Panel */}
-          <BuilderSidebar
-            activeTab={sidebarTab}
-            onTabChange={handleSidebarTabChange}
-            activeTool={activeTool}
-            selectedTile={selectedTile}
-            selectedTheme={selectedTheme}
-            selectedHero={selectedHero}
-            canUndo={historyIndex > 0}
-            canRedo={historyIndex < history.length - 1}
-            isFullscreen={isFullscreen}
-            isMuted={isMuted}
-            onSelectTool={handleSelectTool}
-            onSelectTile={handleSelectTile}
-            onSelectTheme={setSelectedTheme}
-            onSelectHero={setSelectedHero}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onClear={handleClearLevel}
-            onPlay={handleStartPlay}
-            onSave={() => setIsSaveModalOpen(true)}
-            onLoad={() => setIsLoadModalOpen(true)}
-            onToggleFullscreen={handleToggleFullscreen}
-            onToggleMute={handleToggleMute}
-            onOpenTutorial={handleRestartTour}
-            onExitToMenu={handleExitToMenu}
-            isGuidedTourOpen={isGuidedTourOpen}
-          />
-        </div>
+        <LevelEditor
+          levelData={levelData}
+          activeTool={activeTool}
+          selectedTile={selectedTile}
+          selectedTheme={selectedTheme}
+          onUpdateItems={handleUpdateItems}
+          onOpenTutorial={handleRestartTour}
+          onSelectTile={handleSelectTile}
+          onStartPlay={handleStartPlay}
+          canUndo={historyIndex > 0}
+          canRedo={historyIndex < history.length - 1}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onExitToMenu={handleExitToMenu}
+          onCameraAction={handleWheelAction}
+          isGuidedTourOpen={isGuidedTourOpen}
+          guidedTourStep={guidedTourStep}
+          tourBlocksPlaced={tourBlocksPlaced}
+          sidebar={
+            <BuilderSidebar
+              activeTab={sidebarTab}
+              onTabChange={handleSidebarTabChange}
+              activeTool={activeTool}
+              selectedTile={selectedTile}
+              selectedTheme={selectedTheme}
+              selectedHero={selectedHero}
+              canUndo={historyIndex > 0}
+              canRedo={historyIndex < history.length - 1}
+              isFullscreen={isFullscreen}
+              isMuted={isMuted}
+              onSelectTool={handleSelectTool}
+              onSelectTile={handleSelectTile}
+              onSelectTheme={setSelectedTheme}
+              onSelectHero={setSelectedHero}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              onClear={handleClearLevel}
+              onPlay={handleStartPlay}
+              onSave={() => setIsSaveModalOpen(true)}
+              onLoad={() => setIsLoadModalOpen(true)}
+              onToggleFullscreen={handleToggleFullscreen}
+              onToggleMute={handleToggleMute}
+              onOpenTutorial={handleRestartTour}
+              onExitToMenu={handleExitToMenu}
+              isGuidedTourOpen={isGuidedTourOpen}
+            />
+          }
+        />
       )}
 
       {/* Interactive Guided Tour Spotlight Overlay (Active in Editor and GamePlayer) */}

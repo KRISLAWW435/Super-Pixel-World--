@@ -14,7 +14,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Volume2, VolumeX, Volume1, X, Music, Check } from 'lucide-react';
+import { Volume2, VolumeX, Volume1, X, Music, Check, ChevronDown } from 'lucide-react';
 import { sound, SoundEngineSettings } from '../audio/soundEngine';
 
 interface SoundControlProps {
@@ -79,6 +79,23 @@ export const SoundControl: React.FC<SoundControlProps> = ({
     setIsOpen((prev) => !prev);
   };
 
+  const handleDirectToggleSound = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isMutedEffective) {
+      sound.registerInteraction();
+      sound.setMuted(false);
+      sound.setSoundEnabled(true);
+      sound.setMusicEnabled(true);
+      if (settings.volume <= 0.05) {
+        sound.setMasterVolume(0.4);
+      }
+      sound.playSelect();
+    } else {
+      sound.playClick();
+      sound.toggleMute();
+    }
+  };
+
   const handleVolumeChange = (newVol: number) => {
     sound.setMasterVolume(newVol);
   };
@@ -109,36 +126,76 @@ export const SoundControl: React.FC<SoundControlProps> = ({
 
   return (
     <div className={`relative inline-flex items-center ${className}`}>
-      {/* Speaker Button */}
-      <button
-        ref={buttonRef}
-        onClick={handleToggleOpen}
-        title="Настройки звука и громкости"
-        aria-label="Настройки звука"
-        aria-expanded={isOpen}
+      {/* 1-Click Fast Speaker Button & Settings Trigger */}
+      <div
         className={
-          buttonClassName ||
-          (compact
-            ? `h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-colors cursor-pointer select-none ${
+          compact
+            ? `h-8.5 rounded-xl border flex items-center bg-slate-800/80 transition-colors select-none ${
                 isOpen
-                  ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md'
-                  : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700/80'
+                  ? 'border-amber-400 bg-slate-800 shadow-md ring-1 ring-amber-400/40'
+                  : isMutedEffective
+                  ? 'border-rose-500/50 hover:border-rose-400'
+                  : 'border-slate-700/80 hover:border-slate-600'
               }`
-            : `w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 shadow-xl backdrop-blur-md flex items-center justify-center cursor-pointer transition-all active:scale-90 hover:scale-105 select-none ${
+            : `rounded-full border-2 shadow-xl backdrop-blur-md flex items-center p-0.5 select-none ${
                 isOpen
-                  ? 'bg-amber-400 border-amber-300 text-slate-950 shadow-amber-400/40'
-                  : 'bg-slate-900/85 hover:bg-slate-800 border-amber-400/90 text-amber-300 hover:text-white'
-              }`)
+                  ? 'bg-amber-400/20 border-amber-400 shadow-amber-400/30'
+                  : isMutedEffective
+                  ? 'bg-slate-900/90 border-rose-500/70 hover:border-rose-400'
+                  : 'bg-slate-900/85 border-amber-400/90 hover:border-amber-300'
+              }`
         }
       >
-        {isMutedEffective ? (
-          <VolumeX className={compact ? 'w-4 h-4 text-rose-400' : 'w-5 h-5 text-rose-400'} />
-        ) : settings.volume < 0.4 ? (
-          <Volume1 className={compact ? 'w-4 h-4 text-amber-400' : 'w-5 h-5 text-amber-300'} />
-        ) : (
-          <Volume2 className={compact ? 'w-4 h-4 text-emerald-400' : 'w-5 h-5 text-emerald-300'} />
-        )}
-      </button>
+        {/* Main Speaker Action: Direct 1-Click Turn On / Mute */}
+        <button
+          ref={buttonRef}
+          onClick={handleDirectToggleSound}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            handleToggleOpen();
+          }}
+          title={
+            isMutedEffective
+              ? 'Нажмите, чтобы включить звук (ЛКМ) | ПКМ для настроек'
+              : 'Нажмите, чтобы выключить звук (ЛКМ) | ПКМ для настроек'
+          }
+          aria-label={isMutedEffective ? 'Включить звук' : 'Выключить звук'}
+          className={
+            buttonClassName ||
+            (compact
+              ? `h-full px-2 flex items-center justify-center hover:bg-slate-700/70 rounded-l-xl transition-colors cursor-pointer`
+              : `w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95`)
+          }
+        >
+          {isMutedEffective ? (
+            <VolumeX className={compact ? 'w-4 h-4 text-rose-400 animate-pulse' : 'w-5 h-5 text-rose-400 animate-pulse'} />
+          ) : settings.volume < 0.4 ? (
+            <Volume1 className={compact ? 'w-4 h-4 text-amber-400' : 'w-5 h-5 text-amber-300'} />
+          ) : (
+            <Volume2 className={compact ? 'w-4 h-4 text-emerald-400' : 'w-5 h-5 text-emerald-300'} />
+          )}
+        </button>
+
+        {/* Small Chevron to open full volume/music popover */}
+        <button
+          type="button"
+          onClick={handleToggleOpen}
+          title="Открыть ползунок громкости и выбор трека"
+          aria-label="Настройки звука"
+          aria-expanded={isOpen}
+          className={
+            compact
+              ? 'h-full pr-1.5 pl-0.5 flex items-center justify-center text-slate-400 hover:text-amber-300 cursor-pointer transition-colors border-l border-slate-700/60'
+              : 'pr-2 pl-0.5 flex items-center justify-center text-amber-400 hover:text-white cursor-pointer'
+          }
+        >
+          <ChevronDown
+            className={`w-3 h-3 transition-transform duration-200 ${
+              isOpen ? 'rotate-180 text-amber-300' : 'text-slate-400'
+            }`}
+          />
+        </button>
+      </div>
 
       {/* Sound Settings Popover */}
       {isOpen && (
