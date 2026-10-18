@@ -209,18 +209,24 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
     challengeCompletedRef.current = false;
     setChallengeCompleted(false);
     setShowChallengeBanner(false);
-    sound.startBgm(themeId);
+    sound.playBgm('gameplay');
   };
+
+  // Preload and cache background image stably
+  useEffect(() => {
+    const img = new Image();
+    img.src = themeConfig.image;
+    if (img.complete && img.naturalWidth > 0) {
+      bgImageRef.current = img;
+    } else {
+      img.onload = () => {
+        bgImageRef.current = img;
+      };
+    }
+  }, [themeConfig.image]);
 
   useEffect(() => {
     initGame();
-
-    // Load background image
-    const img = new Image();
-    img.src = themeConfig.image;
-    img.onload = () => {
-      bgImageRef.current = img;
-    };
 
     return () => {
       sound.stopBgm();
@@ -454,16 +460,30 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
         }
       }
 
+      // Ensure canvas pixel dimensions match display resolution
+      if (
+        containerRef.current &&
+        containerRef.current.clientWidth > 0 &&
+        containerRef.current.clientHeight > 0 &&
+        (canvas.width !== containerRef.current.clientWidth || canvas.height !== containerRef.current.clientHeight)
+      ) {
+        canvas.width = containerRef.current.clientWidth;
+        canvas.height = containerRef.current.clientHeight;
+      }
+
       // --- Canvas Render ---
       const width = canvas.width;
       const height = canvas.height;
       const camX = cameraRef.current.x;
       const camY = cameraRef.current.y;
 
+      // Clean frame clear to prevent flickering, ghosting, or artifacts
+      ctx.clearRect(0, 0, width, height);
+
       // 1. Panoramic Parallax Background
-      if (bgImageRef.current && bgImageRef.current.complete) {
-        const naturalW = bgImageRef.current.naturalWidth || 1376;
-        const naturalH = bgImageRef.current.naturalHeight || 768;
+      if (bgImageRef.current && bgImageRef.current.complete && bgImageRef.current.naturalWidth > 0) {
+        const naturalW = bgImageRef.current.naturalWidth;
+        const naturalH = bgImageRef.current.naturalHeight;
         const imgAspect = naturalW / naturalH;
 
         if (imgAspect > 2.5) {
@@ -476,10 +496,11 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           ctx.drawImage(bgImageRef.current, bgX, 0, bgW, height);
         } else {
           const parallaxFactor = 0.3;
-          const bgW = height * imgAspect;
-          const bgOffsetX = -(camX * parallaxFactor) % bgW;
+          const bgW = Math.max(1, height * imgAspect);
+          const rawOffset = -(camX * parallaxFactor);
+          const bgOffsetX = ((rawOffset % bgW) + bgW) % bgW - bgW;
 
-          for (let x = bgOffsetX - bgW; x < width + bgW; x += bgW) {
+          for (let x = bgOffsetX; x < width + bgW; x += bgW) {
             ctx.drawImage(bgImageRef.current, x, 0, bgW, height);
           }
         }
@@ -968,50 +989,6 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
         </div>
       )}
 
-      {/* Desktop / Tablet Persistent Controls Bar at Bottom */}
-      <div className="hidden md:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-        <div data-dark-panel="true" className="dark-panel px-4 py-2 rounded-2xl bg-slate-950/90 border border-slate-700/80 shadow-xl backdrop-blur-md flex items-center gap-4 text-xs font-semibold text-white">
-          <div className="flex items-center gap-1.5">
-            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono font-bold text-[11px] border border-slate-700">A / D</span>
-            <span className="text-white/90">или</span>
-            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono font-bold text-[11px] border border-slate-700">⬅ ➡</span>
-            <span className="text-white ml-1">Бег</span>
-          </div>
-
-          <div className="w-[1px] h-3.5 bg-slate-600" />
-
-          <div className="flex items-center gap-1.5">
-            <span className="px-2 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono font-bold text-[11px] border border-slate-700">Пробел / W</span>
-            <span className="text-white ml-1">Прыжок (удержание = выше)</span>
-          </div>
-
-          {gamepadConnectedName && (
-            <>
-              <div className="w-[1px] h-3.5 bg-slate-600" />
-              <div className="flex items-center gap-1.5 text-emerald-300">
-                <span className="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500 font-mono font-bold text-[10px] text-emerald-300">
-                  🎮 D-Pad / Ⓐ
-                </span>
-                <span className="text-emerald-200 text-[11px]">Геймпад активен</span>
-              </div>
-            </>
-          )}
-
-          <div className="w-[1px] h-3.5 bg-slate-600" />
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-yellow-300 font-bold">⚔️ Прыжок сверху:</span>
-            <span className="text-white">Убить врага</span>
-          </div>
-
-          <div className="w-[1px] h-3.5 bg-slate-600" />
-
-          <div className="flex items-center gap-1.5">
-            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono font-bold text-[11px] border border-slate-700">Esc / Start</span>
-            <span className="text-white">Пауза</span>
-          </div>
-        </div>
-      </div>
 
       {/* MOBILE ON-SCREEN TOUCH CONTROLS (Always handy on touchscreens) */}
       <div className="absolute bottom-6 left-6 right-6 z-30 flex items-end justify-between pointer-events-none md:hidden">

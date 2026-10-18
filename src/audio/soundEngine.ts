@@ -73,6 +73,24 @@ class SoundEngine {
         this.pixelBounceAudio = new Audio(pixelBounceUrl);
         this.pixelBounceAudio.loop = true;
         this.pixelBounceAudio.preload = 'auto';
+
+        // Robust endless looping fallback for Electron & browsers where audio.loop might stall on EOF
+        const setupEndlessLoop = (audio: HTMLAudioElement, track: BgmTrack) => {
+          audio.addEventListener('ended', () => {
+            if (this.currentTrack === track && this.musicEnabled && !this.isMuted) {
+              try {
+                audio.currentTime = 0;
+              } catch (_) {}
+              audio.play().catch(() => {});
+            }
+          });
+          audio.addEventListener('error', (e) => {
+            console.warn(`[SoundEngine] Audio element warning for ${track}:`, e);
+          });
+        };
+
+        setupEndlessLoop(this.saveStateAudio, 'menu_editor');
+        setupEndlessLoop(this.pixelBounceAudio, 'gameplay');
       } catch (e) {
         console.warn('Audio element creation error:', e);
       }
@@ -269,10 +287,14 @@ class SoundEngine {
   }
 
   /**
-   * Backward-compatible alias for older callers
+   * Start BGM track - supports 'gameplay', 'menu_editor', or specific context
    */
-  public startBgm(_theme?: string) {
-    this.playBgm('menu_editor');
+  public startBgm(themeOrTrack?: string) {
+    if (themeOrTrack === 'gameplay' || themeOrTrack === 'game') {
+      this.playBgm('gameplay');
+    } else {
+      this.playBgm('menu_editor');
+    }
   }
 
   public stopBgm() {
@@ -295,10 +317,11 @@ class SoundEngine {
       return;
     }
 
-    // Clear any pending fade
+    // Clear any pending fade and reset fading flag
     if (this.fadeInterval) {
       clearInterval(this.fadeInterval);
       this.fadeInterval = null;
+      this.isFading = false;
     }
 
     const prevTrack = this.currentTrack;
@@ -322,8 +345,11 @@ class SoundEngine {
         if (currentStep >= steps || prevAudio.volume <= 0.01) {
           if (this.fadeInterval) clearInterval(this.fadeInterval);
           this.fadeInterval = null;
+          this.isFading = false;
           prevAudio.pause();
-          prevAudio.currentTime = 0;
+          try {
+            prevAudio.currentTime = 0;
+          } catch (_) {}
 
           // Switch current track pointer and start next track
           this.currentTrack = nextTrack;
@@ -333,7 +359,9 @@ class SoundEngine {
     } else {
       if (prevAudio) {
         prevAudio.pause();
-        prevAudio.currentTime = 0;
+        try {
+          prevAudio.currentTime = 0;
+        } catch (_) {}
       }
       this.currentTrack = nextTrack;
       this.startNextTrack(nextAudio, targetVol);
@@ -344,7 +372,9 @@ class SoundEngine {
     if (!audio || this.currentTrack === 'none' || targetVol <= 0) {
       if (audio) {
         audio.pause();
-        audio.currentTime = 0;
+        try {
+          audio.currentTime = 0;
+        } catch (_) {}
       }
       this.isFading = false;
       return;
@@ -353,13 +383,19 @@ class SoundEngine {
     // Guarantee previous track is completely paused
     if (this.currentTrack === 'menu_editor' && this.pixelBounceAudio) {
       this.pixelBounceAudio.pause();
-      this.pixelBounceAudio.currentTime = 0;
+      try {
+        this.pixelBounceAudio.currentTime = 0;
+      } catch (_) {}
     } else if (this.currentTrack === 'gameplay' && this.saveStateAudio) {
       this.saveStateAudio.pause();
-      this.saveStateAudio.currentTime = 0;
+      try {
+        this.saveStateAudio.currentTime = 0;
+      } catch (_) {}
     }
 
-    audio.currentTime = 0;
+    try {
+      audio.currentTime = 0;
+    } catch (_) {}
     audio.volume = 0;
 
     audio

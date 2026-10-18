@@ -1820,34 +1820,47 @@ export class SpriteRenderer {
 
   public static drawParticle(ctx: CanvasRenderingContext2D, p: Particle) {
     ctx.save();
-    ctx.translate(p.x, p.y);
-    if (p.rotation) {
-      ctx.rotate(p.rotation);
-    }
-    ctx.globalAlpha = Math.max(0, p.alpha);
-    ctx.fillStyle = p.color;
-
-    if (p.shape === 'star') {
-      ctx.beginPath();
-      const spikes = 4;
-      const step = Math.PI / spikes;
-      let angle = 0;
-      for (let i = 0; i < spikes; i++) {
-        ctx.lineTo(Math.cos(angle) * p.size, Math.sin(angle) * p.size);
-        angle += step;
-        ctx.lineTo(Math.cos(angle) * (p.size * 0.4), Math.sin(angle) * (p.size * 0.4));
-        angle += step;
+    try {
+      ctx.translate(p.x, p.y);
+      if (p.rotation) {
+        ctx.rotate(p.rotation);
       }
-      ctx.closePath();
-      ctx.fill();
-    } else if (p.shape === 'square') {
-      ctx.fillRect(-p.size * 0.5, -p.size * 0.5, p.size, p.size);
-    } else {
-      ctx.beginPath();
-      ctx.arc(0, 0, p.size, 0, Math.PI * 2);
-      ctx.fill();
-    }
+      ctx.globalAlpha = Math.min(1, Math.max(0, p.alpha ?? 1));
+      ctx.fillStyle = p.color || '#fde047';
 
-    ctx.restore();
+      const pSize = Math.max(0.5, p.size ?? 2.5);
+
+      if (p.shape === 'star') {
+        ctx.beginPath();
+        const spikes = 4;
+        const step = Math.PI / spikes;
+        let angle = 0;
+        for (let i = 0; i < spikes; i++) {
+          ctx.lineTo(Math.cos(angle) * pSize, Math.sin(angle) * pSize);
+          angle += step;
+          ctx.lineTo(Math.cos(angle) * (pSize * 0.4), Math.sin(angle) * (pSize * 0.4));
+          angle += step;
+        }
+        ctx.closePath();
+        ctx.fill();
+      } else if (p.shape === 'square') {
+        ctx.fillRect(-pSize * 0.5, -pSize * 0.5, pSize, pSize);
+      } else if (p.shape === 'sparkle') {
+        ctx.beginPath();
+        ctx.moveTo(0, -pSize);
+        ctx.quadraticCurveTo(0, 0, pSize, 0);
+        ctx.quadraticCurveTo(0, 0, 0, pSize);
+        ctx.quadraticCurveTo(0, 0, -pSize, 0);
+        ctx.quadraticCurveTo(0, 0, 0, -pSize);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, pSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } finally {
+      ctx.restore();
+    }
   }
 }
