@@ -145,16 +145,15 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
 
   return (
     <div className="relative w-full h-full min-h-screen flex flex-col p-3 sm:p-5 lg:p-7 overflow-y-auto select-none text-[var(--text-main)]">
-      {/* 1. Dynamic Game Backgrounds: archive.webp with light/dark overlays ensuring text contrast */}
+      {/* 1. Dynamic Game Backgrounds: archive.webp with light/dark overlays */}
       <div className="fixed inset-0 pointer-events-none select-none -z-10 overflow-hidden">
         <img
           src={archiveWebp}
           alt="Архив проектов"
           className="w-full h-full object-cover object-center"
         />
-        {/* Soft pastel wash in light mode, retro dark overlay in dark mode */}
-        <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] light-theme-bg" />
-        <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-[1px] dark-theme-bg" />
+        <div className="absolute inset-0 light-theme-bg archive-overlay-light" style={{ background: 'rgba(255, 255, 255, 0.1)' }} />
+        <div className="absolute inset-0 dark-theme-bg archive-overlay-dark" style={{ background: 'rgba(0, 0, 0, 0.1)' }} />
       </div>
 
       {/* ========================================================================= */}

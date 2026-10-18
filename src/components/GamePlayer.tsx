@@ -10,6 +10,7 @@ import {
   Clock,
   Coins,
   Crown,
+  Gem,
   Heart,
   Home,
   Maximize2,
@@ -342,6 +343,15 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           }
         });
 
+        // 2b-2. Render Spawned Physical Loot Items (Coins, Hearts, Crystals from Question Blocks)
+        if (engine.spawnedLoot && engine.spawnedLoot.length > 0) {
+          engine.spawnedLoot.forEach((loot) => {
+            SpriteRenderer.drawTile(ctx, loot.tileId, loot.x, loot.y, CELL_SIZE, {
+              animTime: engine.player.animTime,
+            });
+          });
+        }
+
         // 2b. Render Floating Cloud Islands (merged rigid bodies moving together)
         engine.cloudIslands.forEach((island) => {
           const islandTilesMap = new Set(island.tiles.map((t) => `${t.x},${t.y}`));
@@ -501,16 +511,16 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full" />
 
       {/* TOP IN-GAME HUD */}
-      <header className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between pointer-events-none select-none">
-        {/* Left Stats Cluster */}
-        <div className="flex items-center gap-2 pointer-events-auto">
+      <header className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between pointer-events-none select-none gap-2 flex-wrap sm:flex-nowrap">
+        {/* Left Stats Cluster: Navigation, Lives, Coins, Crystals, Stars */}
+        <div className="flex items-center gap-2 pointer-events-auto flex-wrap sm:flex-nowrap">
           {/* Return to Editor CTA */}
           <button
             onClick={() => {
               sound.stopBgm();
               onExitToEditor();
             }}
-            className="retro-btn-sm px-3 py-1.5 rounded-[4px] bg-[var(--panel-bg)] hover:bg-[var(--accent-amber)] hover:text-slate-950 border-2 border-[var(--border-color)] text-[var(--accent-amber)] font-pixel text-[10px] flex items-center gap-1.5 shadow-[2px_2px_0px_var(--shadow-color)] transition-all cursor-pointer"
+            className="retro-btn-sm px-3 py-1.5 rounded-md bg-[#1E293B] hover:bg-amber-400 hover:text-black border-4 border-black text-amber-300 font-pixel text-[10px] flex items-center gap-1.5 shadow-[3px_3px_0px_#000000] transition-all cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />
             <span className="hidden sm:inline">В РЕДАКТОР</span>
@@ -523,7 +533,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
                 sound.playClick();
                 onExitToMenu();
               }}
-              className="retro-btn-sm px-3 py-1.5 rounded-[4px] bg-[var(--panel-bg)] hover:bg-[var(--accent-blue)] hover:text-white border-2 border-[var(--border-color)] text-[var(--text-main)] font-pixel text-[10px] flex items-center gap-1.5 shadow-[2px_2px_0px_var(--shadow-color)] transition-all cursor-pointer"
+              className="retro-btn-sm px-3 py-1.5 rounded-md bg-[#1E293B] hover:bg-sky-400 hover:text-black border-4 border-black text-sky-300 font-pixel text-[10px] flex items-center gap-1.5 shadow-[3px_3px_0px_#000000] transition-all cursor-pointer"
             >
               <Home className="w-3.5 h-3.5 text-sky-400" />
               <span className="hidden sm:inline">В СТУДИЮ</span>
@@ -531,51 +541,73 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           )}
 
           {/* Hearts / Lives */}
-          <div className="px-2.5 py-1.5 rounded-[4px] bg-[var(--panel-bg)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center gap-1">
-            {[...Array(3)].map((_, i) => (
-              <Heart
-                key={i}
-                className={`w-4 h-4 ${
-                  i < stats.lives
-                    ? 'text-rose-500 fill-rose-500 animate-pulse'
-                    : 'text-slate-600 fill-slate-800'
-                }`}
-              />
-            ))}
+          <div className="px-2.5 py-1.5 rounded-md bg-[#0F172A] border-4 border-black shadow-[3px_3px_0px_#000000] flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
+              {[...Array(3)].map((_, i) => (
+                <Heart
+                  key={i}
+                  className={`w-4 h-4 ${
+                    i < stats.lives
+                      ? 'text-rose-500 fill-rose-500 animate-pulse'
+                      : 'text-slate-700 fill-slate-900'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="font-pixel text-[11px] text-rose-400 font-bold ml-0.5">
+              {stats.lives}
+            </span>
           </div>
 
           {/* Coins */}
-          <div className="px-2.5 py-1.5 rounded-[4px] bg-[var(--panel-bg)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center gap-1.5 text-xs font-bold text-[var(--accent-amber)]">
-            <Coins className="w-4 h-4 fill-amber-400 text-amber-500" />
-            <span className="tabular-nums font-body font-bold text-xs">{stats.coinsCollected}</span>
+          <div className="px-2.5 py-1.5 rounded-md bg-[#0F172A] border-4 border-black shadow-[3px_3px_0px_#000000] flex items-center gap-1.5 text-amber-300">
+            <Coins className="w-4 h-4 fill-amber-400 text-amber-600 shrink-0" />
+            <span className="font-pixel text-[11px] tracking-wider font-bold text-amber-300">
+              {stats.coinsCollected}
+            </span>
+          </div>
+
+          {/* Crystals */}
+          <div className="px-2.5 py-1.5 rounded-md bg-[#0F172A] border-4 border-black shadow-[3px_3px_0px_#000000] flex items-center gap-1.5 text-purple-300">
+            <Gem className="w-4 h-4 fill-purple-400 text-purple-600 shrink-0" />
+            <span className="font-pixel text-[11px] tracking-wider font-bold text-purple-300">
+              {stats.crystalsCollected}
+            </span>
           </div>
 
           {/* Stars */}
-          <div className="px-2.5 py-1.5 rounded-[4px] bg-[var(--panel-bg)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center gap-1.5 text-xs font-bold text-amber-400">
-            <Sparkles className="w-4 h-4 fill-amber-400 text-amber-500" />
-            <span className="tabular-nums font-body font-bold text-xs">{stats.starsCollected}</span>
+          <div className="px-2.5 py-1.5 rounded-md bg-[#0F172A] border-4 border-black shadow-[3px_3px_0px_#000000] flex items-center gap-1.5 text-yellow-300">
+            <Sparkles className="w-4 h-4 fill-yellow-400 text-yellow-600 shrink-0" />
+            <span className="font-pixel text-[11px] tracking-wider font-bold text-yellow-300">
+              {stats.starsCollected}
+            </span>
           </div>
         </div>
 
-        {/* Right Stats: Time, Score, Sound, Pause */}
+        {/* Right Stats Cluster: Time, Score, Audio & Controls */}
         <div className="flex items-center gap-2 pointer-events-auto">
           {/* Timer in HUD: Conditionally rendered based on Show Timer setting */}
           {(SettingsManager.getSettings().showTimer ?? true) && (
-            <div className="px-2.5 py-1.5 rounded-[4px] bg-[var(--panel-bg)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center gap-1.5 text-xs font-bold text-[var(--text-main)]">
-              <Clock className="w-3.5 h-3.5 text-sky-400" />
-              <span className="tabular-nums font-body font-bold">{Math.ceil(stats.timeRemaining)}s</span>
+            <div className="px-2.5 py-1.5 rounded-md bg-[#0F172A] border-4 border-black shadow-[3px_3px_0px_#000000] flex items-center gap-1.5 text-sky-300">
+              <Clock className="w-4 h-4 text-sky-400 shrink-0" />
+              <span className="font-pixel text-[11px] tracking-wider font-bold">
+                {Math.ceil(stats.timeRemaining)}s
+              </span>
             </div>
           )}
 
-          <div className="px-2.5 py-1.5 rounded-[4px] bg-[var(--panel-bg)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] text-xs font-bold text-[var(--accent-emerald)] flex items-center gap-1">
-            <span className="font-pixel text-[10px]">ОЧКИ:</span>
-            <span className="tabular-nums font-body font-bold text-xs">{stats.score}</span>
+          {/* Score */}
+          <div className="px-2.5 py-1.5 rounded-md bg-[#0F172A] border-4 border-black shadow-[3px_3px_0px_#000000] text-emerald-400 flex items-center gap-1.5">
+            <span className="font-pixel text-[10px] text-emerald-400">СЧЁТ:</span>
+            <span className="font-pixel text-[11px] text-white tracking-widest font-bold">
+              {stats.score.toString().padStart(5, '0')}
+            </span>
           </div>
 
           <button
             onClick={onToggleMute}
             title={isMuted ? 'Включить звук' : 'Заглушить звук'}
-            className="retro-btn-sm p-1.5 rounded-[4px] bg-[var(--panel-bg)] hover:bg-[var(--card-subtle)] border-2 border-[var(--border-color)] text-[var(--text-main)] shadow-[2px_2px_0px_var(--shadow-color)] cursor-pointer"
+            className="retro-btn-sm p-1.5 rounded-md bg-[#1E293B] hover:bg-slate-700 border-4 border-black text-[var(--text-main)] shadow-[3px_3px_0px_#000000] cursor-pointer"
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
           </button>
@@ -583,7 +615,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           <button
             onClick={() => setIsPaused((p) => !p)}
             title={isPaused ? 'Продолжить' : 'Пауза'}
-            className="retro-btn-sm p-1.5 rounded-[4px] bg-[var(--panel-bg)] hover:bg-[var(--card-subtle)] border-2 border-[var(--border-color)] text-[var(--text-main)] shadow-[2px_2px_0px_var(--shadow-color)] cursor-pointer"
+            className="retro-btn-sm p-1.5 rounded-md bg-[#1E293B] hover:bg-slate-700 border-4 border-black text-[var(--text-main)] shadow-[3px_3px_0px_#000000] cursor-pointer"
           >
             {isPaused ? <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" /> : <Pause className="w-4 h-4" />}
           </button>
@@ -591,7 +623,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           <button
             onClick={onToggleFullscreen}
             title={isFullscreen ? 'В окне' : 'Во весь экран'}
-            className="retro-btn-sm p-1.5 rounded-[4px] bg-[var(--panel-bg)] hover:bg-[var(--card-subtle)] border-2 border-[var(--border-color)] text-[var(--text-main)] shadow-[2px_2px_0px_var(--shadow-color)] cursor-pointer"
+            className="retro-btn-sm p-1.5 rounded-md bg-[#1E293B] hover:bg-slate-700 border-4 border-black text-[var(--text-main)] shadow-[3px_3px_0px_#000000] cursor-pointer"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>

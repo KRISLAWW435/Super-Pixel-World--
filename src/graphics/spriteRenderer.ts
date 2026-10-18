@@ -909,14 +909,35 @@ export class SpriteRenderer {
   }
 
   private static drawCrystal(ctx: CanvasRenderingContext2D, s: number, animTime: number) {
-    const floatY = Math.sin(animTime * 3.5) * 2;
+    const floatY = Math.sin(animTime * 3.5) * 2.5;
     ctx.translate(s * 0.5, s * 0.5 + floatY);
 
-    // Diamond gem polygon
+    // 1. Soft Luminous Aura
+    const pulse = 0.88 + Math.sin(animTime * 5) * 0.12;
+    ctx.fillStyle = 'rgba(192, 132, 252, 0.35)';
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.44 * pulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Chunky Retro Dark Outline
+    ctx.beginPath();
+    ctx.moveTo(0, -s * 0.42);
+    ctx.lineTo(s * 0.36, -s * 0.06);
+    ctx.lineTo(0, s * 0.42);
+    ctx.lineTo(-s * 0.36, -s * 0.06);
+    ctx.closePath();
+    ctx.fillStyle = '#1e1b4b'; // deep indigo backing
+    ctx.fill();
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // 3. Vibrant Gem Body Gradient
     const gemGrad = ctx.createLinearGradient(0, -s * 0.4, 0, s * 0.4);
-    gemGrad.addColorStop(0, '#c084fc');
-    gemGrad.addColorStop(0.5, '#a855f7');
-    gemGrad.addColorStop(1, '#6b21a8');
+    gemGrad.addColorStop(0, '#f5d0fe'); // bright fuchsia specular
+    gemGrad.addColorStop(0.3, '#c084fc'); // glowing lavender
+    gemGrad.addColorStop(0.7, '#9333ea'); // rich purple
+    gemGrad.addColorStop(1, '#581c87'); // deep royal amethyst
     ctx.fillStyle = gemGrad;
 
     ctx.beginPath();
@@ -927,18 +948,30 @@ export class SpriteRenderer {
     ctx.closePath();
     ctx.fill();
 
-    // Facet lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    // 4. Facet Internal Lines
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.32, -s * 0.05);
+    ctx.lineTo(s * 0.32, -s * 0.05);
+    ctx.moveTo(0, -s * 0.38);
+    ctx.lineTo(0, s * 0.38);
     ctx.stroke();
 
-    // Facet highlight
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    // 5. Facet Highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
     ctx.beginPath();
     ctx.moveTo(0, -s * 0.38);
-    ctx.lineTo(s * 0.32, -s * 0.05);
+    ctx.lineTo(-s * 0.32, -s * 0.05);
     ctx.lineTo(0, 0);
     ctx.closePath();
+    ctx.fill();
+
+    // 6. Twinkling Specular Sparkle Glint
+    const spSize = 2.5 + Math.sin(animTime * 6) * 1.2;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, -s * 0.35, spSize, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -1469,7 +1502,8 @@ export class SpriteRenderer {
       ctx.restore();
     }
 
-    const heroScale = isThumbnail ? 1 : height / 80;
+    // Scale sprite so that rendered height matches player height (105px) exactly while keeping bottom-center alignment
+    const heroScale = isThumbnail ? 1 : height / 96;
     const dw = 64 * heroScale;
     const dh = 96 * heroScale;
 

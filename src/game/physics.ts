@@ -15,6 +15,7 @@ import {
   LevelData,
   LevelItem,
   Particle,
+  SpawnedLootItem,
   TileId,
 } from '../types/game';
 
@@ -67,6 +68,7 @@ export class PhysicsEngine {
   public enemies: ActiveEnemy[] = [];
   public particles: Particle[] = [];
   public blockBumps: ActiveBlockBump[] = [];
+  public spawnedLoot: SpawnedLootItem[] = [];
   public floatingTexts: FloatingText[] = [];
   public cloudIslands: CloudIsland[] = [];
   public standingCloudIsland: CloudIsland | null = null;
@@ -89,9 +91,9 @@ export class PhysicsEngine {
     const startCellX = spawnItem ? spawnItem.x : 3;
     const startCellY = spawnItem ? spawnItem.y : 12;
 
-    // Playable hero physical hitbox dimensions (height 110px [2.75 tiles] to pass under 3-tile gaps [120px] with 10px clearance, slim width 24px)
+    // Playable hero physical hitbox dimensions (height 105px [2.6 tiles] to pass under 3-tile gaps [120px] with room to spare, slim width 24px)
     const playerWidth = 24;
-    const playerHeight = 110;
+    const playerHeight = 105;
     const startPx = startCellX * CELL_SIZE + Math.floor((CELL_SIZE - playerWidth) * 0.5);
     const startPy = (startCellY + 1) * CELL_SIZE - playerHeight;
 
@@ -571,8 +573,9 @@ export class PhysicsEngine {
     // --- Enemies Update & Collisions ---
     this.updateEnemies(clampedDt, fallingVy, playerPreY);
 
-    // --- Block Bumps & Particles ---
+    // --- Block Bumps, Spawned Loot & Particles ---
     this.updateBlockBumps(clampedDt);
+    this.updateSpawnedLoot(clampedDt);
     this.updateParticles(clampedDt);
     this.updateFloatingTexts(clampedDt);
   }
@@ -671,37 +674,30 @@ export class PhysicsEngine {
         });
       }
 
-      // Randomized Drop System (Gold Coin, Heart, Magic Crystal)
+      // Randomized Physical Drop Item (Gold Coin 45%, Heart 30%, Magic Crystal 25%)
       const roll = Math.random();
+      let lootTile: 'coin' | 'bonus_heart' | 'crystal' = 'coin';
       if (roll < 0.45) {
-        // Drop 1: Gold Coin (~45% chance)
-        sound.playCoin();
-        this.stats.coinsCollected++;
-        this.stats.score += 200;
-        this.emitCoinPop(spawnX, spawnY);
-        this.emitSparkles(spawnX, spawnY, '#fbbf24');
-        this.addFloatingText('+1 Монета! +200 🪙', spawnX, spawnY - 12, '#fbbf24');
+        lootTile = 'coin';
       } else if (roll < 0.75) {
-        // Drop 2: Heart - Restores 1 HP (~30% chance)
-        sound.playHeal();
-        if (this.stats.lives < 3) {
-          this.stats.lives = Math.min(3, this.stats.lives + 1);
-          this.addFloatingText('+1 Жизнь! ❤️', spawnX, spawnY - 12, '#f43f5e');
-        } else {
-          this.stats.score += 500;
-          this.addFloatingText('Максимум жизней! +500 ❤️', spawnX, spawnY - 12, '#f43f5e');
-        }
-        this.emitHeartSparkles(spawnX, spawnY);
-        this.emitSparkles(spawnX, spawnY, '#fb7185');
+        lootTile = 'bonus_heart';
       } else {
-        // Drop 3: Magic Crystal - Adds to score (~25% chance)
-        sound.playGem();
-        this.stats.crystalsCollected++;
-        this.stats.score += 1000;
-        this.emitStars(spawnX, spawnY);
-        this.emitSparkles(spawnX, spawnY, '#c084fc');
-        this.addFloatingText('+КРИСТАЛЛ! +1000 💎', spawnX, spawnY - 12, '#c084fc');
+        lootTile = 'crystal';
       }
+
+      // Spawn physical collectible entity that pops up from the block and falls down with gravity
+      this.spawnedLoot.push({
+        id: `loot_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        tileId: lootTile,
+        x: col * CELL_SIZE,
+        y: (row - 1) * CELL_SIZE,
+        vx: (Math.random() - 0.5) * 1.6,
+        vy: -6.5, // gentle vertical impulse upward
+        width: CELL_SIZE,
+        height: CELL_SIZE,
+        isGrounded: false,
+        collected: false,
+      });
     } else if (item.tileId === 'brick') {
       sound.playBreak();
       this.stats.score += 50;
@@ -753,12 +749,15 @@ export class PhysicsEngine {
   }
 
   private handleItemTouch(item: LevelItem, col: number, row: number) {
+    const centerPx = col * CELL_SIZE + CELL_SIZE * 0.5;
+    const centerPy = row * CELL_SIZE + CELL_SIZE * 0.5;
+
     if (item.tileId === 'bonus_heart') {
       if (this.stats.lives < 3) {
         this.stats.lives = Math.min(3, this.stats.lives + 1);
         sound.playHeal();
-        this.emitHeartSparkles(col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE + CELL_SIZE * 0.5);
-        this.addFloatingText('+1 Жизнь!', col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE, '#f43f5e');
+        this.emitHeartSparkles(centerPx, centerPy);
+        this.emitHudSparkle(centerPx, centerPy, '#f43f5e');
         this.removeItem(item);
       } else {
         // Player already has 3 lives (maximum) -> Don't delete heart so player can return later!
@@ -768,26 +767,29 @@ export class PhysicsEngine {
           if (!item.properties) item.properties = {};
           item.properties.lastAlert = now;
           sound.playBump();
-          this.addFloatingText('Максимум жизней!', col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE - 10, '#fbbf24');
         }
       }
     } else if (item.tileId === 'coin') {
       sound.playCoin();
       this.stats.coinsCollected++;
       this.stats.score += 100;
-      this.emitCoinPop(col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE + CELL_SIZE * 0.5);
+      this.emitCoinPop(centerPx, centerPy);
+      this.emitHudSparkle(centerPx, centerPy, '#fbbf24');
       this.removeItem(item);
     } else if (item.tileId === 'star') {
       sound.playGem();
       this.stats.starsCollected++;
       this.stats.score += 500;
-      this.emitStars(col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE + CELL_SIZE * 0.5);
+      this.emitStars(centerPx, centerPy);
+      this.emitHudSparkle(centerPx, centerPy, '#facc15');
       this.removeItem(item);
     } else if (item.tileId === 'crystal') {
       sound.playGem();
       this.stats.crystalsCollected++;
       this.stats.score += 1000;
-      this.emitSparkles(col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE + CELL_SIZE * 0.5, '#c084fc');
+      this.emitSparkles(centerPx, centerPy, '#c084fc');
+      this.emitStars(centerPx, centerPy);
+      this.emitHudSparkle(centerPx, centerPy, '#c084fc');
       this.removeItem(item);
     } else if (item.tileId === 'spring') {
       // Spring bounce - SUPER LAUNCH!
@@ -1260,6 +1262,95 @@ export class PhysicsEngine {
     this.blockBumps = this.blockBumps.filter((b) => b.offsetY < 0);
   }
 
+  private updateSpawnedLoot(dt: number) {
+    if (this.spawnedLoot.length === 0) return;
+
+    const gravity = 22; // natural platformer gravity for popped loot
+    const step = dt * 60;
+    const maxLevelRow = this.levelData.height || GRID_ROWS;
+
+    for (let i = 0; i < this.spawnedLoot.length; i++) {
+      const loot = this.spawnedLoot[i];
+      if (loot.collected) continue;
+
+      // Apply vertical gravity and horizontal motion if in the air
+      if (!loot.isGrounded) {
+        loot.vy += gravity * dt;
+        if (loot.vy > 12) loot.vy = 12;
+
+        loot.y += loot.vy * step;
+        loot.x += loot.vx * step;
+
+        // Ground landing check on solid blocks
+        if (loot.vy >= 0) {
+          const footY = loot.y + loot.height;
+          const colCenter = Math.floor((loot.x + loot.width * 0.5) / CELL_SIZE);
+          const footRow = Math.floor(footY / CELL_SIZE);
+
+          if (this.solidGrid.has(`${colCenter},${footRow}`)) {
+            loot.y = footRow * CELL_SIZE - loot.height;
+            loot.vy = 0;
+            loot.vx = 0;
+            loot.isGrounded = true;
+          }
+        }
+      }
+
+      // Check boundary fall
+      if (loot.y > maxLevelRow * CELL_SIZE + 80) {
+        loot.collected = true;
+        continue;
+      }
+
+      // Check collision with player to collect (re-using existing item collision logic)
+      const lootBox = {
+        x: loot.x + 4,
+        y: loot.y + 4,
+        w: loot.width - 8,
+        h: loot.height - 8,
+      };
+
+      if (this.isAABBIntersect(this.player, lootBox)) {
+        const centerPx = loot.x + loot.width * 0.5;
+        const centerPy = loot.y + loot.height * 0.5;
+
+        if (loot.tileId === 'bonus_heart') {
+          if (this.stats.lives < 3) {
+            this.stats.lives = Math.min(3, this.stats.lives + 1);
+            sound.playHeal();
+            this.emitHeartSparkles(centerPx, centerPy);
+            this.emitHudSparkle(centerPx, centerPy, '#f43f5e');
+            loot.collected = true;
+          } else {
+            this.stats.score += 500;
+            sound.playCoin();
+            this.emitSparkles(centerPx, centerPy, '#fbbf24');
+            this.emitHudSparkle(centerPx, centerPy, '#fbbf24');
+            loot.collected = true;
+          }
+        } else if (loot.tileId === 'coin') {
+          sound.playCoin();
+          this.stats.coinsCollected++;
+          this.stats.score += 200;
+          this.emitCoinPop(centerPx, centerPy);
+          this.emitSparkles(centerPx, centerPy, '#fbbf24');
+          this.emitHudSparkle(centerPx, centerPy, '#fbbf24');
+          loot.collected = true;
+        } else if (loot.tileId === 'crystal') {
+          sound.playGem();
+          this.stats.crystalsCollected++;
+          this.stats.score += 1000;
+          this.emitStars(centerPx, centerPy);
+          this.emitSparkles(centerPx, centerPy, '#c084fc');
+          this.emitHudSparkle(centerPx, centerPy, '#c084fc');
+          loot.collected = true;
+        }
+      }
+    }
+
+    this.spawnedLoot = this.spawnedLoot.filter((l) => !l.collected);
+  }
+
   private updateParticles(dt: number) {
     this.particles.forEach((p) => {
       p.x += p.vx;
@@ -1272,6 +1363,37 @@ export class PhysicsEngine {
       }
     });
     this.particles = this.particles.filter((p) => p.life < p.maxLife);
+  }
+
+  public emitHudSparkle(x: number, y: number, color: string = '#fbbf24') {
+    // Fast sparkle particle flying straight up towards top HUD
+    this.particles.push({
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 2,
+      vy: -13,
+      color,
+      size: 5,
+      alpha: 1,
+      life: 0,
+      maxLife: 0.5,
+      shape: 'sparkle',
+    });
+    // Twin trail sparkles
+    for (let i = 0; i < 3; i++) {
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 6,
+        y: y + (Math.random() - 0.5) * 6,
+        vx: (Math.random() - 0.5) * 3,
+        vy: -7 - Math.random() * 4,
+        color,
+        size: Math.random() * 2.5 + 2,
+        alpha: 1,
+        life: 0,
+        maxLife: 0.35,
+        shape: 'star',
+      });
+    }
   }
 
   public emitDust(x: number, y: number) {

@@ -155,6 +155,19 @@ export interface ActiveBlockBump {
   tileId: TileId;
 }
 
+export interface SpawnedLootItem {
+  id: string;
+  tileId: 'coin' | 'bonus_heart' | 'crystal';
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  width: number;
+  height: number;
+  isGrounded: boolean;
+  collected: boolean;
+}
+
 export interface GameStats {
   coinsCollected: number;
   totalCoins: number;

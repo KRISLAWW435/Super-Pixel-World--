@@ -245,7 +245,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           </button>
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider truncate">
+            <h3 className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider truncate">
               Мастерская блоков
             </h3>
           </div>

@@ -428,6 +428,19 @@ body.theme-light .retro-grid-pattern {
   box-shadow: 6px 6px 0px var(--shadow-color);
 }
 
+/* Archive screen overlays & game card borders in dark theme */
+.archive-overlay-light {
+  background: rgba(255, 255, 255, 0.1);
+}
+.archive-overlay-dark {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+body:not(.theme-light) .retro-cartridge,
+:root:not(.theme-light) .retro-cartridge {
+  border-color: #64748B;
+}
+
 /* Legacy helper classes kept for backward compatibility */
 .pixel-panel {
   background-color: var(--panel-bg);
