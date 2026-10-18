@@ -92,6 +92,15 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
   const [challengeCompleted, setChallengeCompleted] = useState<boolean>(false);
   const [showChallengeBanner, setShowChallengeBanner] = useState<boolean>(false);
   const challengeCompletedRef = useRef<boolean>(false);
+  const prevStatsRef = useRef({
+    coinsCollected: -1,
+    score: -1,
+    lives: -1,
+    crystalsCollected: -1,
+    starsCollected: -1,
+    enemiesDefeated: -1,
+    sec: -1,
+  });
 
   // Calculate totals from levelData
   const totalCoins = React.useMemo(() => {
@@ -388,8 +397,29 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
         // Reset single-frame jump triggers
         keysRef.current.jumpJustPressed = false;
 
-        // Sync React HUD state
-        setStats({ ...engine.stats });
+        // Sync React HUD state only when visible values change
+        const currentSec = Math.ceil(engine.stats.timeRemaining);
+        const p = prevStatsRef.current;
+        if (
+          p.coinsCollected !== engine.stats.coinsCollected ||
+          p.score !== engine.stats.score ||
+          p.lives !== engine.stats.lives ||
+          p.crystalsCollected !== engine.stats.crystalsCollected ||
+          p.starsCollected !== engine.stats.starsCollected ||
+          p.enemiesDefeated !== engine.stats.enemiesDefeated ||
+          p.sec !== currentSec
+        ) {
+          prevStatsRef.current = {
+            coinsCollected: engine.stats.coinsCollected,
+            score: engine.stats.score,
+            lives: engine.stats.lives,
+            crystalsCollected: engine.stats.crystalsCollected,
+            starsCollected: engine.stats.starsCollected,
+            enemiesDefeated: engine.stats.enemiesDefeated,
+            sec: currentSec,
+          };
+          setStats({ ...engine.stats });
+        }
 
         // Goal & Challenge Completion Check (in real time)
         const activeGoal = levelData.goalType;
@@ -888,7 +918,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       {/* GAMEPAD CONNECTION TOAST NOTIFICATION */}
       {gamepadToast && (
         <div className="absolute top-18 right-4 z-50 pointer-events-none animate-in fade-in slide-in-from-top-3 duration-300">
-          <div className="px-4 py-2.5 rounded-xl bg-slate-900/95 border-2 border-emerald-400 text-white shadow-[4px_4px_0px_#000000] flex items-center gap-3 backdrop-blur-md select-none">
+          <div className="px-4 py-2.5 rounded-xl bg-slate-900 border-2 border-emerald-400 text-white shadow-[4px_4px_0px_#000000] flex items-center gap-3 select-none">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400 text-emerald-400 flex items-center justify-center text-lg font-bold">
               🎮
             </div>
@@ -933,7 +963,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       {/* Interactive In-Game Tutorial Mission Guide (Step 8) */}
       {isTutorialMode && !isVictory && !isGameOver && (
         <div className="absolute top-16 left-4 right-4 z-40 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-3">
-          <div data-dark-panel="true" className="dark-panel max-w-2xl bg-slate-950/95 border-2 border-amber-400 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-amber-500/20 pointer-events-auto backdrop-blur-md flex items-center justify-between gap-3 text-white">
+          <div data-dark-panel="true" className="dark-panel max-w-2xl bg-slate-950 border-2 border-amber-400 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-amber-500/20 pointer-events-auto flex items-center justify-between gap-3 text-white">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-400 flex items-center justify-center shrink-0 text-2xl animate-bounce">
                 {!hasMoved ? '🏃' : !hasJumped ? '🦘' : stats.coinsCollected === 0 ? '🪙' : '🚩'}
@@ -963,7 +993,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       {/* Intro Controls & Battle Guide Banner */}
       {showControlsBanner && !isTutorialMode && !isVictory && !isGameOver && (
         <div className="absolute top-16 left-4 right-4 z-40 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-3 duration-300">
-          <div data-dark-panel="true" className="dark-panel max-w-xl bg-slate-900/95 border-2 border-emerald-500/60 rounded-2xl p-3.5 shadow-2xl shadow-emerald-500/15 pointer-events-auto backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
+          <div data-dark-panel="true" className="dark-panel max-w-xl bg-slate-900 border-2 border-emerald-500/60 rounded-2xl p-3.5 shadow-2xl shadow-emerald-500/15 pointer-events-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 text-xl font-bold">
                 🎮

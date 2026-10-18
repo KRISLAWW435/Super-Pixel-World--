@@ -18,6 +18,7 @@ import {
   SpawnedLootItem,
   TileId,
 } from '../types/game';
+import { JuiceActionType } from '../components/GameJuicePopup';
 
 export interface PlayerState {
   x: number;
@@ -77,6 +78,7 @@ export class PhysicsEngine {
   public isGameOver: boolean = false;
   public heroId: HeroId;
   public levelData: LevelData;
+  public onJuiceTrigger?: (type: JuiceActionType) => void;
 
   // Spatial lookup grid for O(1) tile collisions
   private solidGrid: Map<string, LevelItem> = new Map();
@@ -175,15 +177,33 @@ export class PhysicsEngine {
       }
     });
 
-    this.buildCloudIslands();
+    // Only build cloud islands on initial setup; do not recreate during gameplay
+    if (this.cloudIslands.length === 0) {
+      this.buildCloudIslands(false);
+    }
   }
 
-  private buildCloudIslands() {
-    this.cloudIslands = [];
-
+  public buildCloudIslands(preserveOffsets: boolean = true) {
     // Find all cloud_platform items
     const cloudItems = this.levelData.items.filter((it) => it.tileId === 'cloud_platform');
-    if (cloudItems.length === 0) return;
+    if (cloudItems.length === 0) {
+      this.cloudIslands = [];
+      return;
+    }
+
+    // Save existing offset states so existing islands do not jump or twitch
+    const existingOffsets = new Map<string, { ox: number; oy: number; pox: number; poy: number }>();
+    if (preserveOffsets && this.cloudIslands.length > 0) {
+      this.cloudIslands.forEach((isl) => {
+        const key = isl.tiles.map((t) => `${t.x},${t.y}`).sort().join(';');
+        existingOffsets.set(key, {
+          ox: isl.offsetX,
+          oy: isl.offsetY,
+          pox: isl.prevOffsetX,
+          poy: isl.prevOffsetY,
+        });
+      });
+    }
 
     // Disjoint set / Connected components via BFS
     const cloudCoordMap = new Map<string, LevelItem>();
@@ -191,6 +211,7 @@ export class PhysicsEngine {
 
     const visited = new Set<string>();
     let islandIdx = 0;
+    const nextIslands: CloudIsland[] = [];
 
     cloudItems.forEach((item) => {
       const startKey = `${item.x},${item.y}`;
@@ -271,23 +292,28 @@ export class PhysicsEngine {
         ? Math.min(maxUp, maxDown, 36)
         : Math.min(maxLeft, maxRight, 36);
 
-      this.cloudIslands.push({
+      const groupKey = group.map((t) => `${t.x},${t.y}`).sort().join(';');
+      const existing = existingOffsets.get(groupKey);
+
+      nextIslands.push({
         id: `cloud_island_${islandIdx++}`,
         tiles: group.map((t) => ({ x: t.x, y: t.y, id: t.id })),
         minX,
         maxX,
         minY,
         maxY,
-        offsetX: 0,
-        offsetY: 0,
-        prevOffsetX: 0,
-        prevOffsetY: 0,
+        offsetX: existing ? existing.ox : 0,
+        offsetY: existing ? existing.oy : 0,
+        prevOffsetX: existing ? existing.pox : 0,
+        prevOffsetY: existing ? existing.poy : 0,
         axis,
         amplitude: Math.max(0, amplitude),
         speed: 1.8,
         phase: (minX * 0.75) % (Math.PI * 2),
       });
     });
+
+    this.cloudIslands = nextIslands;
   }
 
   private spawnEnemies() {
@@ -710,7 +736,9 @@ export class PhysicsEngine {
       if (idx !== -1) {
         this.levelData.items.splice(idx, 1);
       }
-      this.rebuildCollisionGrids();
+      const key = `${col},${row}`;
+      this.itemMap.delete(key);
+      this.solidGrid.delete(key);
     } else {
       sound.playBump();
       this.blockBumps.push({
@@ -756,6 +784,7 @@ export class PhysicsEngine {
       if (this.stats.lives < 3) {
         this.stats.lives = Math.min(3, this.stats.lives + 1);
         sound.playHeal();
+        this.onJuiceTrigger?.('heart');
         this.emitHeartSparkles(centerPx, centerPy);
         this.emitHudSparkle(centerPx, centerPy, '#f43f5e');
         this.removeItem(item);
@@ -771,6 +800,7 @@ export class PhysicsEngine {
       }
     } else if (item.tileId === 'coin') {
       sound.playCoin();
+      this.onJuiceTrigger?.('coin');
       this.stats.coinsCollected++;
       this.stats.score += 100;
       this.emitCoinPop(centerPx, centerPy);
@@ -778,6 +808,7 @@ export class PhysicsEngine {
       this.removeItem(item);
     } else if (item.tileId === 'star') {
       sound.playGem();
+      this.onJuiceTrigger?.('crystal');
       this.stats.starsCollected++;
       this.stats.score += 500;
       this.emitStars(centerPx, centerPy);
@@ -785,6 +816,7 @@ export class PhysicsEngine {
       this.removeItem(item);
     } else if (item.tileId === 'crystal') {
       sound.playGem();
+      this.onJuiceTrigger?.('crystal');
       this.stats.crystalsCollected++;
       this.stats.score += 1000;
       this.emitSparkles(centerPx, centerPy, '#c084fc');
@@ -826,7 +858,9 @@ export class PhysicsEngine {
     if (idx !== -1) {
       this.levelData.items.splice(idx, 1);
     }
-    this.rebuildCollisionGrids();
+    const key = `${item.x},${item.y}`;
+    this.itemMap.delete(key);
+    this.solidGrid.delete(key);
   }
 
   private updateEnemies(dt: number, fallingVy: number = 0, playerPreY: number = this.player.y) {
@@ -1163,6 +1197,7 @@ export class PhysicsEngine {
           this.player.isInAir = true;
 
           sound.playStomp();
+          this.onJuiceTrigger?.('enemy');
           this.stats.enemiesDefeated++;
           this.stats.score += 250;
 
@@ -1182,7 +1217,14 @@ export class PhysicsEngine {
     if (deadEnemyIds.size > 0) {
       this.enemies = this.enemies.filter((e) => !deadEnemyIds.has(e.id));
       this.levelData.items = this.levelData.items.filter((it) => !deadEnemyIds.has(it.id));
-      this.rebuildCollisionGrids();
+      deadEnemyIds.forEach((id) => {
+        for (const [key, item] of this.itemMap.entries()) {
+          if (item.id === id) {
+            this.itemMap.delete(key);
+            this.solidGrid.delete(key);
+          }
+        }
+      });
     }
   }
 

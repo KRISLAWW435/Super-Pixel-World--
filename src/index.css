@@ -645,3 +645,54 @@ body:not(.theme-light) .retro-cartridge,
   animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* --- GAME JUICE POP-UP SYSTEM (2.5s sequence) --- */
+@keyframes gameJuicePopup {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  7% {
+    opacity: 1;
+    transform: scale(1.22);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.0);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-5px);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1.0) translateY(0px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.1) translateY(-32px);
+  }
+}
+
+.animate-game-juice {
+  animation: gameJuicePopup 2.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+.juice-text-outline {
+  text-shadow:
+    -3px -3px 0 #000000,
+     0px -3px 0 #000000,
+     3px -3px 0 #000000,
+    -3px  0px 0 #000000,
+     3px  0px 0 #000000,
+    -3px  3px 0 #000000,
+     0px  3px 0 #000000,
+     3px  3px 0 #000000,
+    -4px  0px 0 #000000,
+     4px  0px 0 #000000,
+     0px -4px 0 #000000,
+     0px  4px 0 #000000,
+     4px  4px 0px rgba(0, 0, 0, 0.9);
+  -webkit-text-stroke: 1.5px #000000;
+}
+
+
