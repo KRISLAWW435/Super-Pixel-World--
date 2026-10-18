@@ -24,15 +24,16 @@ import { UserProfile } from './types/storage';
 export type AppScreenMode = 'profile_create' | 'main_menu' | 'my_games' | 'editor' | 'playing';
 
 export default function App() {
-  // Player / Creator Profile
-  const [profile, setProfile] = useState<UserProfile>(() => {
-    const existing = ProfileManager.getProfile();
-    if (existing) return existing;
-    return ProfileManager.createProfile('Создатель', 'avatar_1');
+  // Player / Creator Profile (Multi-profile active profile)
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    return ProfileManager.getActiveProfile();
   });
 
   // Screen Mode: 'profile_create' | 'main_menu' | 'my_games' | 'editor' | 'playing'
-  const [screenMode, setScreenMode] = useState<AppScreenMode>('main_menu');
+  // On first launch or if no active profile exists, force profile creation
+  const [screenMode, setScreenMode] = useState<AppScreenMode>(() => {
+    return ProfileManager.getActiveProfile() ? 'main_menu' : 'profile_create';
+  });
 
   // Level Data: strictly clean of pre-placed enemies, coins, stars, and crystals
   const [levelData, setLevelData] = useState<LevelData>(() => {
@@ -63,9 +64,10 @@ export default function App() {
   const [history, setHistory] = useState<LevelItem[][]>([levelData.items]);
   const [historyIndex, setHistoryIndex] = useState<number>(0);
 
-  // Interactive Onboarding Guided Tour State (Full 12-Step Curriculum)
+  // Interactive Onboarding Guided Tour State (Checks the active profile's completion status)
   const [isGuidedTourOpen, setIsGuidedTourOpen] = useState<boolean>(() => {
-    return !TutorialManager.isGuidedTourCompleted();
+    const active = ProfileManager.getActiveProfile();
+    return active ? !active.tutorialCompleted : true;
   });
   const [guidedTourStep, setGuidedTourStep] = useState<number>(1);
   const [tourBlocksPlaced, setTourBlocksPlaced] = useState<number>(0);
@@ -298,6 +300,10 @@ export default function App() {
 
   const handleCompleteTour = () => {
     TutorialManager.setGuidedTourCompleted(true);
+    if (profile) {
+      ProfileManager.setTutorialCompleted(profile.id, true);
+      setProfile((prev) => (prev ? { ...prev, tutorialCompleted: true } : prev));
+    }
     setIsGuidedTourOpen(false);
     setTourVictory(false);
     setScreenMode('editor');
@@ -306,6 +312,10 @@ export default function App() {
 
   const handleSkipTour = () => {
     TutorialManager.setGuidedTourCompleted(true);
+    if (profile) {
+      ProfileManager.setTutorialCompleted(profile.id, true);
+      setProfile((prev) => (prev ? { ...prev, tutorialCompleted: true } : prev));
+    }
     setIsGuidedTourOpen(false);
     setTourVictory(false);
   };
@@ -621,24 +631,75 @@ export default function App() {
       ref={appContainerRef}
       className="w-screen h-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col font-sans select-none"
     >
-      {/* 1. SCREEN: Profile Creation (First launch if no profile in LocalStorage) */}
+      {/* 1. SCREEN: Profile Creation (First launch or adding a new profile) */}
       {screenMode === 'profile_create' && (
         <ProfileCreationScreen
           onProfileCreated={(newProfile) => {
             setProfile(newProfile);
-            setScreenMode('main_menu');
+            // If tutorial is not completed for this profile, automatically launch Level Editor & Guided Tour
+            if (!newProfile.tutorialCompleted) {
+              const def = createDefaultLevel();
+              def.items = def.items.filter(
+                (it: LevelItem) =>
+                  !it.tileId.startsWith('enemy_') &&
+                  (it.tileId as string) !== 'enemy_walker' &&
+                  it.tileId !== 'coin' &&
+                  it.tileId !== 'star' &&
+                  it.tileId !== 'crystal'
+              );
+              setLevelData(def);
+              setHistory([def.items]);
+              setHistoryIndex(0);
+              setGuidedTourStep(1);
+              setTourBlocksPlaced(0);
+              setTourVictory(false);
+              setTourCoinSelected(false);
+              setTourEnemySelected(false);
+              setTourSpikesSelected(false);
+              setIsGuidedTourOpen(true);
+              setScreenMode('editor');
+            } else {
+              setScreenMode('main_menu');
+            }
           }}
+          onCancel={profile ? () => setScreenMode('main_menu') : undefined}
         />
       )}
 
-      {/* 2. SCREEN: Main Menu (Hero greeting, Play, Create, Settings) */}
+      {/* 2. SCREEN: Main Menu (3 Buttons: Continue, Switch Profile, Settings) */}
       {screenMode === 'main_menu' && profile && (
         <MainMenuScreen
           profile={profile}
           onOpenPlayGames={() => setScreenMode('my_games')}
           onOpenCreateEditor={() => setScreenMode('editor')}
+          onOpenCreateEditorWithTutorial={() => {
+            const def = createDefaultLevel();
+            def.items = def.items.filter(
+              (it: LevelItem) =>
+                !it.tileId.startsWith('enemy_') &&
+                (it.tileId as string) !== 'enemy_walker' &&
+                it.tileId !== 'coin' &&
+                it.tileId !== 'star' &&
+                it.tileId !== 'crystal'
+            );
+            setLevelData(def);
+            setHistory([def.items]);
+            setHistoryIndex(0);
+            setGuidedTourStep(1);
+            setTourBlocksPlaced(0);
+            setTourVictory(false);
+            setTourCoinSelected(false);
+            setTourEnemySelected(false);
+            setTourSpikesSelected(false);
+            setIsGuidedTourOpen(true);
+            setScreenMode('editor');
+          }}
           onOpenPresets={() => setIsLoadModalOpen(true)}
-          onProfileUpdated={(updated) => setProfile(updated)}
+          onProfileUpdated={(updated) => {
+            setProfile(updated);
+            setIsGuidedTourOpen(!updated.tutorialCompleted);
+          }}
+          onOpenCreateProfile={() => setScreenMode('profile_create')}
           isFullscreen={isFullscreen}
           onToggleFullscreen={handleToggleFullscreen}
           isMuted={isMuted}

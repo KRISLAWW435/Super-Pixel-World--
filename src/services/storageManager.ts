@@ -35,20 +35,65 @@ class StorageService {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
+          let profiles: UserProfile[] = [];
+          let activeProfileId: string | null = null;
+
+          if (Array.isArray(parsed.profiles) && parsed.profiles.length > 0) {
+            profiles = parsed.profiles.map((p: any) => ({
+              id: p.id || `prof_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              name: (p.name || 'Создатель').trim().slice(0, 20),
+              avatarId: p.avatarId || 'avatar_1',
+              tutorialCompleted: Boolean(p.tutorialCompleted),
+              createdAt: p.createdAt || new Date().toISOString(),
+              lastLogin: p.lastLogin || new Date().toISOString(),
+            }));
+            activeProfileId = parsed.activeProfileId && profiles.some((p) => p.id === parsed.activeProfileId)
+              ? parsed.activeProfileId
+              : profiles[0].id;
+          } else if (parsed.userProfile && parsed.userProfile.name) {
+            // Migrate legacy single userProfile to multi-profile array
+            const legacyId = 'prof_default';
+            const legacyProfile: UserProfile = {
+              id: legacyId,
+              name: (parsed.userProfile.name || 'Создатель').trim().slice(0, 20),
+              avatarId: parsed.userProfile.avatarId || 'avatar_1',
+              tutorialCompleted: Boolean(parsed.userProfile.tutorialCompleted),
+              createdAt: parsed.userProfile.createdAt || new Date().toISOString(),
+              lastLogin: parsed.userProfile.lastLogin || new Date().toISOString(),
+            };
+            profiles = [legacyProfile];
+            activeProfileId = legacyId;
+          }
+
+          const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
+
+          // Migrate saved games: ensure profileId and authorAvatarId are populated
+          const savedGames: SavedGame[] = Array.isArray(parsed.savedGames)
+            ? parsed.savedGames.map((g: any) => ({
+                ...g,
+                profileId: g.profileId || activeProfile?.id || undefined,
+                authorName: g.authorName || activeProfile?.name || 'Юный архитектор',
+                authorAvatarId: g.authorAvatarId || activeProfile?.avatarId || 'avatar_1',
+                isFavorite: Boolean(g.isFavorite),
+              }))
+            : [];
+
           this.cache = {
-            userProfile: parsed.userProfile || null,
+            profiles,
+            activeProfileId: activeProfile ? activeProfile.id : null,
+            userProfile: activeProfile,
             settings: {
               sound: parsed.settings?.sound ?? DEFAULT_SETTINGS.sound,
               music: parsed.settings?.music ?? DEFAULT_SETTINGS.music,
               volume:
                 typeof parsed.settings?.volume === 'number'
                   ? parsed.settings.volume === 0.8
-                    ? 0.4 // Migrate default 0.8 to 0.4
+                    ? 0.4
                     : parsed.settings.volume
                   : DEFAULT_SETTINGS.volume,
               isMuted: parsed.settings?.isMuted ?? false,
             },
-            savedGames: Array.isArray(parsed.savedGames) ? parsed.savedGames : [],
+            savedGames,
           };
           return this.cache;
         }
@@ -78,6 +123,8 @@ class StorageService {
     }
 
     this.cache = {
+      profiles: [],
+      activeProfileId: null,
       userProfile: null,
       settings: { ...DEFAULT_SETTINGS },
       savedGames: initialSavedGames,
@@ -87,6 +134,13 @@ class StorageService {
   }
 
   public saveRawData(data: StorageData): void {
+    // Keep userProfile in sync with active profile for backward compatibility
+    if (data.activeProfileId) {
+      data.userProfile = data.profiles.find((p) => p.id === data.activeProfileId) || null;
+    } else {
+      data.userProfile = data.profiles[0] || null;
+    }
+
     this.cache = data;
     try {
       localStorage.setItem(ROOT_STORAGE_KEY, JSON.stringify(data));
@@ -108,57 +162,124 @@ class StorageService {
 const storageService = new StorageService();
 
 /**
- * ProfileManager: Manages player creation, avatar selection, and profile updates
+ * ProfileManager: Manages multi-player profiles, active profile selection, and updates
  */
 export class ProfileManager {
-  public static getProfile(): UserProfile | null {
+  public static getProfiles(): UserProfile[] {
     const data = storageService.getRawData();
-    return data.userProfile;
+    return data.profiles || [];
+  }
+
+  public static getActiveProfileId(): string | null {
+    const data = storageService.getRawData();
+    return data.activeProfileId;
+  }
+
+  public static getActiveProfile(): UserProfile | null {
+    const data = storageService.getRawData();
+    if (!data.profiles || data.profiles.length === 0) return null;
+    if (data.activeProfileId) {
+      const found = data.profiles.find((p) => p.id === data.activeProfileId);
+      if (found) return found;
+    }
+    return data.profiles[0] || null;
+  }
+
+  /**
+   * Backward-compatible alias for getActiveProfile()
+   */
+  public static getProfile(): UserProfile | null {
+    return this.getActiveProfile();
   }
 
   public static hasProfile(): boolean {
-    const profile = this.getProfile();
+    const profile = this.getActiveProfile();
     return Boolean(profile && profile.name.trim().length > 0 && profile.avatarId);
+  }
+
+  public static setActiveProfileId(id: string): UserProfile | null {
+    const data = storageService.getRawData();
+    const target = data.profiles.find((p) => p.id === id);
+    if (!target) return null;
+
+    target.lastLogin = new Date().toISOString();
+    data.activeProfileId = id;
+    data.userProfile = target;
+    storageService.saveRawData(data);
+    return target;
   }
 
   public static createProfile(name: string, avatarId: string): UserProfile {
     const cleanName = name.trim().slice(0, 20);
     const now = new Date().toISOString();
+    const id = `prof_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
     const profile: UserProfile = {
+      id,
       name: cleanName,
       avatarId: avatarId || 'avatar_1',
+      tutorialCompleted: false,
       createdAt: now,
       lastLogin: now,
     };
 
     const data = storageService.getRawData();
+    data.profiles = [...data.profiles, profile];
+    data.activeProfileId = id;
     data.userProfile = profile;
     storageService.saveRawData(data);
 
     return profile;
   }
 
-  public static updateName(name: string): UserProfile | null {
+  public static updateProfile(id: string, partial: Partial<UserProfile>): UserProfile | null {
     const data = storageService.getRawData();
-    if (!data.userProfile) return null;
-    data.userProfile.name = name.trim().slice(0, 20);
-    data.userProfile.lastLogin = new Date().toISOString();
+    const idx = data.profiles.findIndex((p) => p.id === id);
+    if (idx < 0) return null;
+
+    data.profiles[idx] = {
+      ...data.profiles[idx],
+      ...partial,
+      lastLogin: new Date().toISOString(),
+    };
+
+    if (data.activeProfileId === id) {
+      data.userProfile = data.profiles[idx];
+    }
+
     storageService.saveRawData(data);
-    return data.userProfile;
+    return data.profiles[idx];
+  }
+
+  public static setTutorialCompleted(profileId?: string, completed: boolean = true): UserProfile | null {
+    const data = storageService.getRawData();
+    const targetId = profileId || data.activeProfileId;
+    if (!targetId) return null;
+
+    return this.updateProfile(targetId, { tutorialCompleted: completed });
+  }
+
+  public static updateName(name: string): UserProfile | null {
+    const active = this.getActiveProfile();
+    if (!active) return null;
+    return this.updateProfile(active.id, { name: name.trim().slice(0, 20) });
   }
 
   public static updateAvatar(avatarId: string): UserProfile | null {
-    const data = storageService.getRawData();
-    if (!data.userProfile) return null;
-    data.userProfile.avatarId = avatarId;
-    data.userProfile.lastLogin = new Date().toISOString();
-    storageService.saveRawData(data);
-    return data.userProfile;
+    const active = this.getActiveProfile();
+    if (!active) return null;
+    return this.updateProfile(active.id, { avatarId });
   }
 
-  public static deleteProfile(): void {
+  public static deleteProfile(id: string): void {
     const data = storageService.getRawData();
-    data.userProfile = null;
+    data.profiles = data.profiles.filter((p) => p.id !== id);
+
+    if (data.activeProfileId === id) {
+      data.activeProfileId = data.profiles.length > 0 ? data.profiles[0].id : null;
+      data.userProfile = data.profiles[0] || null;
+    }
+
     storageService.saveRawData(data);
   }
 }
@@ -185,6 +306,15 @@ export class SaveManager {
     });
   }
 
+  public static getSavedGamesForProfile(profileId?: string | null): SavedGame[] {
+    const all = this.getSavedGames();
+    if (!profileId) return all;
+    // Filter games by active profile; if game has no profileId, include for first/legacy profile
+    const profiles = ProfileManager.getProfiles();
+    const isFirstProfile = profiles.length > 0 && profiles[0].id === profileId;
+    return all.filter((g) => g.profileId === profileId || (!g.profileId && isFirstProfile));
+  }
+
   public static getGameById(id: string): SavedGame | null {
     const games = this.getSavedGames();
     return games.find((g) => g.id === id) || null;
@@ -196,8 +326,11 @@ export class SaveManager {
     existingId?: string
   ): SavedGame {
     const data = storageService.getRawData();
+    const activeProfile = ProfileManager.getActiveProfile();
     const cleanName = (name || levelData.name || 'Мой крутой уровень').trim();
-    const author = data.userProfile?.name || 'Юный архитектор';
+    const author = activeProfile?.name || data.userProfile?.name || 'Юный архитектор';
+    const authorAvatarId = activeProfile?.avatarId || 'avatar_1';
+    const profileId = activeProfile?.id || undefined;
     const dateStr = new Date().toISOString().split('T')[0];
 
     const targetLevel: LevelData = {
@@ -217,7 +350,10 @@ export class SaveManager {
           date: dateStr,
           levelData: targetLevel,
           authorName: author,
+          authorAvatarId,
+          profileId: data.savedGames[idx].profileId || profileId,
           thumbnailTheme: targetLevel.bgTheme,
+          isFavorite: data.savedGames[idx].isFavorite,
         };
         savedGame = data.savedGames[idx];
       } else {
@@ -227,7 +363,10 @@ export class SaveManager {
           date: dateStr,
           levelData: targetLevel,
           authorName: author,
+          authorAvatarId,
+          profileId,
           thumbnailTheme: targetLevel.bgTheme,
+          isFavorite: false,
         };
         data.savedGames.unshift(savedGame);
       }
@@ -238,13 +377,25 @@ export class SaveManager {
         date: dateStr,
         levelData: targetLevel,
         authorName: author,
+        authorAvatarId,
+        profileId,
         thumbnailTheme: targetLevel.bgTheme,
+        isFavorite: false,
       };
       data.savedGames.unshift(savedGame);
     }
 
     storageService.saveRawData(data);
     return savedGame;
+  }
+
+  public static toggleFavorite(id: string): boolean {
+    const data = storageService.getRawData();
+    const game = data.savedGames.find((g) => g.id === id);
+    if (!game) return false;
+    game.isFavorite = !game.isFavorite;
+    storageService.saveRawData(data);
+    return game.isFavorite;
   }
 
   public static deleteGame(id: string): boolean {

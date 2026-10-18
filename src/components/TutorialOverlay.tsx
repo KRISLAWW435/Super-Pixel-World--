@@ -403,8 +403,10 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const isFreeCanvasStep = isRoadStep || isWheelStep || isGameplayPhase;
 
   // Calculate Tooltip Position based on Target Rect with Dynamic Anti-Overlay logic
-  const tooltipWidth = 340;
-  const tooltipHeight = isWheelStep ? 240 : 180;
+  const viewW = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const viewH = typeof window !== 'undefined' ? window.innerHeight : 768;
+  const tooltipWidth = Math.min(480, Math.max(320, viewW - 32));
+  const tooltipHeight = isWheelStep ? 300 : 220;
   const gap = 16;
 
   let tooltipStyle: React.CSSProperties = {
@@ -425,9 +427,6 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     };
     arrowPlacement = 'none';
   } else if (targetRect) {
-    const viewW = window.innerWidth;
-    const viewH = window.innerHeight;
-
     const spaceAbove = targetRect.top;
     const spaceBelow = viewH - targetRect.bottom;
     const spaceLeft = targetRect.left;
@@ -545,18 +544,6 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         </>
       ) : null}
 
-      {/* 2. Top-Right Skip Button */}
-      <button
-        onClick={() => {
-          sound.playClick();
-          onSkip();
-        }}
-        className="fixed top-3.5 right-4 z-50 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all cursor-pointer pointer-events-auto"
-      >
-        <span>Пропустить обучение</span>
-        <X className="w-3.5 h-3.5" />
-      </button>
-
       {/* 3. Ghost Pointer Hand for Step 4 (Centered Canvas Line Drag) */}
       {isRoadStep && (
         <div
@@ -600,15 +587,16 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
       )}
 
       {/* 5. Large Tooltip Card (Editor Phase only - Steps 2-9) */}
+      {/* 5. Large Tooltip Card (Editor Phase only - Steps 2-9) */}
       {!isGameplayPhase && (
         <div
           style={tooltipStyle}
-          className={`fixed z-50 w-72 sm:w-88 pointer-events-auto transition-transform ${
+          className={`fixed z-50 w-[calc(100vw-32px)] sm:w-[460px] md:w-[480px] max-w-[500px] pointer-events-auto transition-transform ${
             isShaking ? 'animate-shake' : ''
           }`}
         >
           <div
-            className={`relative p-4 rounded-2xl border-2 text-white shadow-2xl shadow-black/80 backdrop-blur-md space-y-2.5 transition-all ${
+            className={`relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl border-2 text-white shadow-2xl shadow-black/80 backdrop-blur-md space-y-3.5 transition-all ${
               isSuccess
                 ? 'bg-gradient-to-b from-[#064E3B] to-[#0B0F19] border-emerald-400 shadow-emerald-500/20'
                 : 'bg-gradient-to-b from-[#1E293B] to-[#0F172A] border-amber-400 shadow-black/80'
@@ -648,90 +636,107 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
               />
             )}
 
-            {/* Header Pill & Skip Step Button */}
-            <div className="flex items-center justify-between gap-1">
-              <div className="flex items-center gap-1.5">
+            {/* Header Pill & Skip Controls Inside Card (Zero Overlap with Game UI) */}
+            <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2 min-w-0">
                 <span
-                  className={`px-2 py-0.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shrink-0 ${
                     isSuccess
-                      ? 'bg-emerald-500/30 text-emerald-300'
-                      : 'bg-amber-400/20 text-amber-300'
+                      ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40'
+                      : 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
                   }`}
                 >
                   {isSuccess ? (
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                   ) : (
-                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   )}
                   <span>Шаг {step} из {totalSteps}</span>
                 </span>
 
                 {/* Progress counter on Step 4 */}
                 {step === 4 && (
-                  <span className="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-950/80 px-1.5 py-0.5 rounded-md border border-emerald-500/40">
+                  <span className="text-xs font-bold text-emerald-400 font-mono bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-500/40 shrink-0">
                     {placedCount} / {targetPlacedCount} блока
                   </span>
                 )}
               </div>
 
-              {/* Skip current step button */}
-              {onSkipStep && step > 0 && !isSuccess && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    sound.playClick();
-                    onSkipStep();
-                  }}
-                  title="Пропустить этот шаг обучения"
-                  className="text-[10px] text-amber-300 hover:text-white underline font-semibold cursor-pointer transition-colors shrink-0"
-                >
-                  Пропустить шаг ⏭
-                </button>
-              )}
+              {/* Action Buttons inside top-right corner of the card */}
+              <div className="flex items-center gap-2 shrink-0">
+                {onSkipStep && step > 0 && !isSuccess && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sound.playClick();
+                      onSkipStep();
+                    }}
+                    title="Пропустить этот шаг обучения"
+                    className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-xs text-amber-300 hover:text-white font-bold cursor-pointer transition-all flex items-center gap-1"
+                  >
+                    <span>Пропустить шаг</span>
+                    <span className="text-[10px]">⏭</span>
+                  </button>
+                )}
+
+                {onSkip && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sound.playClick();
+                      onSkip();
+                    }}
+                    title="Завершить обучение"
+                    className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-950/80 border border-slate-700 hover:border-rose-500/60 text-slate-400 hover:text-rose-200 transition-all cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Title */}
             {title && !isSuccess && (
-              <div className="text-xs font-black text-amber-300 uppercase tracking-wide">
+              <div className="text-sm sm:text-base font-black text-amber-300 uppercase tracking-wide">
                 {title}
               </div>
             )}
 
             {/* Mouse Wheel & Grab Panning Visual Demo (Step 5) */}
             {isWheelStep && !isSuccess && (
-              <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-slate-900/90 border border-slate-700/80">
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-900/90 border border-slate-700/80">
                 {/* 1. Mouse with Up/Down arrows (vertical wheel) */}
-                <div className="flex flex-col items-center text-center p-2 rounded-xl bg-slate-800/80 border border-amber-400/30">
-                  <div className="relative w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center mb-1 shadow-sm">
+                <div className="flex flex-col items-center text-center p-2.5 rounded-xl bg-slate-800/80 border border-amber-400/30">
+                  <div className="relative w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center mb-1.5 shadow-sm">
                     <Mouse className="w-5 h-5 text-amber-400 animate-pulse" />
-                    <ArrowUp className="w-3 h-3 text-amber-300 absolute -top-1" />
-                    <ArrowDown className="w-3 h-3 text-amber-300 absolute -bottom-1" />
+                    <ArrowUp className="w-3.5 h-3.5 text-amber-300 absolute -top-1" />
+                    <ArrowDown className="w-3.5 h-3.5 text-amber-300 absolute -bottom-1" />
                   </div>
-                  <div className="text-[11px] font-black text-amber-300 leading-tight">Колёсико мыши</div>
-                  <div className="text-[10px] text-slate-300 mt-0.5">Вверх / Вниз</div>
+                  <div className="text-xs sm:text-[13px] font-black text-amber-300 leading-tight">Колёсико мыши</div>
+                  <div className="text-xs text-slate-300 mt-0.5">Вверх / Вниз</div>
                 </div>
 
                 {/* 2. Grab Hand holding Mouse with Left/Right arrows (horizontal pan) */}
-                <div className="flex flex-col items-center text-center p-2 rounded-xl bg-slate-800/80 border border-cyan-400/30">
-                  <div className="relative w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center mb-1 shadow-sm">
+                <div className="flex flex-col items-center text-center p-2.5 rounded-xl bg-slate-800/80 border border-cyan-400/30">
+                  <div className="relative w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center mb-1.5 shadow-sm">
                     <div className="relative flex items-center justify-center">
                       <Grab className="w-5 h-5 text-cyan-300" />
-                      <Mouse className="w-3 h-3 text-cyan-400 absolute opacity-70" />
+                      <Mouse className="w-3.5 h-3.5 text-cyan-400 absolute opacity-70" />
                     </div>
-                    <ArrowLeft className="w-3 h-3 text-cyan-300 absolute -left-1" />
-                    <ArrowRight className="w-3 h-3 text-cyan-300 absolute -right-1" />
+                    <ArrowLeft className="w-3.5 h-3.5 text-cyan-300 absolute -left-1" />
+                    <ArrowRight className="w-3.5 h-3.5 text-cyan-300 absolute -right-1" />
                   </div>
-                  <div className="text-[11px] font-black text-cyan-300 leading-tight">Зажать колёсико</div>
-                  <div className="text-[10px] text-slate-300 mt-0.5">или Пробел + тяни</div>
+                  <div className="text-xs sm:text-[13px] font-black text-cyan-300 leading-tight">Зажать колёсико</div>
+                  <div className="text-xs text-slate-300 mt-0.5">или Пробел + тяни</div>
                 </div>
               </div>
             )}
 
             {/* Message or Success Feedback */}
             {isSuccess ? (
-              <div className="space-y-2">
-                <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/60 flex items-center gap-2.5 text-emerald-200 text-xs sm:text-sm font-bold shadow-lg">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 stroke-[2.5]" />
+              <div className="space-y-3">
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/60 flex items-center gap-3 text-emerald-200 text-sm sm:text-base font-bold shadow-lg">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0 stroke-[2.5]" />
                   <span>{successMessage || 'Отлично! Шаг выполнен!'}</span>
                 </div>
                 {onNextStep && (
@@ -741,22 +746,22 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                       sound.playClick();
                       onNextStep();
                     }}
-                    className="w-full py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/25 transition-all cursor-pointer active:scale-95"
+                    className="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-emerald-500/25 transition-all cursor-pointer active:scale-95"
                   >
                     <span>Дальше</span>
-                    <span className="text-sm">→</span>
+                    <span className="text-base">→</span>
                   </button>
                 )}
               </div>
             ) : (
-              <div className="text-xs sm:text-sm font-bold text-slate-100 leading-snug">
+              <div className="text-[15px] sm:text-base font-bold text-slate-100 leading-relaxed">
                 {message}
               </div>
             )}
 
             {/* Idle Reminder Help if stuck > 15s */}
             {isIdleHelpActive && !isSuccess && (
-              <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-300 text-[11px] font-bold flex items-center gap-2 animate-pulse-help">
+              <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-2.5 animate-pulse-help">
                 <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>💡 Нажми сюда! Подсвеченная кнопка ждёт твоего клика!</span>
               </div>
@@ -764,7 +769,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
             {/* Contextual Warning Reminder if user clicked wrong element */}
             {isShaking && (
-              <div className="text-[11px] font-bold text-rose-400 bg-rose-950/60 p-1.5 rounded-lg border border-rose-500/40 flex items-center gap-1.5 animate-pulse">
+              <div className="text-xs sm:text-sm font-bold text-rose-400 bg-rose-950/60 p-2.5 rounded-xl border border-rose-500/40 flex items-center gap-2 animate-pulse">
                 <span>⚠️ {wrongClickMessage || 'Нажми на подсвеченный элемент!'}</span>
               </div>
             )}

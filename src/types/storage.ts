@@ -6,8 +6,10 @@
 import { LevelData } from './game';
 
 export interface UserProfile {
+  id: string;
   name: string;
   avatarId: string;
+  tutorialCompleted: boolean;
   createdAt?: string;
   lastLogin?: string;
 }
@@ -25,11 +27,16 @@ export interface SavedGame {
   date: string; // ISO or human-readable format e.g. "2023-10-27"
   levelData: LevelData;
   authorName?: string;
+  authorAvatarId?: string;
+  profileId?: string;
   thumbnailTheme?: string;
+  isFavorite?: boolean;
 }
 
 export interface StorageData {
-  userProfile: UserProfile | null;
+  profiles: UserProfile[];
+  activeProfileId: string | null;
+  userProfile?: UserProfile | null;
   settings: GameSettings;
   savedGames: SavedGame[];
 }

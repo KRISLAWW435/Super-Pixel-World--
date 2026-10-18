@@ -48,8 +48,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const handleSave = () => {
     if (name.trim().length < 2) return;
     sound.playCoin();
-    ProfileManager.updateName(name.trim());
-    const updated = ProfileManager.updateAvatar(avatarId);
+    const updated = ProfileManager.updateProfile(currentProfile.id, {
+      name: name.trim(),
+      avatarId,
+    });
     if (updated) {
       onProfileUpdated(updated);
     }

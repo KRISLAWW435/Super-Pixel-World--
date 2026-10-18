@@ -114,13 +114,13 @@ export const TUTORIAL_STEPS: TutorialStepDef[] = [
     tileId: 'enemy_chaser',
     tileName: 'Зверь-охотник',
     categoryName: 'Враги',
-    whatToTake: 'Вкладка «Враги» (красная вкладка справа). Доступно 4 уникальных боевых типа:',
+    whatToTake: 'Вкладка «Враги» (красная вкладка справа). Выберите любого из 4 монстров:',
     howToPlace:
-      '1. 🔴 Зверь-охотник: замечает героя и бежит за ним на удвоенной скорости! Ставьте на длинную ровную дорожку.\n2. 🔵 Часовой дозора: бдительно патрулирует свои 3–5 клеток вокруг поста. Ставьте на узкие мостики и платформы.\n3. 🟢 Прыгун-засадник: приседает и совершает высокие дуговые прыжки. Ставьте перед ступеньками.\n4. 🟣 Летучий слайм: парит в воздухе и пикирует волной на героя. Ставьте в воздушные коридоры над пропастью.',
+      '🔴 Зверь-охотник: Быстро бежит за героем. Прыгай ему на голову!\n\n🔵 Часовой дозора: Патрулирует узкий участок.\n\n🟢 Прыгун-засадник: Совершает высокие прыжки.\n\n🟣 Летучий пикировщик: Летает в воздухе.',
     whereToPlace:
-      'Размещайте врагов на платформах или в воздухе (для слайма). Не ставьте врагов вплотную к точке старта героя!',
+      'Размещайте врагов на платформах или в воздухе. Не ставьте монстров вплотную к старту!',
     extraRule:
-      '⚔️ ПРАВИЛА БИТВЫ:\n• ПРЫГНИТЕ НА ВРАГА СВЕРХУ, чтобы уничтожить его! Враг моментально исчезает с хлопком, а герой совершает упругий отскок вверх (+250 очков).\n• Если враг заденет сбоку или снизу: герой теряет 1 жизнь, но НЕ возвращается назад, а продолжает движение вперед с кратковременной защитой!',
+      '⚔️ ПРАВИЛА БИТВЫ:\n• Прыгай на врага сверху, чтобы уничтожить его и совершить отскок вверх!\n• Если монстр заденет сбоку — герой потеряет сердце, но побежит дальше с защитой.',
     sampleActionName: 'Поставить образец врагов',
   },
   {
@@ -139,16 +139,13 @@ export const TUTORIAL_STEPS: TutorialStepDef[] = [
     sampleActionName: 'Поставить финишные ворота',
   },
   {
-    title: 'Этап 7: Как начать играть и Управление',
-    badge: 'Шаг 7 из 7 · Игра и управление',
+    title: 'Этап 7: Проверка уровня',
+    badge: 'Шаг 7 из 7 · Тестирование',
     icon: Gamepad2,
-    whatToTake: 'Ничего выбирать не нужно — пора запускать ваше приключение!',
-    howToPlace:
-      'КАК НАЧАТЬ ИГРАТЬ:\nНажмите большую зелёную кнопку «Играть ▶» в верхнем правом углу панели (или нажмите пробел в режиме ожидания)!',
-    whereToPlace:
-      'УПРАВЛЕНИЕ ГЕРОЕМ:\n• A / D или ⬅ / ➡ — Бег влево и вправо (с плавной инерцией и ускорением).\n• Пробел или W / ⬆ — Прыжок. ГЛАВНОЕ: чем дольше удерживаете клавишу, тем выше прыгает персонаж!\n• Прыжок сверху на врага — сокрушить монстра и отскочить вверх.\n• Удар головой снизу — выбить монетку из блока (?) или разбить кирпич.\n• Esc или кнопка «В редактор» — пауза и мгновенный возврат к доработке уровня.',
-    extraRule: '🎮 На смартфонах и планшетах на экране автоматически появляются удобные сенсорные кнопки!',
-    sampleActionName: 'Запустить игру прямо сейчас ▶',
+    whatToTake: 'Все элементы расставлены — пора испытать твой уровень в действии!',
+    howToPlace: 'Нажмите кнопку «ТЕСТ» в правом верхнем углу, чтобы проверить уровень.',
+    whereToPlace: 'Кнопка «ТЕСТ» всегда закреплена в правом верхнем углу экрана и доступна в любой момент.',
+    sampleActionName: 'Запустить проверку уровня ▶',
   },
 ];
 
@@ -187,42 +184,43 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-slate-900 border-2 border-amber-500/50 rounded-3xl shadow-2xl shadow-amber-500/10 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-4xl lg:max-w-5xl bg-slate-900 border-2 border-amber-500/60 rounded-3xl shadow-2xl shadow-amber-500/10 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-800/90 border-b border-slate-700/80">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-600/10 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner">
-              <Icon className="w-5 h-5" />
+        <div className="flex items-center justify-between px-6 sm:px-8 py-5 bg-slate-800/90 border-b border-slate-700/80">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-600/10 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner shrink-0">
+              <Icon className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+              <div className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
                 <span>Обучение как в играх</span>
-                <span className="w-1 h-1 rounded-full bg-amber-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 <span className="text-slate-300 font-semibold">{step.badge}</span>
               </div>
-              <h3 className="font-black text-white text-lg leading-tight">
+              <h3 className="font-black text-white text-xl sm:text-2xl leading-tight mt-0.5">
                 {step.title}
               </h3>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-3"
+            title="Закрыть"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 stroke-[2.5]" />
           </button>
         </div>
 
         {/* Step Progress Pills */}
-        <div className="px-6 py-2.5 bg-slate-950 border-b border-slate-800/80 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        <div className="px-6 sm:px-8 py-3 bg-slate-950 border-b border-slate-800/80 flex items-center gap-2 overflow-x-auto scrollbar-none">
           {TUTORIAL_STEPS.map((s, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentStep(idx)}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 idx === currentStep
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 scale-102'
                   : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300'
               }`}
             >
@@ -241,69 +239,69 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
         </div>
 
         {/* Main Step Body */}
-        <div className="p-6 overflow-y-auto space-y-4 text-sm text-slate-200">
+        <div className="p-6 sm:p-8 overflow-y-auto space-y-5 text-slate-100">
           {/* Card 1: ЧТО ВЗЯТЬ */}
-          <div className="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/80 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
+          <div className="p-5 sm:p-6 rounded-2xl bg-slate-800/75 border border-slate-700/80 space-y-2.5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm sm:text-base font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
                 1. Что взять:
               </div>
               {step.tileId && (
                 <button
                   onClick={handleSelectTile}
-                  className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95"
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
                 >
-                  <Wand2 className="w-3.5 h-3.5" />
+                  <Wand2 className="w-4 h-4" />
                   Взять этот предмет в руку
                 </button>
               )}
             </div>
-            <div className="text-slate-100 font-medium">
+            <div className="text-[15px] sm:text-base text-white font-medium leading-relaxed">
               {step.whatToTake}
             </div>
           </div>
 
-          {/* Card 2: КАК ПОСТАВИТЬ */}
-          <div className="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/80 space-y-1.5">
-            <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              2. Как поставить:
+          {/* Card 2: ЧТО СДЕЛАТЬ / КАК ПОСТАВИТЬ */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-slate-800/75 border border-slate-700/80 space-y-3 shadow-sm">
+            <div className="text-sm sm:text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+              2. Что сделать:
             </div>
-            <div className="text-slate-200 whitespace-pre-line leading-relaxed">
+            <div className="text-[15px] sm:text-base text-slate-100 whitespace-pre-line leading-loose font-normal">
               {step.howToPlace}
             </div>
           </div>
 
           {/* Card 3: КУДА ПОСТАВИТЬ */}
-          <div className="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/80 space-y-1.5">
-            <div className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+          <div className="p-5 sm:p-6 rounded-2xl bg-slate-800/75 border border-slate-700/80 space-y-2 shadow-sm">
+            <div className="text-sm sm:text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
               3. Куда поставить:
             </div>
-            <div className="text-slate-200 whitespace-pre-line leading-relaxed">
+            <div className="text-[15px] sm:text-base text-slate-200 whitespace-pre-line leading-relaxed font-normal">
               {step.whereToPlace}
             </div>
           </div>
 
-          {/* Extra Rule / Battle Tip */}
+          {/* Extra Rule / Combat Rules with Clear Margins */}
           {step.extraRule && (
-            <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/40 text-indigo-200 text-xs whitespace-pre-line leading-relaxed">
+            <div className="mt-5 p-5 sm:p-6 rounded-2xl bg-indigo-950/70 border-2 border-indigo-500/60 text-indigo-100 text-sm sm:text-[15px] whitespace-pre-line leading-relaxed shadow-lg">
               {step.extraRule}
             </div>
           )}
 
           {/* Sample Placement CTA */}
           {step.sampleActionName && (
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs">
-              <span className="text-slate-400 font-medium">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl bg-slate-950/80 border border-slate-800 text-sm">
+              <span className="text-slate-300 font-medium text-center sm:text-left">
                 Хотите сразу увидеть как это выглядит на карте?
               </span>
               <button
                 onClick={handleApplySample}
-                className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 font-bold flex items-center gap-2 transition-all cursor-pointer active:scale-95 shrink-0"
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <Sparkles className="w-4 h-4 text-amber-400" />
                 {step.sampleActionName}
               </button>
             </div>
@@ -311,12 +309,12 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
         </div>
 
         {/* Footer Navigation */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-800/90 border-t border-slate-700/80">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 sm:px-8 py-4 sm:py-5 bg-slate-800/90 border-t border-slate-700/80 shrink-0">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
             <button
               disabled={currentStep === 0}
               onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-200 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer border border-slate-700"
             >
               <ChevronLeft className="w-4 h-4" />
               Назад
@@ -325,10 +323,10 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
             {currentStep < TUTORIAL_STEPS.length - 1 ? (
               <button
                 onClick={() => setCurrentStep((s) => s + 1)}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1 transition-all cursor-pointer shadow-lg shadow-amber-500/20 active:scale-95"
+                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs sm:text-sm font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/25 active:scale-95"
               >
                 Следующий этап
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 stroke-[3]" />
               </button>
             ) : (
               <button
@@ -336,7 +334,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
                   if (onStartPlay) onStartPlay();
                   onClose();
                 }}
-                className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-500/20 active:scale-95 animate-pulse"
+                className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-500/25 active:scale-95 animate-pulse"
               >
                 <Play className="w-4 h-4 fill-slate-950" />
                 Начать играть!
@@ -344,18 +342,18 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
             {step.tileId && (
               <button
                 onClick={handleSelectTile}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold transition-all cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs sm:text-sm font-bold transition-all cursor-pointer border border-slate-700"
               >
                 Выбрать блок и закрыть
               </button>
             )}
             <button
               onClick={onClose}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-bold transition-all cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs sm:text-sm font-bold transition-all cursor-pointer border border-slate-700"
             >
               Понятно
             </button>

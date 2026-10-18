@@ -21,6 +21,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Eraser,
@@ -30,6 +31,7 @@ import {
   PenTool,
   Play,
   Redo2,
+  Sparkles,
   Undo2,
   ZoomIn,
   ZoomOut,
@@ -1182,8 +1184,8 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         </div>
 
         {/* Center: Inline Educational Mission Widget */}
-        <div className="flex items-center justify-center min-w-0 flex-1 overflow-hidden px-2">
-          {isTutorialBarOpen && (
+        <div className="flex items-center justify-center min-w-0 flex-1 overflow-visible relative px-2">
+          {isTutorialBarOpen ? (
             <EditorTutorialBar
               currentStep={tutorialStep}
               onStepChange={setTutorialStep}
@@ -1195,6 +1197,20 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
               isMinimized={isTutorialMinimized}
               onToggleMinimize={() => setIsTutorialMinimized((m) => !m)}
             />
+          ) : (
+            <button
+              onClick={() => {
+                sound.playClick();
+                setIsTutorialBarOpen(true);
+                setIsTutorialMinimized(false);
+              }}
+              title="Развернуть панель подсказок миссий"
+              className="h-8 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm select-none"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Обучение</span>
+              <ChevronDown className="w-3 h-3 text-amber-400" />
+            </button>
           )}
         </div>
 
