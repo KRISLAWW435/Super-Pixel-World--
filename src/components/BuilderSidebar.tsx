@@ -26,6 +26,7 @@ import {
   Play,
   Sparkles,
   Swords,
+  Target,
   Trash2,
   Upload,
   User,
@@ -35,7 +36,7 @@ import {
 import { sound } from '../audio/soundEngine';
 import { HEROES, PALETTE_ITEMS, THEMES } from '../game/constants';
 import { TutorialManager } from '../services/TutorialManager';
-import { HeroId, ThemeId, TileId, ToolMode } from '../types/game';
+import { HeroId, LevelGoalType, ThemeId, TileId, ToolMode } from '../types/game';
 import { PaletteTilePreview } from './PaletteTilePreview';
 
 export type StudioSidebarTab = 'platforms' | 'interactive' | 'enemies' | 'world';
@@ -66,6 +67,8 @@ interface BuilderSidebarProps {
   onOpenTutorial: () => void;
   onExitToMenu?: () => void;
   isGuidedTourOpen?: boolean;
+  onOpenGoalSettings?: () => void;
+  currentGoal?: LevelGoalType;
 }
 
 export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
@@ -94,6 +97,8 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   onOpenTutorial,
   onExitToMenu,
   isGuidedTourOpen,
+  onOpenGoalSettings,
+  currentGoal,
 }) => {
   const [internalTab, setInternalTab] = useState<StudioSidebarTab>('platforms');
   const activeTab = activeTabProp !== undefined ? activeTabProp : internalTab;
@@ -269,8 +274,8 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         </div>
       </div>
 
-      {/* 2. Three Unified Studio Tabs (Platforms, Interactive, Enemies) */}
-      <div className="grid grid-cols-3 bg-[#0B0F19] border-b-2 border-black p-1.5 gap-1.5 shrink-0">
+      {/* 2. Studio Tabs (Platforms, Interactive, Enemies, Goal) */}
+      <div className="grid grid-cols-4 bg-[#0B0F19] border-b-2 border-black p-1.5 gap-1 shrink-0">
         <button
           id="tour-tab-platforms"
           onClick={() => {
@@ -323,6 +328,24 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         >
           <Swords className="w-4 h-4 text-rose-400" />
           <span className="truncate font-pixel text-[9px]">Враги</span>
+        </button>
+
+        <button
+          id="tour-tab-goal"
+          onClick={() => {
+            sound.playSelect();
+            onOpenGoalSettings?.();
+          }}
+          title="Настройка цели уровня"
+          style={{ pointerEvents: 'auto' }}
+          className={`tutorial-target py-2 px-1 text-[11px] font-bold rounded-md transition-all text-center flex flex-col items-center gap-1 cursor-pointer border-2 ${
+            currentGoal && currentGoal !== 'none'
+              ? 'bg-emerald-500 text-slate-950 border-black shadow-[2px_2px_0px_#000]'
+              : 'bg-[var(--card-subtle)] text-[var(--text-muted)] border-black hover:text-[var(--text-main)] hover:bg-slate-800'
+          }`}
+        >
+          <Target className={`w-4 h-4 ${currentGoal && currentGoal !== 'none' ? 'text-slate-950' : 'text-emerald-400'}`} />
+          <span className="truncate font-pixel text-[9px]">Цель</span>
         </button>
       </div>
 

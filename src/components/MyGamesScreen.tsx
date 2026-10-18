@@ -144,22 +144,46 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
   }, [games]);
 
   return (
-    <div className="relative w-full h-full min-h-screen flex flex-col p-3 sm:p-5 lg:p-7 overflow-y-auto select-none text-[var(--text-main)]">
+    <div
+      className="relative w-full h-full min-h-screen flex flex-col p-3 sm:p-5 lg:p-7 overflow-y-auto select-none text-[var(--text-main)]"
+      style={{
+        backgroundImage: `url(${archiveWebp})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
       {/* 1. Dynamic Game Backgrounds: archive.webp with light/dark overlays */}
-      <div className="fixed inset-0 pointer-events-none select-none -z-10 overflow-hidden">
+      <div
+        className="fixed inset-0 pointer-events-none select-none z-0 overflow-hidden"
+        style={{
+          backgroundImage: `url(${archiveWebp})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
         <img
           src={archiveWebp}
           alt="Архив проектов"
           className="w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 light-theme-bg archive-overlay-light" style={{ background: 'rgba(255, 255, 255, 0.1)' }} />
-        <div className="absolute inset-0 dark-theme-bg archive-overlay-dark" style={{ background: 'rgba(0, 0, 0, 0.1)' }} />
+        {/* Light Theme Overlay: exactly 20% white */}
+        <div
+          className="absolute inset-0 light-theme-bg archive-overlay-light z-10"
+          style={{ background: 'rgba(255, 255, 255, 0.2)' }}
+        />
+        {/* Dark Theme Overlay: exactly 30% black */}
+        <div
+          className="absolute inset-0 dark-theme-bg archive-overlay-dark z-10"
+          style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+        />
       </div>
 
       {/* ========================================================================= */}
       {/* TOP HEADER: Retro Console Bar */}
       {/* ========================================================================= */}
-      <header className="w-full max-w-6xl mx-auto flex items-center justify-between pb-4 border-b-4 border-[var(--border-color)] gap-3 shrink-0">
+      <header className="relative z-20 w-full max-w-6xl mx-auto flex items-center justify-between pb-4 border-b-4 border-[var(--border-color)] gap-3 shrink-0">
         {/* Back Button */}
         <button
           onClick={() => {
@@ -224,7 +248,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
       {/* ========================================================================= */}
       {/* CONTROL PANEL: Search Bar, Favorites Filter, & Sorting Controls */}
       {/* ========================================================================= */}
-      <section className="w-full max-w-6xl mx-auto mt-5 bg-[var(--panel-bg)] rounded-[4px] border-4 border-[var(--border-color)] p-3 sm:p-4 shadow-[4px_4px_0px_var(--shadow-color)] flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+      <section className="relative z-20 w-full max-w-6xl mx-auto mt-5 bg-[var(--panel-bg)] rounded-[4px] border-4 border-[var(--border-color)] p-3 sm:p-4 shadow-[4px_4px_0px_var(--shadow-color)] flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
         {/* Left: Tab Switcher (All vs Favorites) */}
         <div className="flex items-center gap-2">
           <button
@@ -309,7 +333,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
       {/* ========================================================================= */}
       {/* MAIN CARTRIDGE GRID: Physical Game Cartridge Cards */}
       {/* ========================================================================= */}
-      <main className="w-full max-w-6xl mx-auto py-6 sm:py-8 flex-1">
+      <main className="relative z-20 w-full max-w-6xl mx-auto py-6 sm:py-8 flex-1">
         {games.length === 0 ? (
           /* Global Empty State: No Games Yet */
           <div className="h-full min-h-[45vh] flex flex-col items-center justify-center text-center p-6 space-y-4 bg-[var(--panel-bg)] rounded-[4px] border-4 border-[var(--border-color)] shadow-[6px_6px_0px_var(--shadow-color)] animate-in fade-in duration-300">

@@ -3,6 +3,9 @@
  */
 
 import bgGreenIslands from '../assets/images/bg_green_islands.webp';
+import bgCandyLand from '../assets/images/bg_candy_land_1792080622482.jpg';
+import bgIceWorld from '../assets/images/bg_ice_world_1792080624384.jpg';
+import bgAlienJungle from '../assets/images/bg_alien_jungle_1792080637269.jpg';
 import { HeroConfig, HeroId, PaletteCategory, ThemeConfig, ThemeId, TileId } from '../types/game';
 
 export const CELL_SIZE = 40; // 40px per tile
@@ -24,7 +27,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'candy_land',
     name: 'Конфетная страна',
     subtitle: 'Зефирные горы, леденцы и шоколад',
-    image: '/src/assets/images/bg_candy_land_1792080622482.jpg',
+    image: bgCandyLand,
     skyColor: '#fbb6ce',
     accentColor: '#ed64a6',
     particleColor: '#f687b3',
@@ -33,7 +36,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'ice_world',
     name: 'Ледяной мир',
     subtitle: 'Снежные пики, ледники и сияние',
-    image: '/src/assets/images/bg_ice_world_1792080624384.jpg',
+    image: bgIceWorld,
     skyColor: '#76e4f7',
     accentColor: '#319795',
     particleColor: '#90cdf4',
@@ -42,7 +45,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'alien_jungle',
     name: 'Инопланетные джунгли',
     subtitle: 'Светящиеся грибы и кольца планет',
-    image: '/src/assets/images/bg_alien_jungle_1792080637269.jpg',
+    image: bgAlienJungle,
     skyColor: '#553c9a',
     accentColor: '#9f7aea',
     particleColor: '#b794f4',

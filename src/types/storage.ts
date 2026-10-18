@@ -46,7 +46,8 @@ export interface StorageData {
   savedGames: SavedGame[];
 }
 
-export const MENU_BG_IMAGE = '/src/assets/menu_bg.webp';
+import menuBgImg from '../assets/menu_bg.webp';
+export const MENU_BG_IMAGE = menuBgImg;
 
 import avatar1 from '../assets/avatars/avatar_1.png';
 import avatar2 from '../assets/avatars/avatar_2.png';

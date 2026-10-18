@@ -33,6 +33,7 @@ import {
   Play,
   Redo2,
   Sparkles,
+  Target,
   Undo2,
   ZoomIn,
   ZoomOut,
@@ -42,8 +43,9 @@ import { sound } from '../audio/soundEngine';
 import { CELL_SIZE, GRID_ROWS, THEMES, findGroundRowBelow, isGroundEnemy } from '../game/constants';
 import { generateTutorialSample } from '../game/tutorialPresets';
 import { SpriteRenderer } from '../graphics/spriteRenderer';
-import { LevelData, LevelItem, ThemeId, TileId, ToolMode } from '../types/game';
+import { LevelData, LevelGoalType, LevelItem, ThemeId, TileId, ToolMode } from '../types/game';
 import { EditorTutorialBar } from './EditorTutorialBar';
+import { GoalSettingsModal } from './GoalSettingsModal';
 import { SettingsModal } from './SettingsModal';
 import { useEditorCamera } from './useEditorCamera';
 
@@ -53,6 +55,7 @@ interface LevelEditorProps {
   selectedTile: TileId;
   selectedTheme: ThemeId;
   onUpdateItems: (newItems: LevelItem[], recordHistory?: boolean) => void;
+  onUpdateLevelData?: (updated: Partial<LevelData>) => void;
   onOpenTutorial: (stepIndex?: number) => void;
   onSelectTile: (tile: TileId) => void;
   onStartPlay: () => void;
@@ -67,6 +70,8 @@ interface LevelEditorProps {
   tourBlocksPlaced?: number;
   onAdvanceTourStep?: (step: number) => void;
   sidebar?: React.ReactNode;
+  isGoalModalOpen?: boolean;
+  onToggleGoalModal?: (open: boolean) => void;
 }
 
 export const LevelEditor: React.FC<LevelEditorProps> = ({
@@ -75,6 +80,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   selectedTile,
   selectedTheme,
   onUpdateItems,
+  onUpdateLevelData,
   onOpenTutorial,
   onSelectTile,
   onStartPlay,
@@ -89,7 +95,28 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   tourBlocksPlaced = 0,
   onAdvanceTourStep,
   sidebar,
+  isGoalModalOpen: isGoalModalOpenProp,
+  onToggleGoalModal,
 }) => {
+  const [localGoalModalOpen, setLocalGoalModalOpen] = useState<boolean>(false);
+  const isGoalModalOpen = isGoalModalOpenProp !== undefined ? isGoalModalOpenProp : localGoalModalOpen;
+  const setGoalModalOpen = (open: boolean) => {
+    if (onToggleGoalModal) {
+      onToggleGoalModal(open);
+    } else {
+      setLocalGoalModalOpen(open);
+    }
+  };
+
+  const handleSaveGoal = (goalType: LevelGoalType, timeLimit: number) => {
+    onUpdateLevelData?.({
+      goalType,
+      timeLimit,
+      targetTime: timeLimit,
+    });
+    showToast('Цель уровня успешно сохранена!');
+  };
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const minimapRef = useRef<HTMLCanvasElement | null>(null);
@@ -1674,6 +1701,24 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             </button>
           </div>
 
+          {/* Level Goal Settings Button */}
+          <button
+            id="editor-goal-button"
+            onClick={() => {
+              sound.playSelect();
+              setGoalModalOpen(true);
+            }}
+            title="Настройка цели уровня (Испытание)"
+            className={`retro-btn-sm px-2.5 py-1.5 flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+              levelData.goalType && levelData.goalType !== 'none'
+                ? 'bg-amber-400 text-slate-950 font-bold border-2 border-black shadow-[2px_2px_0px_#000]'
+                : 'bg-[var(--card-subtle)] hover:bg-amber-400 hover:text-slate-950 text-[var(--text-main)]'
+            }`}
+          >
+            <Target className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span className="text-[9px] font-pixel font-bold">🎯 ЦЕЛЬ</span>
+          </button>
+
           {/* Global Settings Gear Button */}
           <button
             onClick={() => {
@@ -1825,6 +1870,14 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   <SettingsModal
     isOpen={isSettingsOpen}
     onClose={() => setIsSettingsOpen(false)}
+  />
+
+  {/* Level Goal Settings Modal */}
+  <GoalSettingsModal
+    isOpen={isGoalModalOpen}
+    onClose={() => setGoalModalOpen(false)}
+    levelData={levelData}
+    onSaveGoal={handleSaveGoal}
   />
 </div>
 );

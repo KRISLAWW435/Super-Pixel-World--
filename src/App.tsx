@@ -90,6 +90,7 @@ export default function App() {
   const [tutorialStep, setTutorialStep] = useState<number>(0);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false);
   const [isLoadModalOpen, setIsLoadModalOpen] = useState<boolean>(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState<boolean>(false);
 
   // Fullscreen Container Ref
   const appContainerRef = useRef<HTMLDivElement | null>(null);
@@ -622,6 +623,14 @@ export default function App() {
     setScreenMode('editor');
   };
 
+  // Update LevelData fields (goals, timer, theme, hero, etc.)
+  const handleUpdateLevelData = (updated: Partial<LevelData>) => {
+    setLevelData((prev) => ({
+      ...prev,
+      ...updated,
+    }));
+  };
+
   // Switch to Main Menu
   const handleExitToMenu = () => {
     sound.stopBgm();
@@ -782,6 +791,7 @@ export default function App() {
           selectedTile={selectedTile}
           selectedTheme={selectedTheme}
           onUpdateItems={handleUpdateItems}
+          onUpdateLevelData={handleUpdateLevelData}
           onOpenTutorial={handleRestartTour}
           onSelectTile={handleSelectTile}
           onStartPlay={handleStartPlay}
@@ -794,6 +804,8 @@ export default function App() {
           isGuidedTourOpen={isGuidedTourOpen}
           guidedTourStep={guidedTourStep}
           tourBlocksPlaced={tourBlocksPlaced}
+          isGoalModalOpen={isGoalModalOpen}
+          onToggleGoalModal={setIsGoalModalOpen}
           sidebar={
             <BuilderSidebar
               activeTab={sidebarTab}
@@ -821,6 +833,8 @@ export default function App() {
               onOpenTutorial={handleRestartTour}
               onExitToMenu={handleExitToMenu}
               isGuidedTourOpen={isGuidedTourOpen}
+              onOpenGoalSettings={() => setIsGoalModalOpen(true)}
+              currentGoal={levelData.goalType}
             />
           }
         />

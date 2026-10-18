@@ -70,6 +70,15 @@ export interface LevelItem {
   properties?: Record<string, unknown>;
 }
 
+export type LevelGoalType =
+  | 'none'
+  | 'coins'
+  | 'enemies'
+  | 'time'
+  | 'crystals'
+  | 'no_damage'
+  | 'stars';
+
 export interface LevelData {
   version: number;
   name: string;
@@ -80,6 +89,8 @@ export interface LevelData {
   heroId: HeroId;
   items: LevelItem[];
   timeLimit: number; // seconds
+  goalType?: LevelGoalType;
+  targetTime?: number;
 }
 
 export interface ThemeConfig {

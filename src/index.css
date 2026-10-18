@@ -430,10 +430,10 @@ body.theme-light .retro-grid-pattern {
 
 /* Archive screen overlays & game card borders in dark theme */
 .archive-overlay-light {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.2);
 }
 .archive-overlay-dark {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 body:not(.theme-light) .retro-cartridge,

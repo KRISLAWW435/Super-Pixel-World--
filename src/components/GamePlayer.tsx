@@ -7,6 +7,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  Check,
   Clock,
   Coins,
   Crown,
@@ -19,6 +20,7 @@ import {
   Play,
   RotateCcw,
   Sparkles,
+  Target,
   Trophy,
   Volume2,
   VolumeX,
@@ -85,6 +87,28 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
   const [hasMoved, setHasMoved] = useState(false);
   const [hasJumped, setHasJumped] = useState(false);
 
+  // Goal & Challenge tracking state
+  const [challengeCompleted, setChallengeCompleted] = useState<boolean>(false);
+  const [showChallengeBanner, setShowChallengeBanner] = useState<boolean>(false);
+  const challengeCompletedRef = useRef<boolean>(false);
+
+  // Calculate totals from levelData
+  const totalCoins = React.useMemo(() => {
+    return levelData.items.filter((it) => it.tileId === 'coin').length;
+  }, [levelData.items]);
+
+  const totalEnemies = React.useMemo(() => {
+    return levelData.items.filter((it) => it.tileId.startsWith('enemy_')).length;
+  }, [levelData.items]);
+
+  const totalCrystals = React.useMemo(() => {
+    return levelData.items.filter((it) => it.tileId === 'crystal').length;
+  }, [levelData.items]);
+
+  const totalStars = React.useMemo(() => {
+    return levelData.items.filter((it) => it.tileId === 'star').length;
+  }, [levelData.items]);
+
   // Auto-hide standard controls banner if tutorial mode is active (tutorial has its own persistent bar)
   useEffect(() => {
     if (isTutorialMode) {
@@ -126,6 +150,9 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
     setIsVictory(false);
     setIsGameOver(false);
     setIsPaused(false);
+    challengeCompletedRef.current = false;
+    setChallengeCompleted(false);
+    setShowChallengeBanner(false);
     sound.startBgm(themeId);
   };
 
@@ -223,9 +250,53 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
         // Sync React HUD state
         setStats({ ...engine.stats });
+
+        // Goal & Challenge Completion Check (in real time)
+        const activeGoal = levelData.goalType;
+        if (activeGoal && activeGoal !== 'none' && !challengeCompletedRef.current) {
+          let achieved = false;
+          if (activeGoal === 'coins' && totalCoins > 0 && engine.stats.coinsCollected >= totalCoins) {
+            achieved = true;
+          } else if (activeGoal === 'enemies' && totalEnemies > 0 && engine.stats.enemiesDefeated >= totalEnemies) {
+            achieved = true;
+          } else if (activeGoal === 'crystals' && totalCrystals > 0 && engine.stats.crystalsCollected >= totalCrystals) {
+            achieved = true;
+          } else if (activeGoal === 'stars' && totalStars > 0 && engine.stats.starsCollected >= totalStars) {
+            achieved = true;
+          }
+
+          if (achieved) {
+            challengeCompletedRef.current = true;
+            setChallengeCompleted(true);
+            setShowChallengeBanner(true);
+            sound.playVictory();
+            setTimeout(() => {
+              setShowChallengeBanner(false);
+            }, 4500);
+          }
+        }
+
         if (engine.isVictory && !isVictory) {
           setIsVictory(true);
           TutorialManager.emitGameplayAction('victory');
+
+          // End-of-level challenge checks
+          if (activeGoal === 'time' && !challengeCompletedRef.current) {
+            const limit = levelData.targetTime || levelData.timeLimit || 60;
+            if (engine.stats.timeTaken <= limit) {
+              challengeCompletedRef.current = true;
+              setChallengeCompleted(true);
+              setShowChallengeBanner(true);
+              sound.playVictory();
+            }
+          } else if (activeGoal === 'no_damage' && !challengeCompletedRef.current) {
+            if (engine.stats.lives >= 3) {
+              challengeCompletedRef.current = true;
+              setChallengeCompleted(true);
+              setShowChallengeBanner(true);
+              sound.playVictory();
+            }
+          }
         }
         if (engine.isGameOver && !isGameOver) {
           setIsGameOver(true);
@@ -584,6 +655,35 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           </div>
         </div>
 
+        {/* Center: Active Goal / Target Badge */}
+        {levelData.goalType && levelData.goalType !== 'none' && (
+          <div
+            className={`px-3 py-1.5 rounded-md border-4 border-black shadow-[3px_3px_0px_#000000] flex items-center gap-2 pointer-events-auto transition-all ${
+              challengeCompleted
+                ? 'bg-amber-400 text-slate-950 font-bold animate-pulse'
+                : 'bg-[#0F172A] text-amber-300'
+            }`}
+          >
+            <Target className={`w-4 h-4 shrink-0 ${challengeCompleted ? 'text-slate-950' : 'text-amber-400'}`} />
+            <div className="flex items-center gap-1.5 font-pixel text-[10px]">
+              <span className="font-bold uppercase tracking-wider">ЦЕЛЬ:</span>
+              <span className={challengeCompleted ? 'text-slate-950 font-bold' : 'text-white font-bold'}>
+                {levelData.goalType === 'coins' && `МОНЕТЫ (${stats.coinsCollected}/${totalCoins})`}
+                {levelData.goalType === 'enemies' && `ВРАГИ (${stats.enemiesDefeated}/${totalEnemies})`}
+                {levelData.goalType === 'crystals' && `КРИСТАЛЛЫ (${stats.crystalsCollected}/${totalCrystals})`}
+                {levelData.goalType === 'stars' && `ЗВЁЗДЫ (${stats.starsCollected}/${totalStars})`}
+                {levelData.goalType === 'time' && `НА ВРЕМЯ (≤${levelData.targetTime || levelData.timeLimit || 60}с)`}
+                {levelData.goalType === 'no_damage' && `БЕЗ УРОНА (${stats.lives}/3)`}
+              </span>
+              {challengeCompleted && (
+                <span className="px-1.5 py-0.2 rounded bg-slate-950 text-amber-300 text-[9px] font-bold">
+                  ВЫПОЛНЕНО!
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Right Stats Cluster: Time, Score, Audio & Controls */}
         <div className="flex items-center gap-2 pointer-events-auto">
           {/* Timer in HUD: Conditionally rendered based on Show Timer setting */}
@@ -629,6 +729,30 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           </button>
         </div>
       </header>
+
+      {/* CHALLENGE COMPLETED CELEBRATORY BANNER */}
+      {showChallengeBanner && (
+        <div className="absolute top-18 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-in zoom-in-90 slide-in-from-top-4 duration-300">
+          <div className="px-5 py-3 rounded-2xl bg-amber-400 border-4 border-black text-slate-950 shadow-[6px_6px_0px_#000000] flex items-center gap-3 select-none">
+            <div className="w-10 h-10 rounded-xl bg-slate-950 text-amber-400 flex items-center justify-center text-xl font-bold border-2 border-black animate-bounce shrink-0">
+              🎯
+            </div>
+            <div>
+              <div className="font-pixel text-xs sm:text-sm font-bold text-slate-950 tracking-wider">
+                ИСПЫТАНИЕ ВЫПОЛНЕНО!
+              </div>
+              <div className="text-xs font-bold text-slate-900 mt-0.5">
+                {levelData.goalType === 'coins' && 'Все монеты успешно собраны!'}
+                {levelData.goalType === 'enemies' && 'Все враги на уровне повержены!'}
+                {levelData.goalType === 'crystals' && 'Все кристаллы найдены и собраны!'}
+                {levelData.goalType === 'stars' && 'Все скрытые звёзды собраны!'}
+                {levelData.goalType === 'time' && 'Уровень пройден в рекордное время!'}
+                {levelData.goalType === 'no_damage' && 'Безупречно: без единого полученного урона!'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Interactive In-Game Tutorial Mission Guide (Step 8) */}
       {isTutorialMode && !isVictory && !isGameOver && (
@@ -874,6 +998,24 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
                 </p>
               )}
             </div>
+
+            {/* Goal / Challenge Outcome */}
+            {levelData.goalType && levelData.goalType !== 'none' && (
+              <div
+                className={`p-3 rounded-xl border-2 flex items-center justify-center gap-2 font-pixel text-xs ${
+                  challengeCompleted
+                    ? 'bg-amber-400 text-slate-950 border-black shadow-[3px_3px_0px_#000]'
+                    : 'bg-slate-800/80 text-slate-300 border-slate-700'
+                }`}
+              >
+                <span>{challengeCompleted ? '🏆' : '🎯'}</span>
+                <span>
+                  {challengeCompleted
+                    ? 'ИСПЫТАНИЕ УРОВНЯ ВЫПОЛНЕНО!'
+                    : 'ЦЕЛЬ УРОВНЯ НЕ БЫЛА ВЫПОЛНЕНА'}
+                </span>
+              </div>
+            )}
 
             {/* Victory Statistics */}
             <div className="grid grid-cols-2 gap-2.5 p-3.5 bg-[var(--card-subtle)] rounded-2xl border border-[var(--border-color)] text-left text-xs">
