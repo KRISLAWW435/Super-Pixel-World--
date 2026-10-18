@@ -190,22 +190,19 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
       </header>
 
       {/* ========================================================================= */}
-      {/* DASHBOARD HERO: 3 Ultra-Compact Launcher Buttons Positioned Lower on Screen */}
+      {/* DASHBOARD HERO: 3 Compact Launcher Buttons Positioned Higher on Screen */}
       {/* ========================================================================= */}
-      <main className="w-full flex-1 flex flex-col items-center justify-end pb-3 sm:pb-5 md:pb-6 px-4 z-20">
-        <div className="w-full max-w-sm sm:max-w-md flex flex-col items-center gap-2 sm:gap-2.5">
-          {/* The 3 Main Launcher Buttons (Extra Compact & Shifted Lower to Reveal Character & Background Art) */}
-          <div className="w-full flex flex-col items-stretch gap-2 sm:gap-2.5">
-            {/* Button 1: «СОЗДАТЬ НОВУЮ ИГРУ» (Emerald 3D Button - Compact) */}
+      <main className="w-full flex-1 flex flex-col items-center justify-end pb-14 sm:pb-18 md:pb-22 px-4 z-20">
+        <div className="w-full max-w-sm sm:max-w-md flex flex-col items-center gap-2.5 sm:gap-3">
+          {/* The 3 Main Launcher Buttons with Unified Chunky Pixel Art UI */}
+          <div className="w-full flex flex-col items-stretch gap-2.5 sm:gap-3">
+            {/* Button 1: «СОЗДАТЬ НОВУЮ ИГРУ» (Emerald Chunky Pixel Button) */}
             <button
               onClick={handleCreateGame}
-              className="group relative cursor-pointer w-full py-2 sm:py-2.5 px-4 sm:px-5 rounded-xl bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 hover:from-emerald-400 hover:to-green-400 border-2 border-[#064E3B] text-white font-pixel flex items-center justify-between transition-transform active:translate-y-1 select-none shadow-md"
-              style={{
-                boxShadow: '0 4px 0 #065F46, 0 8px 16px rgba(0, 0, 0, 0.55)',
-              }}
+              className="group relative cursor-pointer w-full py-2.5 sm:py-3 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 hover:from-emerald-400 hover:to-green-400 border-[3px] border-[#1E293B] text-white font-pixel flex items-center justify-between transition-all hover:translate-y-[-1px] active:translate-y-1 select-none shadow-[4px_4px_0px_#000000] hover:shadow-[5px_5px_0px_#000000] active:shadow-[1px_1px_0px_#000000]"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-[#064E3B]/70 border border-emerald-300/40 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                <div className="w-8 h-8 rounded-xl bg-[#064E3B] border-2 border-emerald-300/40 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
                   <Wrench className="w-4 h-4 text-emerald-100" />
                 </div>
                 <span className="text-sm sm:text-base font-black tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate">
@@ -216,16 +213,13 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
               <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current text-white drop-shadow group-hover:scale-110 transition-transform shrink-0 ml-2" />
             </button>
 
-            {/* Button 2: «МОИ ПРОЕКТЫ» (Amber 3D Button - Compact) */}
+            {/* Button 2: «МОИ ПРОЕКТЫ» (Amber Chunky Pixel Button) */}
             <button
               onClick={handleMyProjects}
-              className="group relative cursor-pointer w-full py-2 sm:py-2.5 px-4 sm:px-5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 border-2 border-amber-800 text-slate-950 font-pixel flex items-center justify-between transition-transform active:translate-y-1 select-none shadow-md"
-              style={{
-                boxShadow: '0 4px 0 #92400E, 0 8px 14px rgba(0, 0, 0, 0.45)',
-              }}
+              className="group relative cursor-pointer w-full py-2.5 sm:py-3 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 border-[3px] border-[#1E293B] text-slate-950 font-pixel flex items-center justify-between transition-all hover:translate-y-[-1px] active:translate-y-1 select-none shadow-[4px_4px_0px_#000000] hover:shadow-[5px_5px_0px_#000000] active:shadow-[1px_1px_0px_#000000]"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-amber-700/40 border border-amber-300/60 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                <div className="w-8 h-8 rounded-xl bg-amber-700/50 border-2 border-amber-300/60 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
                   <FolderOpen className="w-4 h-4 text-amber-950" />
                 </div>
                 <span className="text-sm sm:text-base font-black tracking-wide truncate">
@@ -236,16 +230,13 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
               <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-amber-950 group-hover:translate-x-1 transition-transform shrink-0 stroke-[3] ml-2" />
             </button>
 
-            {/* Button 3: «СМЕНИТЬ ПРОФИЛЬ» (Indigo 3D Button - Compact) */}
+            {/* Button 3: «СМЕНИТЬ ПРОФИЛЬ» (Indigo Chunky Pixel Button) */}
             <button
               onClick={handleOpenProfileSwitcher}
-              className="group relative cursor-pointer w-full py-1.5 sm:py-2 px-4 sm:px-5 rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-800 to-slate-900 hover:from-indigo-600 hover:to-slate-800 border-2 border-indigo-500/80 hover:border-amber-400/80 text-white font-pixel flex items-center justify-between transition-transform active:translate-y-1 select-none shadow-md"
-              style={{
-                boxShadow: '0 4px 0 #1E1B4B, 0 6px 12px rgba(0, 0, 0, 0.4)',
-              }}
+              className="group relative cursor-pointer w-full py-2 sm:py-2.5 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-indigo-800 via-indigo-900 to-slate-900 hover:from-indigo-700 hover:to-slate-800 border-[3px] border-[#1E293B] hover:border-amber-400 text-white font-pixel flex items-center justify-between transition-all hover:translate-y-[-1px] active:translate-y-1 select-none shadow-[4px_4px_0px_#000000] hover:shadow-[5px_5px_0px_#000000] active:shadow-[1px_1px_0px_#000000]"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-indigo-950/80 border border-indigo-400/40 flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-indigo-950 border-2 border-indigo-400/40 flex items-center justify-center shrink-0">
                   <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
                 </div>
                 <span className="text-xs sm:text-sm font-black tracking-wide text-white truncate">

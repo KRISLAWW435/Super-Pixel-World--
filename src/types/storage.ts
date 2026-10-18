@@ -14,11 +14,15 @@ export interface UserProfile {
   lastLogin?: string;
 }
 
+export type ThemeMode = 'dark' | 'light';
+
 export interface GameSettings {
   sound: boolean; // Sound effects enabled
   music: boolean; // BGM enabled
   volume: number; // Master volume 0.0 .. 1.0 (default 0.4)
   isMuted?: boolean; // Global mute state
+  themeMode?: ThemeMode; // 'dark' | 'light'
+  uiScale?: number; // UI scaling (0.8 .. 1.4, default 1.0)
 }
 
 export interface SavedGame {

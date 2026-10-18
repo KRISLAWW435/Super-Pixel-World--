@@ -185,27 +185,27 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-4xl lg:max-w-5xl bg-slate-900 border-2 border-amber-500/60 rounded-3xl shadow-2xl shadow-amber-500/10 overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="w-full max-w-4xl lg:max-w-5xl bg-[#131B2E] border-[3px] sm:border-[4px] border-[#1E293B] rounded-3xl shadow-[6px_6px_0px_#000000] overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 sm:px-8 py-5 bg-slate-800/90 border-b border-slate-700/80">
+        <div className="flex items-center justify-between px-6 sm:px-8 py-5 bg-[#0F172A] border-b-[3px] border-[#1E293B]">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-600/10 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border-2 border-[#1E293B] shadow-[2px_2px_0px_#000000] flex items-center justify-center text-amber-400 shrink-0">
               <Icon className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+              <div className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
                 <span>Обучение как в играх</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 <span className="text-slate-300 font-semibold">{step.badge}</span>
               </div>
-              <h3 className="font-black text-white text-xl sm:text-2xl leading-tight mt-0.5">
+              <h3 className="font-bold text-white text-xl sm:text-2xl leading-tight mt-0.5">
                 {step.title}
               </h3>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-3"
+            className="w-10 h-10 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-rose-500 border-2 border-[#1E293B] shadow-[2px_2px_0px_#000000] active:translate-y-0.5 active:shadow-none flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-3"
             title="Закрыть"
           >
             <X className="w-5 h-5 stroke-[2.5]" />

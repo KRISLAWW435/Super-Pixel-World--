@@ -26,6 +26,7 @@ import {
   ChevronRight,
   Eraser,
   Grid,
+  Hand,
   Home,
   Move,
   PenTool,
@@ -148,6 +149,15 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
   const [mouseButton, setMouseButton] = useState<number>(0); // 0 = left, 1 = middle, 2 = right
   const [dragStartCell, setDragStartCell] = useState<{ col: number; row: number } | null>(null);
   const [dragCurrentCell, setDragCurrentCell] = useState<{ col: number; row: number } | null>(null);
+
+  // Moving / Dragging placed object state (Move tool 'hand')
+  const [movingObject, setMovingObject] = useState<{
+    item: LevelItem;
+    startCol: number;
+    startRow: number;
+    targetCol: number;
+    targetRow: number;
+  } | null>(null);
 
   // Continuous stroke buffer (accumulates all items changed during current mousedown stroke)
   const strokeDidModifyRef = useRef<boolean>(false);
@@ -436,6 +446,17 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           const px = item.x * effectiveCellSize;
           const py = item.y * effectiveCellSize;
 
+          // If item is currently detached and being dragged by Move tool
+          if (movingObject && movingObject.item.id === item.id) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeRect(px + 1, py + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+            ctx.restore();
+            return;
+          }
+
           const hasLeft =
             itemMap.has(`${item.x - 1},${item.y}`) &&
             itemMap.get(`${item.x - 1},${item.y}`)?.tileId === item.tileId;
@@ -570,12 +591,136 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         ctx.restore();
       }
 
+      // 4b. Draw Move Tool Ghost Preview while dragging detached object
+      if (movingObject) {
+        ctx.save();
+        const { item, targetCol, targetRow } = movingObject;
+        const isGround = isGroundEnemy(item.tileId);
+
+        if (isGround) {
+          const otherItems = levelData.items.filter((it) => it.id !== item.id);
+          const groundY = findGroundRowBelow(otherItems, targetCol, targetRow);
+
+          if (groundY !== null && groundY > 0) {
+            const snappedRow = groundY - 1;
+            const gx = targetCol * effectiveCellSize;
+            const gy = snappedRow * effectiveCellSize;
+
+            // Dotted guideline down to ground if elevated
+            if (snappedRow > targetRow) {
+              ctx.save();
+              ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+              ctx.lineWidth = 2;
+              ctx.setLineDash([3, 3]);
+              ctx.beginPath();
+              ctx.moveTo(gx + effectiveCellSize * 0.5, targetRow * effectiveCellSize);
+              ctx.lineTo(gx + effectiveCellSize * 0.5, gy);
+              ctx.stroke();
+              ctx.restore();
+            }
+
+            // Draw enemy ghost on ground
+            ctx.globalAlpha = 0.8;
+            SpriteRenderer.drawTile(ctx, item.tileId, gx, gy, effectiveCellSize, { animTime });
+
+            // Emerald landing highlight
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(gx + 1, gy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+
+            // Floating dimension / coord badge
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 1;
+            const badgeText = `Перемещение: [X: ${targetCol}, Y: ${snappedRow}]`;
+            ctx.font = 'bold 11px system-ui, sans-serif';
+            const bw = ctx.measureText(badgeText).width;
+            ctx.fillRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
+            ctx.strokeRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
+            ctx.fillStyle = '#6ee7b7';
+            ctx.fillText(badgeText, gx + effectiveCellSize * 0.5 - bw * 0.5, gy - 7);
+          } else {
+            // No ground warning indicator at current hovered cell
+            const gx = targetCol * effectiveCellSize;
+            const gy = targetRow * effectiveCellSize;
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+            ctx.fillRect(gx, gy, effectiveCellSize, effectiveCellSize);
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(gx + 1, gy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+
+            // Red cross
+            ctx.beginPath();
+            ctx.moveTo(gx + 8, gy + 8);
+            ctx.lineTo(gx + effectiveCellSize - 8, gy + effectiveCellSize - 8);
+            ctx.moveTo(gx + effectiveCellSize - 8, gy + 8);
+            ctx.lineTo(gx + 8, gy + effectiveCellSize - 8);
+            ctx.stroke();
+
+            // Floating warning badge
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1;
+            const warnText = '⚠️ Нужна твердая опора!';
+            ctx.font = 'bold 11px system-ui, sans-serif';
+            const bw = ctx.measureText(warnText).width;
+            ctx.fillRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
+            ctx.strokeRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
+            ctx.fillStyle = '#fca5a5';
+            ctx.fillText(warnText, gx + effectiveCellSize * 0.5 - bw * 0.5, gy - 7);
+          }
+        } else {
+          // Standard tile/object moving preview
+          const gx = targetCol * effectiveCellSize;
+          const gy = targetRow * effectiveCellSize;
+
+          ctx.globalAlpha = 0.8;
+          SpriteRenderer.drawTile(ctx, item.tileId, gx, gy, effectiveCellSize, { animTime });
+
+          // Golden/amber snapping box
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(gx + 1, gy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+
+          // Floating coords badge
+          ctx.globalAlpha = 1.0;
+          ctx.fillStyle = '#0f172a';
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1;
+          const badgeText = `Перемещение: [X: ${targetCol}, Y: ${targetRow}]`;
+          ctx.font = 'bold 11px system-ui, sans-serif';
+          const bw = ctx.measureText(badgeText).width;
+          ctx.fillRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
+          ctx.strokeRect(gx + effectiveCellSize * 0.5 - bw * 0.5 - 6, gy - 20, bw + 12, 18);
+          ctx.fillStyle = '#fef08a';
+          ctx.fillText(badgeText, gx + effectiveCellSize * 0.5 - bw * 0.5, gy - 7);
+        }
+
+        ctx.restore();
+      }
+
       // 5. Ghost Cursor Hover Preview (50% opacity block under mouse)
       if (hoverCell && (!isMouseDown || activeTool === 'erase')) {
         const hx = hoverCell.col * effectiveCellSize;
         const hy = hoverCell.row * effectiveCellSize;
 
-        if (activeTool === 'erase' || mouseButton === 2) {
+        if (activeTool === 'move') {
+          // Highlight hover target with dashed border if object exists
+          if (!movingObject) {
+            const hoveredItem = levelData.items.find(
+              (it) => it.x === hoverCell.col && it.y === hoverCell.row
+            );
+            if (hoveredItem) {
+              ctx.save();
+              ctx.strokeStyle = '#f59e0b';
+              ctx.lineWidth = 2.5;
+              ctx.setLineDash([4, 3]);
+              ctx.strokeRect(hx + 1, hy + 1, effectiveCellSize - 2, effectiveCellSize - 2);
+              ctx.restore();
+            }
+          }
+        } else if (activeTool === 'erase' || mouseButton === 2) {
           // Red eraser indicator box
           ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
           ctx.fillRect(hx, hy, effectiveCellSize, effectiveCellSize);
@@ -1014,6 +1159,21 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
       // Freehand brush: place immediately at current cell
       paintAt(cell.col, cell.row);
       sound.playPlaceTile();
+    } else if (activeTool === 'move') {
+      // Move tool: select object under cell and detach
+      const targetItem = levelData.items.find(
+        (it) => it.x === cell.col && it.y === cell.row
+      );
+      if (targetItem) {
+        setMovingObject({
+          item: targetItem,
+          startCol: cell.col,
+          startRow: cell.row,
+          targetCol: cell.col,
+          targetRow: cell.row,
+        });
+        sound.playSelect();
+      }
     }
   };
 
@@ -1033,11 +1193,72 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
       eraseAt(cell.col, cell.row);
     } else if (activeTool === 'brush' && mouseButton === 0) {
       paintAt(cell.col, cell.row);
+    } else if (activeTool === 'move' && movingObject) {
+      let tc = cell.col;
+      let tr = cell.row;
+      if (isGroundEnemy(movingObject.item.tileId)) {
+        const otherItems = levelData.items.filter((it) => it.id !== movingObject.item.id);
+        const groundY = findGroundRowBelow(otherItems, tc, tr);
+        if (groundY !== null && groundY > 0) {
+          tr = groundY - 1;
+        }
+      }
+      setMovingObject((prev) =>
+        prev
+          ? {
+              ...prev,
+              targetCol: tc,
+              targetRow: tr,
+            }
+          : null
+      );
     }
   };
 
   const handleMouseUp = () => {
     endPan();
+
+    if (movingObject) {
+      const { item, startCol, startRow, targetCol, targetRow } = movingObject;
+      const isGround = isGroundEnemy(item.tileId);
+      const otherItems = levelData.items.filter((it) => it.id !== item.id);
+
+      let finalCol = targetCol;
+      let finalRow = targetRow;
+
+      if (isGround) {
+        const groundY = findGroundRowBelow(otherItems, finalCol, finalRow);
+        if (groundY !== null && groundY > 0) {
+          finalRow = groundY - 1;
+        } else {
+          showToast('Врагов можно ставить только на твердую поверхность!');
+          sound.playBump();
+          setMovingObject(null);
+          setIsMouseDown(false);
+          setDragStartCell(null);
+          setDragCurrentCell(null);
+          return;
+        }
+      }
+
+      // Bound checks
+      finalCol = Math.max(0, Math.min(finalCol, 159));
+      finalRow = Math.max(0, Math.min(finalRow, (levelData.height || GRID_ROWS) - 1));
+
+      // Check if position changed or replaced another item
+      if (finalCol !== startCol || finalRow !== startRow) {
+        const updated = otherItems.filter((it) => !(it.x === finalCol && it.y === finalRow));
+        updated.push({
+          ...item,
+          x: finalCol,
+          y: finalRow,
+        });
+        onUpdateItems(updated, true);
+        sound.playPlaceTile();
+      }
+
+      setMovingObject(null);
+    }
 
     if (isMouseDown) {
       if (mouseButton === 0 && activeTool === 'line') {
@@ -1128,6 +1349,13 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     if (isPanningRef.current) return 'cursor-grabbing';
     if (isSpaceHeld) return 'cursor-grab';
     if (activeTool === 'erase') return 'cursor-cell';
+    if (activeTool === 'move') {
+      if (movingObject) return 'cursor-grabbing';
+      if (hoverCell && levelData.items.some((it) => it.x === hoverCell.col && it.y === hoverCell.row)) {
+        return 'cursor-grab';
+      }
+      return 'cursor-grab';
+    }
     return 'cursor-crosshair';
   };
 
@@ -1331,7 +1559,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           onWheel={handleWheel}
           onContextMenu={(e) => e.preventDefault()}
           style={{ pointerEvents: 'auto' }}
-          className="absolute inset-0 block w-full h-full"
+          className={`absolute inset-0 block w-full h-full ${getCursorClass()}`}
         />
 
         {/* Small floating tool tip when hovering */}
@@ -1347,6 +1575,11 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
                 <Move className="w-3 h-3 text-amber-400" />
                 <span className="text-amber-400">Область (R)</span>
               </>
+            ) : activeTool === 'move' ? (
+              <>
+                <Hand className="w-3 h-3 text-amber-400" />
+                <span className="text-amber-400">Перемещение (V / H)</span>
+              </>
             ) : (
               <>
                 <PenTool className="w-3 h-3 text-emerald-400" />
@@ -1356,7 +1589,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           </span>
           <span className="text-slate-600">|</span>
           <span className="text-slate-300">
-            ЛКМ — ставить, ПКМ — удалить | Пробел+тянуть — обзор | G — сетка
+            {activeTool === 'move'
+              ? 'ЛКМ — схватить и переместить объект | Отпустите — зафиксировать'
+              : 'ЛКМ — ставить, ПКМ — удалить | Пробел+тянуть — обзор | G — сетка'}
           </span>
         </div>
       </div>

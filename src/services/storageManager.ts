@@ -9,7 +9,7 @@
  */
 
 import { LevelData } from '../types/game';
-import { GameSettings, SavedGame, StorageData, UserProfile } from '../types/storage';
+import { GameSettings, SavedGame, StorageData, ThemeMode, UserProfile } from '../types/storage';
 
 const ROOT_STORAGE_KEY = 'super_pixel_world_data';
 const LEGACY_STORAGE_KEY = 'super_pixel_world_level_v5';
@@ -19,6 +19,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   music: true,
   volume: 0.4,
   isMuted: false,
+  themeMode: 'dark',
+  uiScale: 1.0,
 };
 
 /**
@@ -454,5 +456,14 @@ export class SettingsManager {
 
   public static setMuted(muted: boolean): GameSettings {
     return this.updateSettings({ isMuted: muted });
+  }
+
+  public static setThemeMode(theme: ThemeMode): GameSettings {
+    return this.updateSettings({ themeMode: theme });
+  }
+
+  public static setUiScale(scale: number): GameSettings {
+    const clamped = Math.max(0.7, Math.min(1.5, scale));
+    return this.updateSettings({ uiScale: clamped });
   }
 }

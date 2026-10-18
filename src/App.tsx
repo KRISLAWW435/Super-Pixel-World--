@@ -510,6 +510,17 @@ export default function App() {
         setActiveTool('erase');
         sound.playErase();
       }
+      // V or H -> Move (Hand) Tool
+      else if (
+        (e.code === 'KeyV' || e.code === 'KeyH' || e.key === 'v' || e.key === 'h' || e.key === 'м' || e.key === 'р') &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
+      ) {
+        e.preventDefault();
+        setActiveTool('move');
+        sound.playSelect();
+      }
       // Enter or P -> Playtest
       else if ((e.code === 'Enter' || e.code === 'KeyP') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();

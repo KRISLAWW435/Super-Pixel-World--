@@ -6,7 +6,7 @@ export type ThemeId = 'green_islands' | 'candy_land' | 'ice_world' | 'alien_jung
 
 export type HeroId = 'leo' | 'bolt' | 'pippin' | 'astro';
 
-export type ToolMode = 'brush' | 'line' | 'erase' | 'select';
+export type ToolMode = 'brush' | 'line' | 'erase' | 'select' | 'move';
 
 export type PaletteCategory = 'platforms' | 'objects' | 'enemies' | 'backgrounds' | 'heroes';
 
