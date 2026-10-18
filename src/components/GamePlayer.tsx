@@ -11,6 +11,7 @@ import {
   Clock,
   Coins,
   Crown,
+  Gamepad2,
   Gem,
   Heart,
   Home,
@@ -141,6 +142,61 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
   // Camera State (2D follow for expanded height)
   const cameraRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // Gamepad state & notification toasts
+  const [gamepadToast, setGamepadToast] = useState<{ message: string; sub?: string } | null>(null);
+  const [gamepadConnectedName, setGamepadConnectedName] = useState<string | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const prevGamepadRef = useRef<{ jump: boolean; start: boolean }>({
+    jump: false,
+    start: false,
+  });
+
+  const triggerGamepadToast = (message: string, sub?: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setGamepadToast({ message, sub });
+    toastTimerRef.current = setTimeout(() => {
+      setGamepadToast(null);
+    }, 3500);
+  };
+
+  // Listen for Gamepad connection & disconnection events
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && typeof navigator.getGamepads === 'function') {
+      const pads = navigator.getGamepads();
+      for (let i = 0; i < pads.length; i++) {
+        const p = pads[i];
+        if (p && p.connected) {
+          const cleanName = p.id ? p.id.replace(/\([^)]*\)/g, '').trim() || 'Геймпад' : 'Геймпад';
+          setGamepadConnectedName(cleanName);
+          break;
+        }
+      }
+    }
+
+    const handleGamepadConnected = (e: GamepadEvent) => {
+      const pad = e.gamepad;
+      const cleanName = pad.id ? pad.id.replace(/\([^)]*\)/g, '').trim() || 'Геймпад' : 'Геймпад';
+      setGamepadConnectedName(cleanName);
+      sound.playSelect();
+      triggerGamepadToast('🎮 Геймпад подключен!', cleanName);
+    };
+
+    const handleGamepadDisconnected = (e: GamepadEvent) => {
+      sound.playBump();
+      setGamepadConnectedName(null);
+      triggerGamepadToast('🎮 Геймпад отключен', 'Управление через клавиатуру');
+    };
+
+    window.addEventListener('gamepadconnected', handleGamepadConnected);
+    window.addEventListener('gamepaddisconnected', handleGamepadDisconnected);
+
+    return () => {
+      window.removeEventListener('gamepadconnected', handleGamepadConnected);
+      window.removeEventListener('gamepaddisconnected', handleGamepadDisconnected);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
   // Initialize Game & Sound
   const initGame = () => {
     // Deep clone levelData so that collected items & broken bricks reset on restart
@@ -235,14 +291,92 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       const dt = Math.min((now - lastTime) / 1000, 0.05);
       lastTime = now;
 
+      // -------------------------------------------------------------
+      // GAMEPAD POLLING (HTML5 Gamepad API)
+      // -------------------------------------------------------------
+      let padLeft = false;
+      let padRight = false;
+      let padJump = false;
+      let padJumpJustPressed = false;
+      let padStartJustPressed = false;
+      let anyGamepadFound = false;
+
+      if (typeof navigator !== 'undefined' && typeof navigator.getGamepads === 'function') {
+        const gamepads = navigator.getGamepads();
+        for (let i = 0; i < gamepads.length; i++) {
+          const gp = gamepads[i];
+          if (!gp || !gp.connected) continue;
+          anyGamepadFound = true;
+
+          // Deadzone calculation (> 0.2) to prevent analog stick drift
+          // Left Stick: Axes 0 (horizontal), Axes 1 (vertical)
+          const axisX = gp.axes[0] ?? 0;
+          if (axisX < -0.2) padLeft = true;
+          if (axisX > 0.2) padRight = true;
+
+          // D-Pad: Button 14 = Left, Button 15 = Right
+          if (gp.buttons[14]?.pressed) padLeft = true;
+          if (gp.buttons[15]?.pressed) padRight = true;
+
+          // Button 0 (A / Cross): Jump
+          const btnA = gp.buttons[0]?.pressed;
+          if (btnA) {
+            padJump = true;
+            if (!prevGamepadRef.current.jump) {
+              padJumpJustPressed = true;
+            }
+          }
+
+          // Button 9 (Start): Pause
+          const btnStart = gp.buttons[9]?.pressed;
+          if (btnStart && !prevGamepadRef.current.start) {
+            padStartJustPressed = true;
+          }
+
+          // Store previous states for edge detection
+          prevGamepadRef.current.jump = !!btnA;
+          prevGamepadRef.current.start = !!btnStart;
+
+          // Process the primary connected gamepad
+          break;
+        }
+      }
+
+      if (!anyGamepadFound) {
+        prevGamepadRef.current.jump = false;
+        prevGamepadRef.current.start = false;
+      }
+
+      // Handle Gamepad Start button pause toggle
+      if (padStartJustPressed) {
+        sound.playClick();
+        setIsPaused((p) => !p);
+      }
+
       const engine = physicsRef.current;
       if (engine && !isPaused) {
+        // Track actions for tutorial if controlled via gamepad
+        if (padLeft || padRight) {
+          setHasMoved(true);
+          TutorialManager.emitGameplayAction('move');
+        }
+        if (padJumpJustPressed) {
+          setHasJumped(true);
+          TutorialManager.emitGameplayAction('jump');
+        }
+
+        // Combine keyboard, on-screen touch and gamepad inputs
+        const isMovingLeft = keysRef.current.left || padLeft;
+        const isMovingRight = keysRef.current.right || padRight;
+        const isJumping = keysRef.current.jump || padJump;
+        const isJumpJustPressed = keysRef.current.jumpJustPressed || padJumpJustPressed;
+
         // Run physics tick
         engine.update(dt, {
-          left: keysRef.current.left,
-          right: keysRef.current.right,
-          jump: keysRef.current.jump,
-          jumpJustPressed: keysRef.current.jumpJustPressed,
+          left: isMovingLeft,
+          right: isMovingRight,
+          jump: isJumping,
+          jumpJustPressed: isJumpJustPressed,
         });
 
         // Reset single-frame jump triggers
@@ -730,6 +864,27 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
         </div>
       </header>
 
+      {/* GAMEPAD CONNECTION TOAST NOTIFICATION */}
+      {gamepadToast && (
+        <div className="absolute top-18 right-4 z-50 pointer-events-none animate-in fade-in slide-in-from-top-3 duration-300">
+          <div className="px-4 py-2.5 rounded-xl bg-slate-900/95 border-2 border-emerald-400 text-white shadow-[4px_4px_0px_#000000] flex items-center gap-3 backdrop-blur-md select-none">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400 text-emerald-400 flex items-center justify-center text-lg font-bold">
+              🎮
+            </div>
+            <div>
+              <div className="font-pixel text-[11px] text-emerald-300 font-bold tracking-wide">
+                {gamepadToast.message}
+              </div>
+              {gamepadToast.sub && (
+                <div className="text-[10px] text-slate-300 font-mono font-medium truncate max-w-[240px]">
+                  {gamepadToast.sub}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CHALLENGE COMPLETED CELEBRATORY BANNER */}
       {showChallengeBanner && (
         <div className="absolute top-18 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-in zoom-in-90 slide-in-from-top-4 duration-300">
@@ -769,9 +924,9 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
                 </div>
                 <div className="text-white font-bold mt-0.5">
                   {!hasMoved ? (
-                    <span>Нажимай стрелочки <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono border border-slate-700">⬅ ➡</kbd> или <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono border border-slate-700">A / D</kbd>, чтобы побежать!</span>
+                    <span>Нажимай стрелочки <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono border border-slate-700">⬅ ➡</kbd> или <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono border border-slate-700">A / D</kbd> (или Стик геймпада), чтобы побежать!</span>
                   ) : !hasJumped ? (
-                    <span>Отлично! Теперь нажми <kbd className="px-2 py-0.5 rounded bg-emerald-900 text-yellow-300 font-mono border border-emerald-500">Пробел</kbd> или <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono border border-slate-700">W</kbd>, чтобы прыгнуть!</span>
+                    <span>Отлично! Теперь нажми <kbd className="px-2 py-0.5 rounded bg-emerald-900 text-yellow-300 font-mono border border-emerald-500">Пробел</kbd>, <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono border border-slate-700">W</kbd> или <kbd className="px-1.5 py-0.5 rounded bg-emerald-900 text-yellow-300 font-mono border border-emerald-500">Ⓐ</kbd>, чтобы прыгнуть!</span>
                   ) : stats.coinsCollected === 0 ? (
                     <span>Супер! Теперь собери сияющую золотую монетку!</span>
                   ) : (
@@ -797,8 +952,8 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
                   Обучение: Управление и битва
                 </div>
                 <div className="text-white">
-                  <span className="font-semibold text-yellow-300">Бег:</span> ⬅ / ➡ или A, D ·{' '}
-                  <span className="font-semibold text-yellow-300">Прыжок:</span> Пробел или W (удерживайте для высоты) ·{' '}
+                  <span className="font-semibold text-yellow-300">Бег:</span> ⬅ / ➡ или A, D (Стик / D-Pad) ·{' '}
+                  <span className="font-semibold text-yellow-300">Прыжок:</span> Пробел или W (кнопка Ⓐ) ·{' '}
                   <span className="font-bold text-yellow-300">Врагов побеждайте прыжком СВЕРХУ!</span>
                 </div>
               </div>
@@ -830,6 +985,18 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
             <span className="text-white ml-1">Прыжок (удержание = выше)</span>
           </div>
 
+          {gamepadConnectedName && (
+            <>
+              <div className="w-[1px] h-3.5 bg-slate-600" />
+              <div className="flex items-center gap-1.5 text-emerald-300">
+                <span className="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500 font-mono font-bold text-[10px] text-emerald-300">
+                  🎮 D-Pad / Ⓐ
+                </span>
+                <span className="text-emerald-200 text-[11px]">Геймпад активен</span>
+              </div>
+            </>
+          )}
+
           <div className="w-[1px] h-3.5 bg-slate-600" />
 
           <div className="flex items-center gap-1.5">
@@ -840,8 +1007,8 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           <div className="w-[1px] h-3.5 bg-slate-600" />
 
           <div className="flex items-center gap-1.5">
-            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono font-bold text-[11px] border border-slate-700">Esc</span>
-            <span className="text-white">Пауза / В редактор</span>
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono font-bold text-[11px] border border-slate-700">Esc / Start</span>
+            <span className="text-white">Пауза</span>
           </div>
         </div>
       </div>

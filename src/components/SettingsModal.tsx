@@ -26,6 +26,7 @@ import {
   Palette,
   Sparkles,
   Clock,
+  Gamepad2,
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 import { SettingsManager } from '../services/storageManager';
@@ -33,7 +34,7 @@ import { TutorialManager } from '../services/TutorialManager';
 import { GameSettings, ThemeMode } from '../types/storage';
 import { StudioModal } from './StudioModal';
 
-export type SettingsTabId = 'sound' | 'theme' | 'display';
+export type SettingsTabId = 'sound' | 'theme' | 'display' | 'controls';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ interface SettingsModalProps {
   onResetTutorial?: () => void;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+  initialTab?: SettingsTabId;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -51,13 +53,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onResetTutorial,
   isFullscreen = false,
   onToggleFullscreen,
+  initialTab = 'sound',
 }) => {
-  const [activeTab, setActiveTab] = useState<SettingsTabId>('sound');
+  const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
   const [settings, setSettings] = useState<GameSettings>(() => SettingsManager.getSettings());
+  const [gamepadInfo, setGamepadInfo] = useState<{
+    connected: boolean;
+    name: string;
+    axes: number[];
+    buttons: boolean[];
+  }>({
+    connected: false,
+    name: '',
+    axes: [0, 0],
+    buttons: [],
+  });
   const [screenRes, setScreenRes] = useState<{ width: number; height: number }>({
     width: typeof window !== 'undefined' ? window.innerWidth : 1920,
     height: typeof window !== 'undefined' ? window.innerHeight : 1080,
   });
+
+  // Poll Gamepad status in real time for live status & test
+  useEffect(() => {
+    let animId: number;
+    const poll = () => {
+      if (typeof navigator !== 'undefined' && typeof navigator.getGamepads === 'function') {
+        const pads = navigator.getGamepads();
+        let found = false;
+        for (let i = 0; i < pads.length; i++) {
+          const p = pads[i];
+          if (p && p.connected) {
+            found = true;
+            const cleanName = p.id ? p.id.replace(/\([^)]*\)/g, '').trim() || 'Геймпад' : 'Геймпад';
+            setGamepadInfo({
+              connected: true,
+              name: cleanName,
+              axes: [p.axes[0] ?? 0, p.axes[1] ?? 0],
+              buttons: p.buttons.map((b) => b.pressed),
+            });
+            break;
+          }
+        }
+        if (!found) {
+          setGamepadInfo((prev) => (prev.connected ? { connected: false, name: '', axes: [0, 0], buttons: [] } : prev));
+        }
+      }
+      animId = requestAnimationFrame(poll);
+    };
+
+    animId = requestAnimationFrame(poll);
+    return () => cancelAnimationFrame(animId);
+  }, []);
 
   // Track window resize to display accurate resolution info
   useEffect(() => {
@@ -175,25 +221,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="НАСТРОЙКИ СИСТЕМЫ"
-      subtitle="Звук, тема ретро-консоли и масштаб интерфейса"
+      subtitle="Звук, тема ретро-консоли, экран и управление"
       icon={<Settings className="w-5 h-5 text-amber-400" />}
       maxWidth="lg"
     >
-      {/* 3 Chunky Retro Tabs Switcher */}
-      <div className="grid grid-cols-3 gap-2 pb-1 border-b-2 border-black/40">
+      {/* 4 Chunky Retro Tabs Switcher */}
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2 pb-1 border-b-2 border-black/40">
         {/* Tab 1: Sound */}
         <button
           onClick={() => {
             sound.playClick();
             setActiveTab('sound');
           }}
-          className={`retro-btn-sm py-2 px-2 flex items-center justify-center gap-1.5 transition-all ${
+          className={`retro-btn-sm py-2 px-1.5 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 transition-all text-xs ${
             activeTab === 'sound'
               ? 'bg-amber-400 text-slate-950 font-bold translate-y-[-1px]'
               : 'bg-[var(--card-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
           }`}
         >
-          <Volume2 className="w-3.5 h-3.5" />
+          <Volume2 className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">ЗВУК</span>
         </button>
 
@@ -203,13 +249,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             sound.playClick();
             setActiveTab('theme');
           }}
-          className={`retro-btn-sm py-2 px-2 flex items-center justify-center gap-1.5 transition-all ${
+          className={`retro-btn-sm py-2 px-1.5 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 transition-all text-xs ${
             activeTab === 'theme'
               ? 'bg-amber-400 text-slate-950 font-bold translate-y-[-1px]'
               : 'bg-[var(--card-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
           }`}
         >
-          <Palette className="w-3.5 h-3.5" />
+          <Palette className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">ТЕМА</span>
         </button>
 
@@ -219,14 +265,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             sound.playClick();
             setActiveTab('display');
           }}
-          className={`retro-btn-sm py-2 px-2 flex items-center justify-center gap-1.5 transition-all ${
+          className={`retro-btn-sm py-2 px-1.5 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 transition-all text-xs ${
             activeTab === 'display'
               ? 'bg-amber-400 text-slate-950 font-bold translate-y-[-1px]'
               : 'bg-[var(--card-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
           }`}
         >
-          <Monitor className="w-3.5 h-3.5" />
+          <Monitor className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">ЭКРАН</span>
+        </button>
+
+        {/* Tab 4: Controls */}
+        <button
+          onClick={() => {
+            sound.playClick();
+            setActiveTab('controls');
+          }}
+          className={`retro-btn-sm py-2 px-1.5 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 transition-all text-xs ${
+            activeTab === 'controls'
+              ? 'bg-amber-400 text-slate-950 font-bold translate-y-[-1px]'
+              : 'bg-[var(--card-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+          }`}
+        >
+          <Gamepad2 className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">УПРАВЛЕНИЕ</span>
         </button>
       </div>
 
@@ -579,6 +641,304 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <span>ЗАНОВО</span>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: CONTROLS & GAMEPAD GUIDE                                           */}
+      {/* ========================================================================= */}
+      {activeTab === 'controls' && (
+        <div className="space-y-3.5 animate-in fade-in duration-100">
+          {/* Dynamic Connection Status Indicator */}
+          <div
+            className={`retro-panel p-3.5 flex items-center justify-between border-2 border-black shadow-[3px_3px_0px_#000] ${
+              gamepadInfo.connected
+                ? 'bg-emerald-950/40 border-emerald-500/80 text-emerald-200'
+                : 'bg-slate-900/60 border-slate-700/80'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl border-2 border-black flex items-center justify-center text-xl shrink-0 ${
+                  gamepadInfo.connected
+                    ? 'bg-emerald-500 text-slate-950 shadow-[2px_2px_0px_#000]'
+                    : 'bg-slate-800 text-slate-400'
+                }`}
+              >
+                {gamepadInfo.connected ? '🎮' : '⌨️'}
+              </div>
+              <div>
+                <div className="text-[10px] font-pixel text-[var(--text-muted)] uppercase tracking-wider">
+                  СТАТУС ПОДКЛЮЧЕНИЯ
+                </div>
+                <div className="text-xs sm:text-sm font-bold font-pixel text-[var(--text-main)] flex items-center gap-2 mt-0.5">
+                  {gamepadInfo.connected ? (
+                    <>
+                      <span className="text-emerald-400">🎮 Геймпад подключен:</span>
+                      <span className="text-white truncate max-w-[180px] sm:max-w-[260px]">
+                        {gamepadInfo.name}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-slate-300">⌨️ Только клавиатура</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center">
+              <span
+                className={`px-2.5 py-1 rounded text-[10px] font-pixel font-bold border-2 border-black shadow-[2px_2px_0px_#000] ${
+                  gamepadInfo.connected
+                    ? 'bg-emerald-400 text-slate-950 animate-pulse'
+                    : 'bg-slate-800 text-slate-400'
+                }`}
+              >
+                {gamepadInfo.connected ? 'АКТИВЕН' : 'ОЖИДАНИЕ'}
+              </span>
+            </div>
+          </div>
+
+          {/* Two-Column Controls Layout: Keyboard vs Gamepad */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* COLUMN 1: KEYBOARD */}
+            <div className="retro-panel p-3.5 space-y-3 border-2 border-black shadow-[3px_3px_0px_#000] flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 pb-2 mb-3 border-b border-black/30">
+                  <div className="w-6 h-6 rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-bold text-xs">
+                    ⌨️
+                  </div>
+                  <h4 className="font-pixel text-xs text-amber-400 font-bold uppercase tracking-wider">
+                    КЛАВИАТУРА (ПК)
+                  </h4>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Move Left / Right */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-[var(--text-muted)]">
+                      Движение:
+                    </span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="px-2 py-0.5 rounded bg-slate-800 border-2 border-black text-amber-300 font-pixel text-[11px] font-bold shadow-[2px_2px_0px_#000]">
+                        A
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-slate-800 border-2 border-black text-amber-300 font-pixel text-[11px] font-bold shadow-[2px_2px_0px_#000]">
+                        D
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)] mx-0.5">или</span>
+                      <span className="px-2 py-0.5 rounded bg-slate-800 border-2 border-black text-amber-300 font-pixel text-[11px] font-bold shadow-[2px_2px_0px_#000]">
+                        ⬅
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-slate-800 border-2 border-black text-amber-300 font-pixel text-[11px] font-bold shadow-[2px_2px_0px_#000]">
+                        ➡
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Jump */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-semibold text-[var(--text-muted)]">
+                        Прыжок:
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-sans">
+                        Удержание = выше
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="px-2.5 py-0.5 rounded bg-emerald-950/80 border-2 border-black text-emerald-300 font-pixel text-[11px] font-bold shadow-[2px_2px_0px_#000]">
+                        ПРОБЕЛ
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)] mx-0.5">или</span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-950/80 border-2 border-black text-emerald-300 font-pixel text-[11px] font-bold shadow-[2px_2px_0px_#000]">
+                        W
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-950/80 border-2 border-black text-emerald-300 font-pixel text-[11px] font-bold shadow-[2px_2px_0px_#000]">
+                        ⬆
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Pause */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-[var(--text-muted)]">
+                      Пауза:
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded bg-rose-950/80 border-2 border-black text-rose-300 font-pixel text-[11px] font-bold shadow-[2px_2px_0px_#000]">
+                      ESC
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Extra note */}
+              <div className="pt-2 border-t border-black/20 text-[11px] text-[var(--text-muted)] flex items-center gap-1.5">
+                <span>⚔️</span>
+                <span>Враги побеждаются прыжком сверху</span>
+              </div>
+            </div>
+
+            {/* COLUMN 2: GAMEPAD */}
+            <div className="retro-panel p-3.5 space-y-3 border-2 border-black shadow-[3px_3px_0px_#000] flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 pb-2 mb-3 border-b border-black/30">
+                  <div className="w-6 h-6 rounded bg-sky-500/20 text-sky-400 border border-sky-500/40 flex items-center justify-center font-bold text-xs">
+                    🎮
+                  </div>
+                  <h4 className="font-pixel text-xs text-sky-400 font-bold uppercase tracking-wider">
+                    ГЕЙМПАД / ДЖОЙСТИК
+                  </h4>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Move Left / Right */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-[var(--text-muted)]">
+                      Движение:
+                    </span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span
+                        className={`px-2 py-0.5 rounded border-2 border-black font-pixel text-[10px] font-bold shadow-[2px_2px_0px_#000] transition-colors ${
+                          gamepadInfo.connected && (Math.abs(gamepadInfo.axes[0] ?? 0) > 0.2)
+                            ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300'
+                            : 'bg-slate-800 text-sky-300'
+                        }`}
+                      >
+                        🕹️ СТИК
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)]">/</span>
+                      <span
+                        className={`px-2 py-0.5 rounded border-2 border-black font-pixel text-[10px] font-bold shadow-[2px_2px_0px_#000] transition-colors ${
+                          gamepadInfo.connected && (gamepadInfo.buttons[14] || gamepadInfo.buttons[15])
+                            ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300'
+                            : 'bg-slate-800 text-sky-300'
+                        }`}
+                      >
+                        ➕ D-PAD
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Jump */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-semibold text-[var(--text-muted)]">
+                        Прыжок:
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-sans">
+                        Удержание = выше
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div
+                        className={`w-6 h-6 rounded-full border-2 border-black shadow-[2px_2px_0px_#000] font-pixel text-xs font-bold flex items-center justify-center transition-all ${
+                          gamepadInfo.connected && gamepadInfo.buttons[0]
+                            ? 'bg-emerald-300 text-slate-950 ring-2 ring-emerald-300 scale-110'
+                            : 'bg-emerald-500 text-slate-950'
+                        }`}
+                      >
+                        A
+                      </div>
+                      <span className="text-[10px] text-[var(--text-muted)]">/</span>
+                      <div
+                        className={`w-6 h-6 rounded-full border-2 border-black shadow-[2px_2px_0px_#000] font-pixel text-xs font-bold flex items-center justify-center transition-all ${
+                          gamepadInfo.connected && gamepadInfo.buttons[0]
+                            ? 'bg-sky-300 text-slate-950 ring-2 ring-sky-300 scale-110'
+                            : 'bg-sky-500 text-slate-950'
+                        }`}
+                      >
+                        ✕
+                      </div>
+                      <span className="text-[10px] text-[var(--text-muted)] font-mono ml-0.5">
+                        (Кн. 0)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Pause */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-[var(--text-muted)]">
+                      Пауза:
+                    </span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full border-2 border-black font-pixel text-[10px] font-bold shadow-[2px_2px_0px_#000] tracking-wider transition-all ${
+                          gamepadInfo.connected && gamepadInfo.buttons[9]
+                            ? 'bg-amber-300 text-slate-950 ring-2 ring-amber-300 scale-105'
+                            : 'bg-slate-700 text-amber-300'
+                        }`}
+                      >
+                        START
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-mono ml-0.5">
+                        (Кн. 9)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Extra note */}
+              <div className="pt-2 border-t border-black/20 text-[11px] text-[var(--text-muted)] flex items-center gap-1.5">
+                <span>🛡️</span>
+                <span>Мёртвая зона (Deadzone 0.2) от дрифта</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Live Input Signal Monitor (When Gamepad is connected) */}
+          {gamepadInfo.connected && (
+            <div className="retro-panel p-3 border-2 border-emerald-500/60 bg-emerald-950/20 shadow-[2px_2px_0px_#000]">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="font-pixel text-emerald-400 font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  ПРОВЕРКА СИГНАЛОВ ДЖОЙСТИКА В РЕАЛЬНОМ ВРЕМЕНИ
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">
+                  Стик X: {(gamepadInfo.axes[0] ?? 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={`px-2 py-1 rounded text-[10px] font-pixel border border-black transition-all ${
+                    (gamepadInfo.axes[0] ?? 0) < -0.2 || gamepadInfo.buttons[14]
+                      ? 'bg-amber-400 text-slate-950 font-bold scale-105'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  ⬅ ВЛЕВО
+                </span>
+                <span
+                  className={`px-2 py-1 rounded text-[10px] font-pixel border border-black transition-all ${
+                    (gamepadInfo.axes[0] ?? 0) > 0.2 || gamepadInfo.buttons[15]
+                      ? 'bg-amber-400 text-slate-950 font-bold scale-105'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  ВПРАВО ➡
+                </span>
+                <span
+                  className={`px-2 py-1 rounded text-[10px] font-pixel border border-black transition-all ${
+                    gamepadInfo.buttons[0]
+                      ? 'bg-emerald-400 text-slate-950 font-bold scale-105'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  Ⓐ ПРЫЖОК
+                </span>
+                <span
+                  className={`px-2 py-1 rounded text-[10px] font-pixel border border-black transition-all ${
+                    gamepadInfo.buttons[9]
+                      ? 'bg-amber-400 text-slate-950 font-bold scale-105'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  START ПАУЗА
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </StudioModal>
