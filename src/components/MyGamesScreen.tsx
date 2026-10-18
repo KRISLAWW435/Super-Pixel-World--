@@ -33,6 +33,7 @@ import { LevelData } from '../types/game';
 import { PRESET_AVATARS, SavedGame, UserProfile } from '../types/storage';
 import { SettingsModal } from './SettingsModal';
 import archiveBgImg from '../assets/images/pixel_archive_sky_bg_1792309583036.jpg';
+import bgGreenIslands from '../assets/images/bg_green_islands.webp';
 
 interface MyGamesScreenProps {
   onBackToMenu: () => void;
@@ -143,21 +144,28 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
   }, [games]);
 
   return (
-    <div className="relative w-full h-full min-h-screen flex flex-col p-3 sm:p-5 lg:p-7 overflow-y-auto select-none bg-[var(--bg-color)] text-[var(--text-main)]">
-      {/* 1. Light Sunny Pixel Art Sky Background (Fully visible, no dark dimming) */}
-      <img
-        src={archiveBgImg}
-        alt="Солнечный мир пиксельных игр"
-        className="fixed inset-0 w-full h-full object-cover object-center pointer-events-none select-none -z-20"
-      />
-
-      {/* 2. Subtle Retro Pixel Grid Pattern (No Muddy Dimming) */}
-      <div className="fixed inset-0 retro-grid-pattern pointer-events-none -z-10 opacity-60" />
+    <div className="relative w-full h-full min-h-screen flex flex-col p-3 sm:p-5 lg:p-7 overflow-y-auto select-none text-[var(--text-main)]">
+      {/* 1. Dynamic Game Backgrounds: Light Mode shows lush Green Islands with sunny pastel glow, Dark Mode shows Archive Sky */}
+      <div className="fixed inset-0 pointer-events-none select-none -z-10 overflow-hidden">
+        <img
+          src={bgGreenIslands}
+          alt="Солнечные острова"
+          className="w-full h-full object-cover object-center light-theme-bg"
+        />
+        <img
+          src={archiveBgImg}
+          alt="Солнечный мир пиксельных игр"
+          className="w-full h-full object-cover object-center dark-theme-bg"
+        />
+        {/* Soft pastel wash in light mode, retro pixel grid in dark mode */}
+        <div className="absolute inset-0 bg-sky-100/35 backdrop-blur-[1px] light-theme-bg" />
+        <div className="absolute inset-0 bg-slate-950/60 retro-grid-pattern dark-theme-bg" />
+      </div>
 
       {/* ========================================================================= */}
       {/* TOP HEADER: Retro Console Bar */}
       {/* ========================================================================= */}
-      <header className="w-full max-w-6xl mx-auto flex items-center justify-between pb-4 border-b-4 border-black gap-3 shrink-0">
+      <header className="w-full max-w-6xl mx-auto flex items-center justify-between pb-4 border-b-4 border-[var(--border-color)] gap-3 shrink-0">
         {/* Back Button */}
         <button
           onClick={() => {
@@ -223,7 +231,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
       {/* ========================================================================= */}
       {/* CONTROL PANEL: Search Bar, Favorites Filter, & Sorting Controls */}
       {/* ========================================================================= */}
-      <section className="w-full max-w-6xl mx-auto mt-5 bg-[#131B2E] rounded-2xl border-[3px] border-[#1E293B] p-3 sm:p-4 shadow-[4px_4px_0px_#000000] flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+      <section className="w-full max-w-6xl mx-auto mt-5 bg-[var(--panel-bg)] rounded-[4px] border-4 border-[var(--border-color)] p-3 sm:p-4 shadow-[4px_4px_0px_var(--shadow-color)] flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
         {/* Left: Tab Switcher (All vs Favorites) */}
         <div className="flex items-center gap-2">
           <button
@@ -231,15 +239,15 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
               sound.playClick();
               setActiveTab('all');
             }}
-            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 border-2 border-[#1E293B] transition-all cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-[4px] text-xs sm:text-sm font-bold flex items-center gap-2 border-2 border-[var(--border-color)] transition-all cursor-pointer ${
               activeTab === 'all'
-                ? 'bg-amber-400 text-slate-950 shadow-[2px_2px_0px_#000000] translate-y-[-1px]'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 shadow-none'
+                ? 'bg-[var(--accent-amber)] text-slate-950 shadow-[2px_2px_0px_var(--shadow-color)] translate-y-[-1px]'
+                : 'bg-[var(--card-subtle)] hover:bg-[var(--slot-bg)] text-[var(--text-main)] shadow-none'
             }`}
           >
             <Layers className="w-4 h-4" />
             <span>Все проекты</span>
-            <span className="ml-1 px-1.5 py-0.2 rounded-md bg-slate-900/40 text-[10px] font-pixel">
+            <span className="ml-1 px-1.5 py-0.5 rounded-[2px] bg-black/15 text-[10px] font-pixel">
               {games.length}
             </span>
           </button>
@@ -249,15 +257,15 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
               sound.playClick();
               setActiveTab('favorites');
             }}
-            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 border-2 border-[#1E293B] transition-all cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-[4px] text-xs sm:text-sm font-bold flex items-center gap-2 border-2 border-[var(--border-color)] transition-all cursor-pointer ${
               activeTab === 'favorites'
-                ? 'bg-amber-400 text-slate-950 shadow-[2px_2px_0px_#000000] translate-y-[-1px]'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 shadow-none'
+                ? 'bg-[var(--accent-amber)] text-slate-950 shadow-[2px_2px_0px_var(--shadow-color)] translate-y-[-1px]'
+                : 'bg-[var(--card-subtle)] hover:bg-[var(--slot-bg)] text-[var(--text-main)] shadow-none'
             }`}
           >
             <Star className="w-4 h-4 fill-amber-500 text-amber-700" />
             <span>Избранные</span>
-            <span className="ml-1 px-1.5 py-0.2 rounded-md bg-amber-500/30 text-amber-950 text-[10px] font-pixel">
+            <span className="ml-1 px-1.5 py-0.5 rounded-[2px] bg-black/15 text-[10px] font-pixel">
               {favoritesCount}
             </span>
           </button>
@@ -267,18 +275,18 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
           {/* Search Bar - Small "Поиск" placeholder */}
           <div className="relative flex-1 sm:w-60 md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Поиск"
-              className="w-full pl-9 pr-8 py-1.5 sm:py-2 rounded-xl bg-slate-900 border-2 border-[#1E293B] text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 placeholder:font-normal focus:bg-slate-950 focus:outline-none focus:ring-1 focus:ring-amber-400 shadow-[2px_2px_0px_#000000]"
+              className="w-full pl-9 pr-8 py-1.5 sm:py-2 rounded-[4px] bg-[var(--slot-bg)] border-2 border-[var(--border-color)] text-xs sm:text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] placeholder:font-normal focus:bg-[var(--panel-bg)] focus:outline-none focus:border-[var(--accent-amber)] shadow-[2px_2px_0px_var(--shadow-color)] font-medium"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-[2px] hover:bg-[var(--card-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -287,14 +295,14 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
 
           {/* Sorting Dropdown */}
           <div className="relative flex items-center shrink-0">
-            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none" />
             <select
               value={sortOption}
               onChange={(e) => {
                 sound.playClick();
                 setSortOption(e.target.value as SortOption);
               }}
-              className="w-full sm:w-auto appearance-none pl-8 pr-8 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border-2 border-[#1E293B] text-xs sm:text-sm font-medium text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-400 shadow-[2px_2px_0px_#000000] cursor-pointer"
+              className="w-full sm:w-auto appearance-none pl-8 pr-8 py-1.5 sm:py-2 rounded-[4px] bg-[var(--slot-bg)] hover:bg-[var(--card-subtle)] border-2 border-[var(--border-color)] text-xs sm:text-sm font-bold text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-amber)] shadow-[2px_2px_0px_var(--shadow-color)] cursor-pointer"
             >
               <option value="newest">Сначала новые</option>
               <option value="oldest">Сначала старые</option>
@@ -311,8 +319,8 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
       <main className="w-full max-w-6xl mx-auto py-6 sm:py-8 flex-1">
         {games.length === 0 ? (
           /* Global Empty State: No Games Yet */
-          <div className="h-full min-h-[45vh] flex flex-col items-center justify-center text-center p-6 space-y-4 bg-[#131B2E] rounded-3xl border-[3px] border-[#1E293B] shadow-[6px_6px_0px_#000000] animate-in fade-in duration-300">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-[3px] border-[#1E293B] shadow-[4px_4px_0px_#000000] bg-amber-400 animate-bounce">
+          <div className="h-full min-h-[45vh] flex flex-col items-center justify-center text-center p-6 space-y-4 bg-[var(--panel-bg)] rounded-[4px] border-4 border-[var(--border-color)] shadow-[6px_6px_0px_var(--shadow-color)] animate-in fade-in duration-300">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[4px] overflow-hidden border-4 border-[var(--border-color)] shadow-[4px_4px_0px_var(--shadow-color)] bg-amber-400 animate-bounce">
               <img
                 src={avatar.imageUrl}
                 alt={avatar.name}
@@ -322,10 +330,10 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
               />
             </div>
             <div className="space-y-1 max-w-md">
-              <h2 className="text-lg sm:text-2xl font-bold text-white">
+              <h2 className="text-lg sm:text-2xl font-bold font-body text-[var(--text-main)]">
                 У тебя пока нет сохранённых игр!
               </h2>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed font-body font-normal">
                 Нажми кнопку «Построить первую игру», чтобы создать свой уникальный мир с платформами, монетками и боевыми врагами!
               </p>
             </div>
@@ -334,7 +342,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                 sound.playClick();
                 onCreateNewGame();
               }}
-              className="py-2.5 sm:py-3 px-5 sm:px-6 rounded-xl bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold text-xs sm:text-sm flex items-center gap-2 border-[3px] border-[#1E293B] shadow-[4px_4px_0px_#000000] active:translate-y-1 active:shadow-none transition-all cursor-pointer"
+              className="retro-btn py-3 px-6 rounded-[4px] bg-[var(--accent-emerald)] hover:brightness-110 active:brightness-95 text-white font-pixel text-xs sm:text-sm flex items-center gap-2 border-4 border-[var(--border-color)] shadow-[4px_4px_0px_var(--shadow-color)] transition-all cursor-pointer"
             >
               <Hammer className="w-4 h-4 stroke-[2.5]" />
               <span>Построить первую игру</span>
@@ -342,15 +350,15 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
           </div>
         ) : filteredAndSortedGames.length === 0 ? (
           /* Filter/Search Empty State */
-          <div className="h-full min-h-[40vh] flex flex-col items-center justify-center text-center p-6 space-y-3 bg-[#131B2E] rounded-3xl border-[3px] border-[#1E293B] shadow-[6px_6px_0px_#000000]">
-            <div className="w-14 h-14 rounded-xl bg-slate-800 border-2 border-[#1E293B] flex items-center justify-center text-2xl shadow-[3px_3px_0px_#000000]">
+          <div className="h-full min-h-[40vh] flex flex-col items-center justify-center text-center p-6 space-y-3 bg-[var(--panel-bg)] rounded-[4px] border-4 border-[var(--border-color)] shadow-[6px_6px_0px_var(--shadow-color)]">
+            <div className="w-14 h-14 rounded-[4px] bg-[var(--slot-bg)] border-2 border-[var(--border-color)] flex items-center justify-center text-2xl shadow-[3px_3px_0px_var(--shadow-color)]">
               🔍
             </div>
             <div className="space-y-1 max-w-sm">
-              <h3 className="text-base font-bold text-white">
+              <h3 className="text-base font-bold font-body text-[var(--text-main)]">
                 Ничего не найдено
               </h3>
-              <p className="text-xs text-slate-400 font-normal">
+              <p className="text-xs text-[var(--text-muted)] font-body font-normal">
                 {activeTab === 'favorites'
                   ? 'В списке «Избранные» пока нет проектов с такими параметрами.'
                   : `По запросу «${searchQuery}» проекты не найдены.`}
@@ -362,7 +370,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                 setSearchQuery('');
                 setActiveTab('all');
               }}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold border-2 border-[#1E293B] shadow-[2px_2px_0px_#000000] active:translate-y-0.5 cursor-pointer"
+              className="retro-btn-sm px-4 py-2 rounded-[4px] bg-[var(--accent-amber)] hover:brightness-110 text-slate-950 text-xs font-bold border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] cursor-pointer"
             >
               Сбросить фильтры
             </button>
@@ -387,7 +395,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                 >
                   {/* Top Cartridge Grip Ridges & Notches */}
                   <div
-                    className="w-full border-b-4 border-black px-3.5 py-1.5 flex items-center justify-between"
+                    className="w-full border-b-4 border-[var(--border-color)] px-3.5 py-1.5 flex items-center justify-between"
                     style={{ backgroundColor: 'var(--cartridge-notch)' }}
                   >
                     <div className="flex items-center gap-1.5">
@@ -403,11 +411,11 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
 
                   {/* Physical Cartridge Label Sticker */}
                   <div
-                    className="m-2.5 p-2.5 border-2 border-black rounded-sm shadow-inner flex flex-col gap-2.5 flex-1 justify-between"
+                    className="m-2.5 p-2.5 border-2 border-[var(--border-color)] rounded-[2px] shadow-inner flex flex-col gap-2.5 flex-1 justify-between"
                     style={{ backgroundColor: 'var(--cartridge-label-bg)' }}
                   >
                     {/* Artwork Preview Window with Retro Badge */}
-                    <div className="relative h-28 sm:h-32 bg-slate-950 rounded-xs overflow-hidden border-2 border-black">
+                    <div className="relative h-28 sm:h-32 bg-slate-950 rounded-[2px] overflow-hidden border-2 border-[var(--border-color)]">
                       <img
                         src={theme.image}
                         alt={theme.name}
@@ -417,7 +425,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/30 pointer-events-none" />
 
                       {/* Theme Badge */}
-                      <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-xs bg-black/85 border border-amber-400/50 text-[9px] font-pixel text-amber-400 flex items-center gap-1 shadow-sm">
+                      <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-[2px] bg-black/85 border border-[var(--accent-amber)] text-[9px] font-pixel text-[var(--accent-amber)] flex items-center gap-1 shadow-sm">
                         <Sparkles className="w-2.5 h-2.5" />
                         <span>{theme.name}</span>
                       </div>
@@ -426,7 +434,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                       <button
                         onClick={(e) => handleToggleFavorite(e, game.id)}
                         title={isFav ? 'Убрать из избранного' : 'Добавить в избранное'}
-                        className={`retro-btn-sm absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center cursor-pointer ${
+                        className={`retro-btn-sm absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center cursor-pointer rounded-[2px] border border-[var(--border-color)] ${
                           isFav
                             ? 'bg-amber-400 text-slate-950'
                             : 'bg-black/80 text-slate-400 hover:text-amber-400'
@@ -436,7 +444,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                       </button>
 
                       {/* Block count badge */}
-                      <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-xs bg-black/85 border border-slate-700 text-[9px] font-pixel text-slate-300">
+                      <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-[2px] bg-black/85 border border-slate-700 text-[9px] font-pixel text-slate-300">
                         {itemCount} БЛОКОВ
                       </div>
                     </div>
@@ -444,15 +452,15 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                     {/* Cartridge Title & Author Details */}
                     <div className="space-y-1.5">
                       <h3
-                        className="text-xs font-pixel font-bold text-[var(--text-main)] group-hover:text-amber-400 transition-colors line-clamp-2 leading-relaxed"
+                        className="text-xs font-pixel font-bold text-[var(--text-main)] group-hover:text-[var(--accent-amber)] transition-colors line-clamp-2 leading-relaxed"
                         title={game.name}
                       >
                         {game.name}
                       </h3>
 
-                      <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-black/20">
+                      <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]/20 font-body">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-4 h-4 rounded-xs overflow-hidden border border-black bg-amber-400 shrink-0">
+                          <div className="w-4 h-4 rounded-[2px] overflow-hidden border border-[var(--border-color)] bg-amber-400 shrink-0">
                             <img
                               src={authorAvatar.imageUrl}
                               alt={authorName}
@@ -470,11 +478,11 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                     </div>
 
                     {/* Cartridge Chunky Retro Action Buttons */}
-                    <div className="flex items-center gap-2 pt-2 border-t-2 border-black/30">
+                    <div className="flex items-center gap-2 pt-2 border-t-2 border-[var(--border-color)]/30">
                       {/* Play Button */}
                       <button
                         onClick={() => handlePlay(game)}
-                        className="retro-btn flex-1 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center gap-1.5 text-xs"
+                        className="retro-btn flex-1 py-2 bg-[var(--accent-emerald)] hover:brightness-110 active:brightness-95 text-white flex items-center justify-center gap-1.5 text-xs font-pixel rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)]"
                       >
                         <Play className="w-3.5 h-3.5 fill-current" />
                         <span>ИГРАТЬ</span>
@@ -484,7 +492,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                       <button
                         onClick={() => handleEdit(game)}
                         title="Открыть в конструкторе"
-                        className="retro-btn-sm py-1.5 px-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 flex items-center justify-center gap-1"
+                        className="retro-btn-sm py-1.5 px-2.5 bg-[var(--accent-amber)] hover:brightness-110 text-slate-950 flex items-center justify-center gap-1 rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] text-[10px]"
                       >
                         <Hammer className="w-3 h-3" />
                         <span>ИЗМЕНИТЬ</span>
@@ -494,7 +502,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                       <button
                         onClick={() => handleDuplicate(game)}
                         title="Создать копию картриджа"
-                        className="retro-btn-sm p-1.5 bg-[var(--card-subtle)] hover:bg-amber-400 hover:text-slate-950 text-[var(--text-main)]"
+                        className="retro-btn-sm p-1.5 bg-[var(--card-subtle)] hover:bg-[var(--accent-amber)] hover:text-slate-950 text-[var(--text-main)] rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)]"
                       >
                         <Copy className="w-3 h-3" />
                       </button>
@@ -503,7 +511,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                       <button
                         onClick={() => setDeleteConfirmId(game.id)}
                         title="Удалить картридж"
-                        className="retro-btn-sm p-1.5 bg-rose-600 hover:bg-rose-500 text-white"
+                        className="retro-btn-sm p-1.5 bg-[var(--accent-rose)] hover:brightness-110 text-white rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)]"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -511,7 +519,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                   </div>
 
                   {/* Physical Cartridge Bottom Connector Gold Pins */}
-                  <div className="w-full bg-black/90 py-1 px-4 flex items-center justify-center gap-1.5 border-t-2 border-black">
+                  <div className="w-full bg-black/90 py-1 px-4 flex items-center justify-center gap-1.5 border-t-2 border-[var(--border-color)]">
                     {Array.from({ length: 12 }).map((_, i) => (
                       <div key={i} className="w-2.5 h-1.5 bg-amber-400/80 rounded-xs shadow-xs" />
                     ))}

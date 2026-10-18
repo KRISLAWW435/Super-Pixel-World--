@@ -91,17 +91,17 @@ export const ProfileSwitcherModal: React.FC<ProfileSwitcherModalProps> = ({
               <div
                 key={p.id}
                 onClick={() => handleSelect(p)}
-                className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 group select-none ${
+                className={`p-3.5 sm:p-4 rounded-[4px] border-4 transition-all cursor-pointer flex items-center justify-between gap-3 group select-none shadow-[3px_3px_0px_var(--shadow-color)] ${
                   isActive
-                    ? 'bg-emerald-950/40 border-emerald-400 ring-2 ring-emerald-400/30 shadow-lg shadow-emerald-950/50'
-                    : 'bg-slate-900/80 border-slate-700/80 hover:border-amber-400/80 hover:bg-slate-800/80'
+                    ? 'bg-[var(--card-subtle)] border-[var(--accent-emerald)] ring-2 ring-emerald-500/40'
+                    : 'bg-[var(--card-bg)] border-[var(--border-color)] hover:border-[var(--accent-amber)]'
                 }`}
               >
                 {/* Left: Avatar & Details */}
                 <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <div
-                    className={`w-13 h-13 sm:w-14 sm:h-14 rounded-2xl overflow-hidden border-2 bg-slate-950 shrink-0 ${
-                      isActive ? 'border-emerald-400' : 'border-slate-600 group-hover:border-amber-400'
+                    className={`w-13 h-13 sm:w-14 sm:h-14 rounded-[4px] overflow-hidden border-2 bg-[var(--slot-bg)] shrink-0 ${
+                      isActive ? 'border-[var(--accent-emerald)]' : 'border-[var(--border-color)] group-hover:border-[var(--accent-amber)]'
                     }`}
                   >
                     <img
@@ -115,11 +115,11 @@ export const ProfileSwitcherModal: React.FC<ProfileSwitcherModalProps> = ({
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-base sm:text-lg font-black text-white truncate">
+                      <h4 className="text-base sm:text-lg font-bold font-body text-[var(--text-main)] truncate">
                         {p.name}
                       </h4>
                       {isActive && (
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-[10px] font-black uppercase tracking-wider shrink-0">
+                        <span className="px-2 py-0.5 rounded-[2px] bg-[var(--accent-emerald)] border border-[var(--border-color)] text-white text-[9px] font-pixel uppercase tracking-wider shrink-0 shadow-sm">
                           Активный
                         </span>
                       )}
@@ -127,22 +127,16 @@ export const ProfileSwitcherModal: React.FC<ProfileSwitcherModalProps> = ({
 
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                       {/* Tutorial status tag */}
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
-                          p.tutorialCompleted
-                            ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30'
-                            : 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
-                        }`}
-                      >
-                        <GraduationCap className="w-3 h-3" />
+                      <span className="text-[10px] font-body font-bold px-2 py-0.5 rounded-[2px] border border-[var(--border-color)] bg-[var(--slot-bg)] text-[var(--text-main)] flex items-center gap-1">
+                        <GraduationCap className={`w-3.5 h-3.5 ${p.tutorialCompleted ? 'text-[var(--accent-blue)]' : 'text-[var(--accent-amber)]'}`} />
                         <span>
                           {p.tutorialCompleted ? 'Обучение пройдено' : 'Нужно обучение'}
                         </span>
                       </span>
 
                       {/* Projects count */}
-                      <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
-                        <FolderOpen className="w-3 h-3" />
+                      <span className="text-[11px] font-body font-semibold text-[var(--text-muted)] flex items-center gap-1">
+                        <FolderOpen className="w-3.5 h-3.5 text-[var(--accent-amber)]" />
                         <span>{projectCount} {projectCount === 1 ? 'проект' : 'проектов'}</span>
                       </span>
                     </div>
@@ -157,13 +151,13 @@ export const ProfileSwitcherModal: React.FC<ProfileSwitcherModalProps> = ({
                         e.stopPropagation();
                         handleSelect(p);
                       }}
-                      className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shadow-sm active:scale-95"
+                      className="retro-btn-sm px-3.5 py-1.5 rounded-[4px] bg-[var(--accent-amber)] hover:brightness-110 text-slate-950 font-pixel text-[10px] uppercase flex items-center gap-1.5 transition-all cursor-pointer border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)]"
                     >
                       <span>Выбрать</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-400">
+                    <div className="w-8 h-8 rounded-[4px] bg-[var(--accent-emerald)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center justify-center text-white">
                       <Check className="w-4 h-4 stroke-[3]" />
                     </div>
                   )}
@@ -174,7 +168,7 @@ export const ProfileSwitcherModal: React.FC<ProfileSwitcherModalProps> = ({
                         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={(e) => handleDelete(p.id, e)}
-                            className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold"
+                            className="retro-btn-sm px-2 py-1 rounded-[4px] bg-[var(--accent-rose)] hover:brightness-110 text-white text-[10px] font-pixel border-2 border-[var(--border-color)]"
                           >
                             Удалить?
                           </button>
@@ -183,7 +177,7 @@ export const ProfileSwitcherModal: React.FC<ProfileSwitcherModalProps> = ({
                               e.stopPropagation();
                               setDeleteConfirmId(null);
                             }}
-                            className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px]"
+                            className="retro-btn-sm px-2 py-1 rounded-[4px] bg-[var(--card-subtle)] text-[var(--text-main)] text-[10px] font-pixel border-2 border-[var(--border-color)]"
                           >
                             Отмена
                           </button>
@@ -196,7 +190,7 @@ export const ProfileSwitcherModal: React.FC<ProfileSwitcherModalProps> = ({
                             setDeleteConfirmId(p.id);
                           }}
                           title="Удалить этот профиль"
-                          className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+                          className="p-1.5 rounded-[4px] text-[var(--text-muted)] hover:text-rose-500 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -210,14 +204,14 @@ export const ProfileSwitcherModal: React.FC<ProfileSwitcherModalProps> = ({
         </div>
 
         {/* Create New Profile CTA Button */}
-        <div className="pt-2 border-t border-slate-800">
+        <div className="pt-2 border-t-2 border-[var(--border-color)]">
           <button
             onClick={() => {
               sound.playClick();
               onClose();
               onOpenCreateProfile();
             }}
-            className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-lg shadow-amber-500/20 active:scale-98 transition-all cursor-pointer"
+            className="retro-btn w-full py-3.5 px-5 rounded-[4px] bg-[var(--accent-emerald)] hover:brightness-110 active:brightness-95 text-white font-pixel text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2.5 border-4 border-[var(--border-color)] shadow-[4px_4px_0px_var(--shadow-color)] hover:shadow-[5px_5px_0px_var(--shadow-color)] active:shadow-[1px_1px_0px_var(--shadow-color)] cursor-pointer"
           >
             <UserPlus className="w-5 h-5 stroke-[2.5]" />
             <span>+ СОЗДАТЬ НОВЫЙ ПРОФИЛЬ</span>

@@ -127,11 +127,11 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   // If collapsed, render slim vertical tool rail with shortcut badges
   if (isCollapsed) {
     return (
-      <aside className="w-14 h-full bg-[#131B2E] border-l border-slate-800 flex flex-col justify-between items-center py-2.5 shrink-0 select-none z-20">
+      <aside className="w-14 h-full bg-[var(--panel-bg)] border-l-2 border-black flex flex-col justify-between items-center py-2.5 shrink-0 select-none z-20">
         <button
           onClick={() => setIsCollapsed(false)}
           title="Развернуть панель инструментов"
-          className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+          className="w-10 h-10 rounded-xl bg-[var(--card-bg)] hover:bg-[var(--slot-bg)] text-amber-500 flex items-center justify-center transition-colors cursor-pointer border-2 border-black shadow-[2px_2px_0px_#000]"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -146,14 +146,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playSelect();
             }}
             title="Свободная кисть (B)"
-            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all ${
+            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all border-2 border-black ${
               activeTool === 'brush'
-                ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'bg-amber-400 text-slate-950 font-bold shadow-[2px_2px_0px_#000]'
+                : 'bg-[var(--card-bg)] text-[var(--text-main)] hover:bg-[var(--slot-bg)]'
             }`}
           >
             <PenTool className="w-4 h-4" />
-            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-[#F8FAFC]">
+            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-black border border-slate-700 rounded text-[9px] font-mono text-amber-400">
               B
             </kbd>
           </button>
@@ -165,14 +165,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playSelect();
             }}
             title="Перемещение объектов (V или H) — перетаскивание блоков и врагов"
-            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all ${
+            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all border-2 border-black ${
               activeTool === 'move'
-                ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'bg-amber-400 text-slate-950 font-bold shadow-[2px_2px_0px_#000]'
+                : 'bg-[var(--card-bg)] text-[var(--text-main)] hover:bg-[var(--slot-bg)]'
             }`}
           >
             <Hand className="w-4 h-4" />
-            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-[#F8FAFC]">
+            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-black border border-slate-700 rounded text-[9px] font-mono text-amber-400">
               V
             </kbd>
           </button>
@@ -184,14 +184,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playSelect();
             }}
             title="Область / Прямоугольник (R)"
-            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all ${
+            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all border-2 border-black ${
               activeTool === 'line'
-                ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'bg-amber-400 text-slate-950 font-bold shadow-[2px_2px_0px_#000]'
+                : 'bg-[var(--card-bg)] text-[var(--text-main)] hover:bg-[var(--slot-bg)]'
             }`}
           >
             <Move className="w-4 h-4" />
-            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-[#F8FAFC]">
+            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-black border border-slate-700 rounded text-[9px] font-mono text-amber-400">
               R
             </kbd>
           </button>
@@ -203,14 +203,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playErase();
             }}
             title="Ластик (E)"
-            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all ${
+            className={`w-10 h-10 rounded-xl relative flex items-center justify-center cursor-pointer transition-all border-2 border-black ${
               activeTool === 'erase'
-                ? 'bg-rose-500 text-white font-bold shadow-md shadow-rose-500/20'
-                : 'bg-slate-800 text-rose-400 hover:bg-slate-700'
+                ? 'bg-rose-500 text-white font-bold shadow-[2px_2px_0px_#000]'
+                : 'bg-[var(--card-bg)] text-rose-500 hover:bg-[var(--slot-bg)]'
             }`}
           >
             <Eraser className="w-4 h-4" />
-            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-[#1E293B] border border-slate-700 rounded text-[9px] font-mono text-[#F8FAFC]">
+            <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-black border border-slate-700 rounded text-[9px] font-mono text-rose-400">
               E
             </kbd>
           </button>
@@ -220,10 +220,10 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         <button
           onClick={onPlay}
           title="Запустить тест уровня (P или Enter)"
-          className="w-10 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center font-bold cursor-pointer shadow-lg shadow-emerald-500/30 relative"
+          className="w-10 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center font-bold cursor-pointer border-2 border-black shadow-[2px_2px_0px_#000] relative"
         >
           <Play className="w-4 h-4 fill-slate-950" />
-          <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-[#0F172A] border border-emerald-400/60 rounded text-[9px] font-mono text-emerald-300">
+          <kbd className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-black border border-emerald-400 rounded text-[9px] font-mono text-emerald-300">
             P
           </kbd>
         </button>
@@ -232,14 +232,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   }
 
   return (
-    <aside className="w-72 sm:w-80 lg:w-[280px] xl:w-[320px] h-full bg-[#131B2E] border-l border-slate-800 flex flex-col justify-between shrink-0 select-none shadow-2xl z-20 overflow-hidden">
+    <aside className="w-72 sm:w-80 lg:w-[280px] xl:w-[320px] h-full bg-[var(--panel-bg)] border-l-2 border-black flex flex-col justify-between shrink-0 select-none shadow-2xl z-20 overflow-hidden">
       {/* 1. Header Toolbar (Title, Collapse, Utilities) */}
-      <div className="px-3 py-2.5 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between shrink-0">
+      <div className="px-3 py-2.5 bg-[var(--panel-header)] border-b-2 border-black flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={() => setIsCollapsed(true)}
             title="Свернуть панель инструментов"
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1 rounded-lg hover:bg-[var(--card-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer border border-black/20"
           >
             <ChevronRight className="w-4 h-4" />
           </button>

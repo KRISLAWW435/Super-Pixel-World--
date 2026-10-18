@@ -71,15 +71,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       badgeColor="amber"
       maxWidth="xl"
     >
-      <div className="space-y-6 py-2 px-1">
+      <div className="space-y-6 py-2 px-1 text-[var(--text-main)]">
         {/* Step 1: Name Input (Up to 20 characters) */}
         <div className="space-y-2">
-          <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center justify-between">
+          <label className="text-xs sm:text-sm font-bold text-[var(--text-main)] flex items-center justify-between font-body">
             <span className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400" />
+              <Sparkles className="w-4 h-4 text-[var(--accent-amber)]" />
               <span>Имя автора (от 2 до 20 символов):</span>
             </span>
-            <span className="text-xs font-mono font-bold text-amber-300/90">
+            <span className="text-xs font-body font-bold text-[var(--accent-amber)]">
               {name.length}/20
             </span>
           </label>
@@ -90,19 +90,19 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               onChange={handleNameChange}
               placeholder="Введите имя автора (до 20 символов)..."
               maxLength={20}
-              className="w-full px-4 py-3 sm:py-3.5 text-base sm:text-lg font-bold bg-[#0B0F19] border-2 border-slate-700 focus:border-amber-400 rounded-2xl text-white outline-none transition-all shadow-inner placeholder-slate-500"
+              className="w-full px-4 py-3 sm:py-3.5 text-base sm:text-lg font-bold font-body bg-[var(--slot-bg)] border-2 border-[var(--border-color)] focus:border-[var(--accent-amber)] rounded-[4px] text-[var(--text-main)] outline-none transition-all shadow-inner placeholder-[var(--text-muted)]"
             />
           </div>
         </div>
 
         {/* Step 2: 10 Avatars Grid (5 columns, 2 rows, large square cells, no text under) */}
         <div className="space-y-3">
-          <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-400" />
+          <label className="text-xs sm:text-sm font-bold text-[var(--text-main)] flex items-center gap-2 font-body">
+            <Sparkles className="w-4 h-4 text-[var(--accent-emerald)]" />
             <span>Выберите аватарку:</span>
           </label>
 
-          <div className="grid grid-cols-5 gap-2.5 sm:gap-4 p-2 sm:p-3 rounded-2xl bg-[#0B0F19]/60 border border-slate-800">
+          <div className="grid grid-cols-5 gap-2.5 sm:gap-4 p-2 sm:p-3 rounded-[4px] bg-[var(--slot-bg)] border-2 border-[var(--border-color)]">
             {PRESET_AVATARS.map((av) => {
               const isSelected = avatarId === av.id;
               return (
@@ -111,25 +111,26 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   type="button"
                   onClick={() => handleSelectAvatar(av.id)}
                   title={av.name || av.id}
-                  className={`aspect-square w-full rounded-2xl flex items-center justify-center p-1.5 sm:p-2.5 transition-all cursor-pointer relative select-none ${
+                  className={`aspect-square w-full rounded-[4px] flex items-center justify-center p-1.5 sm:p-2.5 transition-all cursor-pointer relative select-none ${
                     isSelected
-                      ? 'bg-gradient-to-b from-amber-500/25 to-amber-600/10 border-4 border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6),0_6px_0_#B45309] scale-105 ring-2 ring-amber-300/80 z-10'
-                      : 'bg-[#131B2E]/90 hover:bg-slate-800/90 border-2 border-slate-700/80 hover:border-slate-500 shadow-md hover:scale-105'
+                      ? 'bg-[var(--accent-amber)]/20 border-4 border-[var(--accent-amber)] shadow-[2px_2px_0px_var(--shadow-color)] scale-105 z-10'
+                      : 'bg-[var(--card-bg)] hover:bg-[var(--card-subtle)] border-2 border-[var(--border-color)] hover:border-[var(--accent-amber)] shadow-sm hover:scale-105'
                   }`}
                 >
                   {/* Selected Golden Corner Badge */}
                   {isSelected && (
-                    <div className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-bold shadow-lg border-2 border-slate-900 z-20 animate-in zoom-in-75">
+                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-[2px] bg-[var(--accent-amber)] text-slate-950 flex items-center justify-center font-bold shadow-md border border-[var(--border-color)] z-20 animate-in zoom-in-75">
                       <Check className="w-3.5 h-3.5 stroke-[3.5]" />
                     </div>
                   )}
 
                   {/* Avatar 256x256 Image */}
-                  <div className="w-full h-full rounded-xl overflow-hidden flex items-center justify-center">
+                  <div className="w-full h-full rounded-[2px] overflow-hidden flex items-center justify-center">
                     <img
                       src={av.imageUrl}
                       alt={av.name || av.id}
                       className="w-full h-full object-contain pointer-events-none drop-shadow-md"
+                      style={{ imageRendering: 'pixelated' }}
                     />
                   </div>
                 </button>
@@ -142,10 +143,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         <button
           onClick={handleSave}
           disabled={!isReady}
-          className={`w-full py-3.5 px-6 rounded-2xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg select-none ${
+          className={`retro-btn w-full py-3.5 px-6 rounded-[4px] font-pixel text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer select-none border-4 border-[var(--border-color)] shadow-[4px_4px_0px_var(--shadow-color)] ${
             isReady
-              ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-[0_4px_0_#B45309] hover:shadow-[0_6px_0_#B45309] active:translate-y-1 active:shadow-[0_1px_0_#B45309]'
-              : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+              ? 'bg-[var(--accent-emerald)] hover:brightness-110 text-white active:translate-y-1'
+              : 'bg-[var(--card-subtle)] text-[var(--text-muted)] cursor-not-allowed opacity-60'
           }`}
         >
           <span>Сохранить профиль</span>

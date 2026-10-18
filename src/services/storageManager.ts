@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   isMuted: false,
   themeMode: 'dark',
   uiScale: 1.0,
+  showTimer: true,
 };
 
 /**
@@ -473,5 +474,9 @@ export class SettingsManager {
   public static setUiScale(scale: number): GameSettings {
     const clamped = Math.max(0.7, Math.min(1.5, scale));
     return this.updateSettings({ uiScale: clamped });
+  }
+
+  public static setShowTimer(enabled: boolean): GameSettings {
+    return this.updateSettings({ showTimer: enabled });
   }
 }

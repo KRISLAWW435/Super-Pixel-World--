@@ -69,10 +69,10 @@ export const StudioModal: React.FC<StudioModalProps> = ({
       : 'max-w-lg';
 
   const badgeStyles = {
-    amber: 'bg-amber-500/20 text-amber-300 border-amber-400/40',
-    emerald: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40',
-    blue: 'bg-sky-500/20 text-sky-300 border-sky-400/40',
-    purple: 'bg-purple-500/20 text-purple-300 border-purple-400/40',
+    amber: 'bg-[var(--accent-amber)] text-slate-950 font-bold',
+    emerald: 'bg-[var(--accent-emerald)] text-white font-bold',
+    blue: 'bg-[var(--accent-blue)] text-white font-bold',
+    purple: 'bg-purple-600 text-white font-bold',
   }[badgeColor];
 
   const handleClose = () => {
@@ -87,19 +87,19 @@ export const StudioModal: React.FC<StudioModalProps> = ({
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-transparent select-none animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/40 backdrop-blur-[2px] select-none animate-in fade-in duration-150"
     >
       <div
-        className={`w-full ${maxWidthClass} retro-modal overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 max-h-[92vh] pointer-events-auto`}
+        className={`w-full ${maxWidthClass} retro-modal overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 max-h-[92vh] pointer-events-auto rounded-[4px] border-4 border-[var(--border-color)] shadow-[6px_6px_0px_var(--shadow-color)] bg-[var(--panel-bg)]`}
       >
         {/* Retro Header */}
         <div
-          className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b-4 border-black shrink-0"
+          className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b-4 border-[var(--border-color)] shrink-0"
           style={{ backgroundColor: 'var(--panel-header)' }}
         >
           <div className="flex items-center gap-3 min-w-0">
             {icon && (
-              <div className="w-9 h-9 rounded-md bg-[var(--card-subtle)] border-2 border-black shadow-[2px_2px_0px_#000000] flex items-center justify-center text-amber-400 shrink-0">
+              <div className="w-9 h-9 rounded-[4px] bg-[var(--card-subtle)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center justify-center text-[var(--accent-amber)] shrink-0">
                 {icon}
               </div>
             )}
@@ -110,7 +110,7 @@ export const StudioModal: React.FC<StudioModalProps> = ({
                 </h2>
                 {badge && (
                   <span
-                    className={`text-[9px] font-pixel uppercase px-2 py-0.5 rounded-sm border-2 border-black shadow-[2px_2px_0px_#000000] ${badgeStyles} shrink-0`}
+                    className={`text-[9px] font-pixel uppercase px-2 py-0.5 rounded-[2px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] ${badgeStyles} shrink-0`}
                   >
                     {badge}
                   </span>
@@ -127,7 +127,7 @@ export const StudioModal: React.FC<StudioModalProps> = ({
           <button
             onClick={handleClose}
             title="Закрыть (Esc)"
-            className="retro-btn-sm bg-rose-600 hover:bg-rose-500 text-white w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center cursor-pointer shrink-0 ml-2"
+            className="retro-btn-sm bg-[var(--accent-rose)] hover:brightness-110 text-white w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center cursor-pointer shrink-0 ml-2 rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)]"
           >
             <X className="w-4 h-4 stroke-[3]" />
           </button>

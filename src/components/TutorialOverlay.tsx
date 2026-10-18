@@ -596,48 +596,48 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           }`}
         >
           <div
-            className={`relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl border-2 text-white shadow-2xl shadow-black/80 backdrop-blur-md space-y-3.5 transition-all ${
+            className={`tutorial-popup relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl border-3 border-black shadow-[5px_5px_0px_#000000] space-y-3.5 transition-all ${
               isSuccess
-                ? 'bg-gradient-to-b from-[#064E3B] to-[#0B0F19] border-emerald-400 shadow-emerald-500/20'
-                : 'bg-gradient-to-b from-[#1E293B] to-[#0F172A] border-amber-400 shadow-black/80'
+                ? 'bg-emerald-900 text-white'
+                : 'bg-[var(--tutorial-bg)] text-[var(--tutorial-text)]'
             }`}
           >
             {/* Dynamic Arrow */}
             {arrowPlacement === 'top' && (
               <div
                 style={{ left: arrowOffset }}
-                className={`absolute -top-2.5 -translate-x-1/2 w-4 h-4 border-t-2 border-l-2 transform rotate-45 ${
-                  isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
+                className={`absolute -top-2.5 -translate-x-1/2 w-4 h-4 border-t-2 border-l-2 border-black transform rotate-45 ${
+                  isSuccess ? 'bg-emerald-900' : 'bg-[var(--tutorial-bg)]'
                 }`}
               />
             )}
             {arrowPlacement === 'bottom' && (
               <div
                 style={{ left: arrowOffset }}
-                className={`absolute -bottom-2.5 -translate-x-1/2 w-4 h-4 border-b-2 border-r-2 transform rotate-45 ${
-                  isSuccess ? 'bg-[#0B0F19] border-emerald-400' : 'bg-[#0F172A] border-amber-400'
+                className={`absolute -bottom-2.5 -translate-x-1/2 w-4 h-4 border-b-2 border-r-2 border-black transform rotate-45 ${
+                  isSuccess ? 'bg-emerald-900' : 'bg-[var(--tutorial-bg)]'
                 }`}
               />
             )}
             {arrowPlacement === 'right' && (
               <div
                 style={{ top: arrowOffset }}
-                className={`absolute -right-2.5 -translate-y-1/2 w-4 h-4 border-t-2 border-r-2 transform rotate-45 ${
-                  isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
+                className={`absolute -right-2.5 -translate-y-1/2 w-4 h-4 border-t-2 border-r-2 border-black transform rotate-45 ${
+                  isSuccess ? 'bg-emerald-900' : 'bg-[var(--tutorial-bg)]'
                 }`}
               />
             )}
             {arrowPlacement === 'left' && (
               <div
                 style={{ top: arrowOffset }}
-                className={`absolute -left-2.5 -translate-y-1/2 w-4 h-4 border-b-2 border-l-2 transform rotate-45 ${
-                  isSuccess ? 'bg-[#064E3B] border-emerald-400' : 'bg-[#1E293B] border-amber-400'
+                className={`absolute -left-2.5 -translate-y-1/2 w-4 h-4 border-b-2 border-l-2 border-black transform rotate-45 ${
+                  isSuccess ? 'bg-emerald-900' : 'bg-[var(--tutorial-bg)]'
                 }`}
               />
             )}
 
             {/* Header Pill & Skip Controls Inside Card (Zero Overlap with Game UI) */}
-            <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between gap-2 border-b-2 border-black/20 pb-3">
               <div className="flex items-center gap-2 min-w-0">
                 <span
                   className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shrink-0 ${
@@ -754,14 +754,14 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                 )}
               </div>
             ) : (
-              <div className="text-[15px] sm:text-base font-bold text-slate-100 leading-relaxed">
+              <div className="text-[15px] sm:text-base font-bold text-[var(--tutorial-text)] leading-relaxed">
                 {message}
               </div>
             )}
 
             {/* Idle Reminder Help if stuck > 15s */}
             {isIdleHelpActive && !isSuccess && (
-              <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-2.5 animate-pulse-help">
+              <div className="p-3 rounded-xl bg-amber-400/20 border-2 border-black text-amber-500 text-xs sm:text-sm font-bold flex items-center gap-2.5 animate-pulse-help">
                 <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>💡 Нажми сюда! Подсвеченная кнопка ждёт твоего клика!</span>
               </div>
@@ -769,7 +769,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
             {/* Contextual Warning Reminder if user clicked wrong element */}
             {isShaking && (
-              <div className="text-xs sm:text-sm font-bold text-rose-400 bg-rose-950/60 p-2.5 rounded-xl border border-rose-500/40 flex items-center gap-2 animate-pulse">
+              <div className="text-xs sm:text-sm font-bold text-rose-500 bg-rose-500/10 p-2.5 rounded-xl border-2 border-black flex items-center gap-2 animate-pulse">
                 <span>⚠️ {wrongClickMessage || 'Нажми на подсвеченный элемент!'}</span>
               </div>
             )}
@@ -783,18 +783,18 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           {isGameplayToastExpanded ? (
             /* Expanded Compact Toast (Shows for 4s, or when reappearing after 10s idle) */
             <div
-              className={`flex items-center gap-2.5 p-2 sm:p-2.5 pr-3.5 rounded-2xl border-2 backdrop-blur-md shadow-2xl transition-all duration-300 max-w-[calc(100vw-140px)] sm:max-w-md animate-in fade-in slide-in-from-top-2 ${
+              className={`tutorial-popup flex items-center gap-2.5 p-2 sm:p-2.5 pr-3.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_#000] transition-all duration-300 max-w-[calc(100vw-140px)] sm:max-w-md animate-in fade-in slide-in-from-top-2 ${
                 isSuccess
-                  ? 'bg-gradient-to-r from-emerald-950/95 to-slate-900/95 border-emerald-400 text-emerald-200 shadow-emerald-500/20'
-                  : 'bg-gradient-to-r from-slate-900/95 via-[#131B2E]/95 to-slate-900/95 border-amber-400/80 text-white shadow-black/80'
+                  ? 'bg-emerald-800 text-white'
+                  : 'bg-[var(--tutorial-bg)] text-[var(--tutorial-text)]'
               }`}
             >
               {/* Step Icon Badge */}
               <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm shadow-inner ${
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm shadow-inner border border-black ${
                   isSuccess
-                    ? 'bg-emerald-500/20 border border-emerald-400/50 text-emerald-300'
-                    : 'bg-amber-500/20 border border-amber-400/50 text-amber-300'
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : 'bg-amber-400/20 text-amber-500'
                 }`}
               >
                 {step === 10 ? (

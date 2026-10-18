@@ -105,34 +105,34 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
         <div className="overflow-y-auto pr-1 sm:pr-2 space-y-6 custom-scrollbar">
           {/* Header with Title and Subtitle */}
           <div className="text-center pt-1 sm:pt-2">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-pixel text-white tracking-wider mb-3 sm:mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-pixel text-[var(--text-main)] tracking-wider mb-3 sm:mb-4">
               PIXEL WORLD
             </h1>
 
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/90 border border-amber-400/30 text-amber-300 font-pixel text-[10px] sm:text-xs mb-6 shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--card-subtle)] border border-[var(--border-color)] text-[var(--accent-amber)] font-pixel text-[10px] sm:text-xs mb-6 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5" />
               <span>ТВОЯ СТУДИЯ СОЗДАНИЯ ИГР</span>
             </div>
           </div>
 
           {/* Intro Text Card */}
-          <div className="p-5 rounded-2xl bg-[#162032] border border-white/10 flex flex-col sm:flex-row items-center sm:items-start gap-4 shadow-sm">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-b from-slate-700 to-slate-900 border-2 border-slate-950 shadow-[0_3px_0_#0F172A,inset_0_2px_0_rgba(255,255,255,0.2)] flex items-center justify-center text-2xl sm:text-3xl shrink-0 select-none">
+          <div className="p-5 rounded-2xl bg-[var(--card-subtle)] border-2 border-[var(--border-color)] flex flex-col sm:flex-row items-center sm:items-start gap-4 shadow-sm">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[var(--slot-bg)] border-2 border-[var(--border-color)] flex items-center justify-center text-2xl sm:text-3xl shrink-0 select-none">
               🎮
             </div>
-            <p className="text-slate-200 text-sm sm:text-base leading-relaxed font-normal text-center sm:text-left">
-              <strong className="text-white font-bold">Pixel World</strong> — это не просто игра, а творческая мастерская! Здесь ты не просто проходишь уровни, а сам придумываешь, строишь и оживляешь свои собственные миры.
+            <p className="text-[var(--text-main)] text-sm sm:text-base leading-relaxed font-normal text-center sm:text-left">
+              <strong className="text-[var(--accent-amber)] font-bold">Pixel World</strong> — это не просто игра, а творческая мастерская! Здесь ты не просто проходишь уровни, а сам придумываешь, строишь и оживляешь свои собственные миры.
             </p>
           </div>
 
           {/* Section Header */}
           <div className="space-y-3.5">
             <div className="flex items-center gap-3">
-              <div className="px-4 py-1.5 rounded-lg bg-amber-400 text-slate-950 font-pixel text-xs sm:text-sm font-black tracking-wider flex items-center gap-2 shadow-sm select-none">
+              <div className="px-4 py-1.5 rounded-lg bg-[var(--accent-amber)] text-slate-950 font-pixel text-xs sm:text-sm font-black tracking-wider flex items-center gap-2 shadow-sm select-none">
                 <span>⭐</span>
                 <span>В СТУДИИ ТЫ НАУЧИШЬСЯ:</span>
               </div>
-              <div className="h-px flex-1 bg-slate-700/80 hidden sm:block" />
+              <div className="h-px flex-1 bg-[var(--border-color)] hidden sm:block" />
             </div>
 
             {/* Skills (2x2 Grid with generous 20px - 24px padding, 3D pixel circles, clean hover) */}
@@ -140,9 +140,9 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
               {skills.map((skill, idx) => (
                 <div
                   key={idx}
-                  className="p-5 sm:p-6 rounded-2xl bg-[#162032] border border-white/10 hover:bg-[#1D2B42] hover:border-white/20 hover:shadow-md transition-colors duration-150 flex gap-4 sm:gap-5 items-center select-none"
+                  className="p-5 sm:p-6 rounded-2xl bg-[var(--card-bg)] border-2 border-[var(--border-color)] hover:border-[var(--accent-amber)] hover:shadow-md transition-colors duration-150 flex gap-4 sm:gap-5 items-center select-none"
                 >
-                  {/* 3D Pixel Circle (Circular medallion with 3D bottom bevel and rim highlight, NOT a button) */}
+                  {/* 3D Pixel Circle */}
                   <div
                     className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 ${skill.circleStyle} flex items-center justify-center shrink-0 select-none`}
                   >
@@ -158,10 +158,10 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
 
                   {/* Skill Content with generous padding and clear hierarchy */}
                   <div className="space-y-1.5 min-w-0 flex-1 pr-1 sm:pr-2">
-                    <h3 className="font-bold text-base text-white tracking-wide">
+                    <h3 className="font-bold text-base text-[var(--text-main)] tracking-wide">
                       {skill.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-slate-300 font-normal leading-relaxed">
+                    <p className="text-xs sm:text-sm text-[var(--text-muted)] font-normal leading-relaxed">
                       {skill.desc}
                     </p>
                   </div>
@@ -175,14 +175,14 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             {/* Chunky, Solid Nintendo Switch Style CTA Button */}
             <button
               onClick={handleButtonClick}
-              className="w-full py-4 sm:py-4.5 px-6 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-pixel text-sm sm:text-base font-black tracking-wider border-2 border-amber-600 shadow-[0_4px_0_#92400E] active:translate-y-1 active:shadow-none transition-all duration-100 cursor-pointer flex items-center justify-center gap-2 select-none"
+              className="w-full py-4 sm:py-4.5 px-6 rounded-2xl bg-[var(--accent-amber)] hover:brightness-110 text-slate-950 font-pixel text-sm sm:text-base font-black tracking-wider border-2 border-[var(--border-color)] shadow-[0_4px_0_var(--shadow-color)] active:translate-y-1 active:shadow-none transition-all duration-100 cursor-pointer flex items-center justify-center gap-2 select-none"
             >
               <span>ПОНЯТНО, К СОЗДАНИЮ!</span>
             </button>
 
             {/* Footer Signature */}
-            <div className="text-center text-xs font-medium text-slate-400 tracking-wide">
-              Автор проекта: <span className="text-slate-200 font-semibold">Кристина Лавренюк</span>
+            <div className="text-center text-xs font-medium text-[var(--text-muted)] tracking-wide">
+              Автор проекта: <span className="text-[var(--text-main)] font-semibold">Кристина Лавренюк</span>
             </div>
           </div>
         </div>

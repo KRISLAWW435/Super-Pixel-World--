@@ -26,6 +26,7 @@ import { sound } from '../audio/soundEngine';
 import { CELL_SIZE, GRID_ROWS, THEMES } from '../game/constants';
 import { PhysicsEngine } from '../game/physics';
 import { SpriteRenderer } from '../graphics/spriteRenderer';
+import { SettingsManager } from '../services/storageManager';
 import { TutorialManager } from '../services/TutorialManager';
 import { HeroId, LevelData, ThemeId } from '../types/game';
 
@@ -500,7 +501,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full" />
 
       {/* TOP IN-GAME HUD */}
-      <header className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between pointer-events-none">
+      <header className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between pointer-events-none select-none">
         {/* Left Stats Cluster */}
         <div className="flex items-center gap-2 pointer-events-auto">
           {/* Return to Editor CTA */}
@@ -509,10 +510,10 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
               sound.stopBgm();
               onExitToEditor();
             }}
-            className="px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-amber-400 font-bold text-xs flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+            className="retro-btn-sm px-3 py-1.5 rounded-[4px] bg-[var(--panel-bg)] hover:bg-[var(--accent-amber)] hover:text-slate-950 border-2 border-[var(--border-color)] text-[var(--accent-amber)] font-pixel text-[10px] flex items-center gap-1.5 shadow-[2px_2px_0px_var(--shadow-color)] transition-all cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">В редактор</span>
+            <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span className="hidden sm:inline">В РЕДАКТОР</span>
           </button>
 
           {onExitToMenu && (
@@ -522,15 +523,15 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
                 sound.playClick();
                 onExitToMenu();
               }}
-              className="px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white font-bold text-xs flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+              className="retro-btn-sm px-3 py-1.5 rounded-[4px] bg-[var(--panel-bg)] hover:bg-[var(--accent-blue)] hover:text-white border-2 border-[var(--border-color)] text-[var(--text-main)] font-pixel text-[10px] flex items-center gap-1.5 shadow-[2px_2px_0px_var(--shadow-color)] transition-all cursor-pointer"
             >
-              <Home className="w-4 h-4 text-sky-400" />
-              <span className="hidden sm:inline">В студию</span>
+              <Home className="w-3.5 h-3.5 text-sky-400" />
+              <span className="hidden sm:inline">В СТУДИЮ</span>
             </button>
           )}
 
           {/* Hearts / Lives */}
-          <div className="px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-lg backdrop-blur-md flex items-center gap-1">
+          <div className="px-2.5 py-1.5 rounded-[4px] bg-[var(--panel-bg)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center gap-1">
             {[...Array(3)].map((_, i) => (
               <Heart
                 key={i}
@@ -544,46 +545,53 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           </div>
 
           {/* Coins */}
-          <div className="px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-lg backdrop-blur-md flex items-center gap-1.5 text-xs font-black text-amber-400">
+          <div className="px-2.5 py-1.5 rounded-[4px] bg-[var(--panel-bg)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center gap-1.5 text-xs font-bold text-[var(--accent-amber)]">
             <Coins className="w-4 h-4 fill-amber-400 text-amber-500" />
-            <span className="tabular-nums">{stats.coinsCollected}</span>
+            <span className="tabular-nums font-body font-bold text-xs">{stats.coinsCollected}</span>
           </div>
 
           {/* Stars */}
-          <div className="px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-lg backdrop-blur-md flex items-center gap-1.5 text-xs font-black text-yellow-300">
-            <Sparkles className="w-4 h-4 fill-yellow-400 text-yellow-500" />
-            <span className="tabular-nums">{stats.starsCollected}</span>
+          <div className="px-2.5 py-1.5 rounded-[4px] bg-[var(--panel-bg)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center gap-1.5 text-xs font-bold text-amber-400">
+            <Sparkles className="w-4 h-4 fill-amber-400 text-amber-500" />
+            <span className="tabular-nums font-body font-bold text-xs">{stats.starsCollected}</span>
           </div>
         </div>
 
         {/* Right Stats: Time, Score, Sound, Pause */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-lg backdrop-blur-md flex items-center gap-1.5 text-xs font-mono font-bold text-slate-200">
-            <Clock className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="tabular-nums">{Math.ceil(stats.timeRemaining)}s</span>
-          </div>
+          {/* Timer in HUD: Conditionally rendered based on Show Timer setting */}
+          {(SettingsManager.getSettings().showTimer ?? true) && (
+            <div className="px-2.5 py-1.5 rounded-[4px] bg-[var(--panel-bg)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center gap-1.5 text-xs font-bold text-[var(--text-main)]">
+              <Clock className="w-3.5 h-3.5 text-sky-400" />
+              <span className="tabular-nums font-body font-bold">{Math.ceil(stats.timeRemaining)}s</span>
+            </div>
+          )}
 
-          <div className="px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-lg backdrop-blur-md text-xs font-mono font-black text-emerald-400">
-            <span className="tabular-nums">ОЧКИ: {stats.score}</span>
+          <div className="px-2.5 py-1.5 rounded-[4px] bg-[var(--panel-bg)] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] text-xs font-bold text-[var(--accent-emerald)] flex items-center gap-1">
+            <span className="font-pixel text-[10px]">ОЧКИ:</span>
+            <span className="tabular-nums font-body font-bold text-xs">{stats.score}</span>
           </div>
 
           <button
             onClick={onToggleMute}
-            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-300 shadow-lg backdrop-blur-md transition-colors cursor-pointer"
+            title={isMuted ? 'Включить звук' : 'Заглушить звук'}
+            className="retro-btn-sm p-1.5 rounded-[4px] bg-[var(--panel-bg)] hover:bg-[var(--card-subtle)] border-2 border-[var(--border-color)] text-[var(--text-main)] shadow-[2px_2px_0px_var(--shadow-color)] cursor-pointer"
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
           </button>
 
           <button
             onClick={() => setIsPaused((p) => !p)}
-            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-300 shadow-lg backdrop-blur-md transition-colors cursor-pointer"
+            title={isPaused ? 'Продолжить' : 'Пауза'}
+            className="retro-btn-sm p-1.5 rounded-[4px] bg-[var(--panel-bg)] hover:bg-[var(--card-subtle)] border-2 border-[var(--border-color)] text-[var(--text-main)] shadow-[2px_2px_0px_var(--shadow-color)] cursor-pointer"
           >
             {isPaused ? <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" /> : <Pause className="w-4 h-4" />}
           </button>
 
           <button
             onClick={onToggleFullscreen}
-            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-300 shadow-lg backdrop-blur-md transition-colors cursor-pointer"
+            title={isFullscreen ? 'В окне' : 'Во весь экран'}
+            className="retro-btn-sm p-1.5 rounded-[4px] bg-[var(--panel-bg)] hover:bg-[var(--card-subtle)] border-2 border-[var(--border-color)] text-[var(--text-main)] shadow-[2px_2px_0px_var(--shadow-color)] cursor-pointer"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>

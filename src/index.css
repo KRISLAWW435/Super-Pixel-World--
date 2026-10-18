@@ -18,33 +18,34 @@
 }
 
 :root {
-  --font-body: 'Fredoka', system-ui, -apple-system, sans-serif;
+  --font-body: 'Fredoka', 'Nunito', system-ui, -apple-system, sans-serif;
   --font-pixel: 'Press Start 2P', monospace, cursive;
 
   /* UI Scale (Responsive & User Adjustable) */
   --ui-scale: 1;
 
-  /* THEME: DARK (Default - Retro Arcade & 16-Bit Console) */
-  --bg-color: #0b0f19;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --panel-bg: #131b2e;
-  --panel-header: #0f172a;
-  --card-bg: #182234;
-  --card-subtle: #1e293b;
+  /* THEME: DARK (16-Bit Retro Console - Canonical Specification) */
+  --bg-color: #0F172A;
+  --panel-bg: #1E293B;
+  --panel-header: #0F172A;
+  --card-bg: #1E293B;
+  --card-subtle: #0F172A;
+  --slot-bg: #0B0F19;
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
   --border-color: #000000;
+  --shadow-color: #000000;
   --border-dark: #000000;
   --border-highlight: #334155;
-  --slot-bg: #090d16;
   --slot-border: #000000;
-  --accent-amber: #f59e0b;
-  --accent-emerald: #10b981;
-  --accent-blue: #38bdf8;
-  --accent-rose: #f43f5e;
-  --cartridge-body: #1e293b;
-  --cartridge-notch: #0f172a;
-  --cartridge-pins: #eab308;
-  --cartridge-label-bg: #0f172a;
+  --accent-emerald: #10B981;
+  --accent-amber: #F59E0B;
+  --accent-blue: #3B82F6;
+  --accent-rose: #F43F5E;
+  --cartridge-body: #1E293B;
+  --cartridge-notch: #0F172A;
+  --cartridge-pins: #EAB308;
+  --cartridge-label-bg: #0F172A;
 
   /* Pixel Art Chunky UI Design Tokens */
   --pixel-border-color: #000000;
@@ -54,40 +55,159 @@
   --pixel-shadow-lg: 6px 6px 0px #000000;
   --pixel-shadow-active: 1px 1px 0px #000000;
 
-  --pixel-panel-bg: #131B2E;
+  --pixel-panel-bg: #1E293B;
   --pixel-panel-header: #0F172A;
   --pixel-card-bg: #1E293B;
+
+  /* Tutorial Tokens */
+  --tutorial-bg: #1E293B;
+  --tutorial-card-bg: #0F172A;
+  --tutorial-text: #F8FAFC;
+  --tutorial-text-muted: #94A3B8;
+  --tutorial-border: #F59E0B;
 }
 
-/* THEME: LIGHT (Classic Famicom / Game Boy Pocket / Retro Light) */
+/* THEME: LIGHT (Game Boy / Child-Friendly Pastel Arcade - Bright Soft Pastel Yellow, Mint, Blue Accents) */
 body.theme-light,
 .theme-light {
-  --bg-color: #e2e8f0;
-  --text-main: #0f172a;
-  --text-muted: #475569;
-  --panel-bg: #ffffff;
-  --panel-header: #e2e8f0;
-  --card-bg: #f8fafc;
-  --card-subtle: #e2e8f0;
-  --border-color: #000000;
-  --border-dark: #000000;
-  --border-highlight: #94a3b8;
-  --slot-bg: #e2e8f0;
-  --slot-border: #000000;
-  --accent-amber: #d97706;
+  --bg-color: #E0F2FE;
+  --panel-bg: #FFFFFF;
+  --panel-header: #E0F2FE;
+  --card-bg: #FFFFFF;
+  --card-subtle: #F0F9FF;
+  --slot-bg: #E0F2FE;
+  --text-main: #0F172A;
+  --text-muted: #334155;
+  --border-color: #2563EB;
+  --shadow-color: #1E3A8A;
+  --border-dark: #1E3A8A;
+  --border-highlight: #93C5FD;
+  --slot-border: #3B82F6;
   --accent-emerald: #059669;
-  --accent-blue: #0284c7;
-  --accent-rose: #e11d48;
-  --cartridge-body: #d1d5db;
-  --cartridge-notch: #9ca3af;
-  --cartridge-pins: #d97706;
-  --cartridge-label-bg: #ffffff;
+  --accent-amber: #FDE047;
+  --accent-blue: #2563EB;
+  --accent-rose: #E11D48;
+  --accent-pink: #DB2777;
+  --accent-mint: #059669;
+  --accent-yellow: #FDE047;
+  --pastel-pink: #FCE7F3;
+  --pastel-mint: #D1FAE5;
+  --pastel-blue: #E0F2FE;
+  --pastel-yellow: #FDE047;
+  --cartridge-body: #E2E8F0;
+  --cartridge-notch: #CBD5E1;
+  --cartridge-pins: #FDE047;
+  --cartridge-label-bg: #FFFFFF;
 
-  --pixel-border-color: #000000;
-  --pixel-border-color-slate: #94a3b8;
-  --pixel-panel-bg: #ffffff;
-  --pixel-panel-header: #e2e8f0;
-  --pixel-card-bg: #f8fafc;
+  --pixel-border-color: #2563EB;
+  --pixel-border-color-slate: #93C5FD;
+  --pixel-panel-bg: #FFFFFF;
+  --pixel-panel-header: #E0F2FE;
+  --pixel-card-bg: #FFFFFF;
+
+  /* Tutorial Tokens - In Light Mode Text is Crisp Light Blue */
+  --tutorial-bg: #FFFFFF;
+  --tutorial-card-bg: #F0F9FF;
+  --tutorial-text: #0284C7;
+  --tutorial-text-muted: #0369A1;
+  --tutorial-border: #38BDF8;
+}
+
+/* Light Theme High Contrast & Clean Pastel Accents (No Dark Brown / Muddy Yellow) */
+body.theme-light .bg-amber-400,
+body.theme-light .bg-amber-500,
+body.theme-light .bg-yellow-400,
+body.theme-light .bg-yellow-300 {
+  background-color: #FDE047 !important;
+  color: #0F172A !important;
+}
+
+body.theme-light .text-amber-400,
+body.theme-light .text-amber-300,
+body.theme-light .text-yellow-400,
+body.theme-light .text-yellow-300 {
+  color: #0284C7 !important;
+}
+
+body.theme-light .text-cyan-400,
+body.theme-light .text-sky-300 {
+  color: #0284C7 !important;
+}
+
+body.theme-light .text-emerald-300,
+body.theme-light .text-emerald-400 {
+  color: #059669 !important;
+}
+
+/* Ensure no dark gray / black panels in light mode */
+body.theme-light .bg-slate-900\/70,
+body.theme-light .bg-slate-900\/80,
+body.theme-light .bg-slate-900\/90,
+body.theme-light .bg-slate-900,
+body.theme-light .bg-slate-950\/80,
+body.theme-light .bg-slate-950\/90,
+body.theme-light .bg-slate-950,
+body.theme-light .bg-slate-800,
+body.theme-light .bg-slate-800\/70,
+body.theme-light .bg-slate-800\/75,
+body.theme-light .bg-slate-800\/80,
+body.theme-light .bg-slate-800\/90,
+body.theme-light .bg-indigo-950\/70,
+body.theme-light .bg-indigo-950\/90,
+body.theme-light .bg-\[\#0B0F19\],
+body.theme-light .bg-\[\#0F172A\],
+body.theme-light .bg-\[\#131B2E\],
+body.theme-light .bg-\[\#162032\],
+body.theme-light .bg-\[\#1E293B\] {
+  background-color: var(--panel-bg) !important;
+}
+
+/* Ensure Tutorial Guide & Popups in Light Theme use Light Blue Text and theme background */
+body.theme-light .tutorial-card,
+body.theme-light .tutorial-modal,
+body.theme-light .tutorial-popup,
+body.theme-light [id^="tutorial-"],
+body.theme-light .retro-modal {
+  background-color: var(--panel-bg) !important;
+  color: var(--text-main) !important;
+}
+
+body.theme-light .tutorial-card .text-white,
+body.theme-light .tutorial-card .text-slate-100,
+body.theme-light .tutorial-card .text-slate-200,
+body.theme-light .tutorial-card .text-slate-300,
+body.theme-light .tutorial-modal .text-white,
+body.theme-light .tutorial-modal .text-slate-100,
+body.theme-light .tutorial-modal .text-slate-200,
+body.theme-light .tutorial-modal .text-slate-300,
+body.theme-light .tutorial-popup .text-white,
+body.theme-light .tutorial-popup .text-slate-100,
+body.theme-light .tutorial-popup .text-slate-200,
+body.theme-light .tutorial-popup .text-slate-300 {
+  color: #0284C7 !important;
+}
+
+body.theme-light .border-slate-700\/80,
+body.theme-light .border-slate-700,
+body.theme-light .border-slate-800,
+body.theme-light .border-slate-600 {
+  border-color: var(--border-color) !important;
+}
+
+/* Background display helper by theme */
+.dark-theme-bg {
+  display: block;
+}
+.light-theme-bg {
+  display: none;
+}
+body.theme-light .dark-theme-bg,
+.theme-light .dark-theme-bg {
+  display: none !important;
+}
+body.theme-light .light-theme-bg,
+.theme-light .light-theme-bg {
+  display: block !important;
 }
 
 @layer base {
@@ -113,6 +233,7 @@ body.theme-light,
 
 .font-pixel {
   font-family: var(--font-pixel);
+  letter-spacing: 1px;
 }
 
 .font-body {
@@ -120,28 +241,28 @@ body.theme-light,
 }
 
 /* ========================================================================= */
-/* CLASSIC 8-BIT / 16-BIT RPG RETRO CONSOLE DESIGN SYSTEM                    */
+/* CLASSIC 8-BIT / 16-BIT RETRO CONSOLE CHUNKY DESIGN SYSTEM                 */
 /* ========================================================================= */
 
-/* Retro RPG Double Border Window / Modal Shell */
+/* Retro Double Border Window / Modal Shell (0-4px corners, solid thick borders, hard pixel shadows) */
 .retro-modal {
   background-color: var(--panel-bg);
   color: var(--text-main);
-  border: 4px solid #000000;
+  border: 4px solid var(--border-color);
   box-shadow:
     inset 0 0 0 2px var(--border-highlight),
-    6px 6px 0px #000000;
-  border-radius: 6px;
+    6px 6px 0px var(--shadow-color);
+  border-radius: 4px;
 }
 
-/* Retro Console In-Game Panel */
+/* Retro Console Panel */
 .retro-panel {
   background-color: var(--panel-bg);
   color: var(--text-main);
-  border: 4px solid #000000;
+  border: 4px solid var(--border-color);
   box-shadow:
     inset 0 0 0 2px var(--border-highlight),
-    4px 4px 0px #000000;
+    4px 4px 0px var(--shadow-color);
   border-radius: 4px;
 }
 
@@ -150,8 +271,10 @@ body.theme-light,
   font-family: var(--font-pixel);
   font-size: 11px;
   line-height: 1.2;
-  border: 4px solid #000000;
-  box-shadow: 4px 4px 0px #000000;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 4px solid var(--border-color);
+  box-shadow: 4px 4px 0px var(--shadow-color);
   border-radius: 4px;
   cursor: pointer;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
@@ -159,11 +282,11 @@ body.theme-light,
 }
 .retro-btn:hover {
   transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0px #000000;
+  box-shadow: 5px 5px 0px var(--shadow-color);
 }
 .retro-btn:active {
   transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px #000000;
+  box-shadow: 2px 2px 0px var(--shadow-color);
 }
 
 /* Compact Retro Button */
@@ -171,36 +294,39 @@ body.theme-light,
   font-family: var(--font-pixel);
   font-size: 9px;
   line-height: 1.2;
-  border: 3px solid #000000;
-  box-shadow: 2px 2px 0px #000000;
-  border-radius: 3px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 3px solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  border-radius: 4px;
   cursor: pointer;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 .retro-btn-sm:hover {
   transform: translate(-0.5px, -0.5px);
-  box-shadow: 3px 3px 0px #000000;
+  box-shadow: 3px 3px 0px var(--shadow-color);
 }
 .retro-btn-sm:active {
   transform: translate(1.5px, 1.5px);
-  box-shadow: 0px 0px 0px #000000;
+  box-shadow: 0px 0px 0px var(--shadow-color);
 }
 
 /* Inventory Item Slot for Sidebar */
 .retro-slot {
   background-color: var(--slot-bg);
-  border: 3px solid #000000;
-  box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.5), inset -1px -1px 0px rgba(255, 255, 255, 0.15);
+  border: 3px solid var(--border-color);
+  box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.45);
   border-radius: 4px;
-  transition: all 0.1s ease;
+  transition: all 0.08s ease;
 }
 .retro-slot:hover {
   border-color: var(--accent-amber);
-  transform: scale(1.03);
+  transform: translate(-1px, -1px);
+  box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.45), 2px 2px 0px var(--shadow-color);
 }
 .retro-slot.selected {
   border-color: var(--accent-amber);
-  box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.7), 0 0 0 2px var(--accent-amber);
+  box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--accent-amber);
   background-color: rgba(245, 158, 11, 0.18);
 }
 
@@ -217,64 +343,69 @@ body.theme-light .retro-grid-pattern {
 .retro-cartridge {
   background-color: var(--cartridge-body);
   color: var(--text-main);
-  border: 4px solid #000000;
-  box-shadow: 5px 5px 0px #000000;
-  border-radius: 8px 8px 4px 4px;
+  border: 4px solid var(--border-color);
+  box-shadow: 4px 4px 0px var(--shadow-color);
+  border-radius: 4px;
   position: relative;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .retro-cartridge:hover {
   transform: translateY(-2px);
-  box-shadow: 7px 7px 0px #000000;
+  box-shadow: 6px 6px 0px var(--shadow-color);
 }
-
 
 /* Legacy helper classes kept for backward compatibility */
 .pixel-panel {
   background-color: var(--panel-bg);
   color: var(--text-main);
-  border: 4px solid #000000;
-  box-shadow: inset 0 0 0 2px var(--border-highlight), 6px 6px 0px #000000;
-  border-radius: 6px;
+  border: 4px solid var(--border-color);
+  box-shadow: inset 0 0 0 2px var(--border-highlight), 4px 4px 0px var(--shadow-color);
+  border-radius: 4px;
 }
 
 .pixel-card {
   background-color: var(--card-bg);
   color: var(--text-main);
-  border: 3px solid #000000;
-  box-shadow: 4px 4px 0px #000000;
+  border: 3px solid var(--border-color);
+  box-shadow: 4px 4px 0px var(--shadow-color);
   border-radius: 4px;
 }
 
 .pixel-btn {
-  border: 4px solid #000000;
-  box-shadow: 4px 4px 0px #000000;
+  font-family: var(--font-pixel);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 4px solid var(--border-color);
+  box-shadow: 4px 4px 0px var(--shadow-color);
   border-radius: 4px;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
   user-select: none;
 }
 .pixel-btn:hover {
   transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0px #000000;
+  box-shadow: 5px 5px 0px var(--shadow-color);
 }
 .pixel-btn:active {
   transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px #000000;
+  box-shadow: 2px 2px 0px var(--shadow-color);
 }
 
 .pixel-btn-sm {
-  border: 3px solid #000000;
-  box-shadow: 2px 2px 0px #000000;
-  border-radius: 3px;
+  font-family: var(--font-pixel);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 3px solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  border-radius: 4px;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 .pixel-btn-sm:hover {
   transform: translate(-0.5px, -0.5px);
-  box-shadow: 3px 3px 0px #000000;
+  box-shadow: 3px 3px 0px var(--shadow-color);
 }
 .pixel-btn-sm:active {
   transform: translate(1.5px, 1.5px);
-  box-shadow: 0px 0px 0px #000000;
+  box-shadow: 0px 0px 0px var(--shadow-color);
 }
 
 /* Pixel Studio Pro Custom Scrollbars */

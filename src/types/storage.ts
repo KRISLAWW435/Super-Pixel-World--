@@ -23,6 +23,7 @@ export interface GameSettings {
   isMuted?: boolean; // Global mute state
   themeMode?: ThemeMode; // 'dark' | 'light'
   uiScale?: number; // UI scaling (0.8 .. 1.4, default 1.0)
+  showTimer?: boolean; // Show timer in in-game HUD (default: true)
 }
 
 export interface SavedGame {

@@ -1382,31 +1382,36 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
 
       if (isColliding) {
         // Search for nearest valid empty cell
-        let nearest: { col: number; row: number; dist: number } | null = null;
-        for (let r = 1; r <= 4; r++) {
-          for (let dc = -r; dc <= r; dc++) {
-            for (let dr = -r; dr <= r; dr++) {
-              if (Math.abs(dc) !== r && Math.abs(dr) !== r) continue;
-              const nc = finalCol + dc;
-              let nr = finalRow + dr;
-              if (isGround) {
-                const gy = findGroundRowBelow(otherItems, nc, targetRow + dr);
-                if (gy !== null && gy > 0) {
-                  nr = gy - 1;
-                } else {
-                  continue;
+        const findNearestCell = (): { col: number; row: number; dist: number } | null => {
+          let found: { col: number; row: number; dist: number } | null = null;
+          for (let r = 1; r <= 4; r++) {
+            for (let dc = -r; dc <= r; dc++) {
+              for (let dr = -r; dr <= r; dr++) {
+                if (Math.abs(dc) !== r && Math.abs(dr) !== r) continue;
+                const nc = finalCol + dc;
+                let nr = finalRow + dr;
+                if (isGround) {
+                  const gy = findGroundRowBelow(otherItems, nc, targetRow + dr);
+                  if (gy !== null && gy > 0) {
+                    nr = gy - 1;
+                  } else {
+                    continue;
+                  }
                 }
-              }
-              if (!checkCollision(nc, nr)) {
-                const dist = Math.hypot(nc - finalCol, nr - finalRow);
-                if (!nearest || dist < nearest.dist) {
-                  nearest = { col: nc, row: nr, dist };
+                if (!checkCollision(nc, nr)) {
+                  const dist = Math.hypot(nc - finalCol, nr - finalRow);
+                  if (!found || dist < found.dist) {
+                    found = { col: nc, row: nr, dist };
+                  }
                 }
               }
             }
+            if (found) return found;
           }
-          if (nearest) break;
-        }
+          return null;
+        };
+
+        const nearest = findNearestCell();
 
         if (nearest) {
           finalCol = nearest.col;

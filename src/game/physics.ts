@@ -642,9 +642,6 @@ export class PhysicsEngine {
       // Mark as spent
       item.variant = 'spent';
       sound.playBump();
-      sound.playCoin();
-      this.stats.coinsCollected++;
-      this.stats.score += 200;
 
       // Add bumping block animation
       this.blockBumps.push({
@@ -655,8 +652,56 @@ export class PhysicsEngine {
         tileId: 'question_block',
       });
 
-      // Coin pop up animation
-      this.emitCoinPop(col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE);
+      const spawnX = col * CELL_SIZE + CELL_SIZE * 0.5;
+      const spawnY = row * CELL_SIZE;
+
+      // Satisfying visual burst of retro stars and sparkles when block is hit
+      for (let i = 0; i < 10; i++) {
+        this.particles.push({
+          x: spawnX,
+          y: spawnY,
+          vx: (Math.random() - 0.5) * 8,
+          vy: -Math.random() * 6 - 3,
+          color: ['#fbbf24', '#f43f5e', '#c084fc', '#60a5fa', '#ffffff'][Math.floor(Math.random() * 5)],
+          size: Math.random() * 3.5 + 2.5,
+          alpha: 1,
+          life: 0,
+          maxLife: 0.6,
+          shape: 'star',
+        });
+      }
+
+      // Randomized Drop System (Gold Coin, Heart, Magic Crystal)
+      const roll = Math.random();
+      if (roll < 0.45) {
+        // Drop 1: Gold Coin (~45% chance)
+        sound.playCoin();
+        this.stats.coinsCollected++;
+        this.stats.score += 200;
+        this.emitCoinPop(spawnX, spawnY);
+        this.emitSparkles(spawnX, spawnY, '#fbbf24');
+        this.addFloatingText('+1 Монета! +200 🪙', spawnX, spawnY - 12, '#fbbf24');
+      } else if (roll < 0.75) {
+        // Drop 2: Heart - Restores 1 HP (~30% chance)
+        sound.playHeal();
+        if (this.stats.lives < 3) {
+          this.stats.lives = Math.min(3, this.stats.lives + 1);
+          this.addFloatingText('+1 Жизнь! ❤️', spawnX, spawnY - 12, '#f43f5e');
+        } else {
+          this.stats.score += 500;
+          this.addFloatingText('Максимум жизней! +500 ❤️', spawnX, spawnY - 12, '#f43f5e');
+        }
+        this.emitHeartSparkles(spawnX, spawnY);
+        this.emitSparkles(spawnX, spawnY, '#fb7185');
+      } else {
+        // Drop 3: Magic Crystal - Adds to score (~25% chance)
+        sound.playGem();
+        this.stats.crystalsCollected++;
+        this.stats.score += 1000;
+        this.emitStars(spawnX, spawnY);
+        this.emitSparkles(spawnX, spawnY, '#c084fc');
+        this.addFloatingText('+КРИСТАЛЛ! +1000 💎', spawnX, spawnY - 12, '#c084fc');
+      }
     } else if (item.tileId === 'brick') {
       sound.playBreak();
       this.stats.score += 50;

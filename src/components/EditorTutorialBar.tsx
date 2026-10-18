@@ -116,7 +116,7 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
   return (
     <div ref={popoverRef} className="relative flex items-center z-50">
       {/* Compact Capsule Widget */}
-      <div className="h-8.5 px-2 bg-slate-950/90 border border-amber-400/50 rounded-xl flex items-center gap-2 shadow-md text-xs select-none">
+      <div className="h-8.5 px-2 bg-[var(--card-subtle)] border-2 border-black rounded-xl flex items-center gap-2 shadow-[2px_2px_0px_#000000] text-xs select-none">
         {/* Step Badge & Title - Click to Expand / Collapse Mission Hints */}
         <button
           onClick={() => {
@@ -124,24 +124,24 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
             setIsPopoverOpen((p) => !p);
           }}
           title={isPopoverOpen ? 'Свернуть подробности' : 'Развернуть подробности миссии'}
-          className="flex items-center gap-1.5 hover:text-amber-300 text-slate-200 transition-colors cursor-pointer text-left"
+          className="flex items-center gap-1.5 hover:text-amber-500 text-[var(--text-main)] transition-colors cursor-pointer text-left"
         >
-          <span className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center font-mono font-bold text-[11px] shrink-0">
+          <span className="w-5 h-5 rounded-md bg-amber-400 text-slate-950 flex items-center justify-center font-mono font-bold text-[11px] shrink-0 border border-black">
             {currentStep + 1}
           </span>
-          <span className="font-semibold text-xs text-white max-w-[130px] sm:max-w-[200px] truncate">
+          <span className="font-semibold text-xs text-[var(--text-main)] max-w-[130px] sm:max-w-[200px] truncate">
             {step.title.split(':')[1]?.trim() || step.title}
           </span>
-          <ChevronDown className={`w-3.5 h-3.5 text-amber-400 transition-transform duration-200 ${isPopoverOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-amber-500 transition-transform duration-200 ${isPopoverOpen ? 'rotate-180' : ''}`} />
         </button>
 
-        <div className="w-[1px] h-3.5 bg-slate-800" />
+        <div className="w-[1px] h-3.5 bg-black/30" />
 
         {/* Quick Sample Action */}
         <button
           onClick={handleApply}
           title={currentStep === 6 ? 'Запустить плейтест' : 'Вставить пример этой зоны в уровень'}
-          className="h-6 px-2 rounded-md bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
+          className="h-6 px-2 rounded-md bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[11px] flex items-center gap-1 transition-all cursor-pointer border border-black shadow-[1px_1px_0px_#000] active:scale-95 shrink-0"
         >
           {currentStep === 6 ? (
             <>
@@ -162,7 +162,7 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
             onClick={handlePrev}
             disabled={currentStep === 0}
             title="Предыдущая миссия"
-            className="w-5 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="w-5 h-6 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
@@ -170,7 +170,7 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
             onClick={handleNext}
             disabled={currentStep === TUTORIAL_STEPS.length - 1}
             title="Следующая миссия"
-            className="w-5 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="w-5 h-6 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
@@ -183,7 +183,7 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
             onToggleMinimize();
           }}
           title="Свернуть виджет"
-          className="w-5 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+          className="w-5 h-6 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
         >
           <ChevronUp className="w-3.5 h-3.5" />
         </button>
@@ -191,19 +191,19 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
 
       {/* Popover Card for Details (Opens below the bar with high z-index and centered positioning) */}
       {isPopoverOpen && (
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 z-[70] w-[340px] sm:w-[460px] max-w-[92vw] p-5 rounded-2xl bg-[#131B2E] border-2 border-amber-400/80 shadow-2xl shadow-black/95 space-y-3.5 animate-in fade-in zoom-in-95 duration-150">
-          <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 z-[70] w-[340px] sm:w-[460px] max-w-[92vw] p-5 rounded-2xl tutorial-card bg-[var(--tutorial-bg)] border-3 border-black shadow-[5px_5px_0px_#000000] space-y-3.5 text-[var(--tutorial-text)] animate-in fade-in zoom-in-95 duration-150">
+          <div className="flex items-start justify-between gap-2 border-b-2 border-black/20 pb-2.5">
             <div>
-              <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+              <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">
                 {step.badge}
               </div>
-              <h4 className="text-xs sm:text-sm font-bold text-white">
+              <h4 className="text-xs sm:text-sm font-bold text-[var(--text-main)]">
                 {step.title}
               </h4>
             </div>
             <button
               onClick={() => setIsPopoverOpen(false)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer transition-colors"
+              className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 rounded-lg hover:bg-[var(--card-subtle)] cursor-pointer transition-colors border border-black/20"
             >
               <X className="w-4 h-4" />
             </button>
@@ -211,30 +211,30 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
 
           <div className="space-y-2.5">
             <div>
-              <div className="text-xs font-bold text-amber-300 mb-1 flex items-center gap-1.5">
+              <div className="text-xs font-bold text-amber-500 mb-1 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 Что сделать:
               </div>
-              <div className="text-xs sm:text-[13px] text-slate-100 whitespace-pre-line leading-relaxed font-normal bg-slate-900/70 p-3 rounded-xl border border-slate-800/80">
+              <div className="text-xs sm:text-[13px] text-[var(--tutorial-text)] whitespace-pre-line leading-relaxed font-medium bg-[var(--card-subtle)] p-3 rounded-xl border border-black/30">
                 {step.howToPlace}
               </div>
             </div>
 
             {step.extraRule && (
-              <div className="mt-2.5 p-3 rounded-xl bg-indigo-950/70 border border-indigo-500/50 text-indigo-200 text-xs whitespace-pre-line leading-relaxed shadow-sm">
+              <div className="mt-2.5 p-3 rounded-xl bg-[var(--pastel-blue)] border border-[var(--border-color)] text-[var(--tutorial-text)] text-xs whitespace-pre-line leading-relaxed shadow-sm">
                 {step.extraRule}
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+          <div className="flex items-center justify-between gap-2 pt-1 border-t-2 border-black/20">
             {step.tileId && (
               <button
                 onClick={() => {
                   handlePickItem();
                   setIsPopoverOpen(false);
                 }}
-                className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                className="text-[11px] font-semibold text-amber-500 hover:underline cursor-pointer"
               >
                 Выбрать блок «{step.tileName || 'Тайла'}»
               </button>
@@ -244,9 +244,9 @@ export const EditorTutorialBar: React.FC<EditorTutorialBarProps> = ({
                 setIsPopoverOpen(false);
                 onOpenFullModal(currentStep);
               }}
-              className="text-[11px] font-medium text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer ml-auto"
+              className="text-[11px] font-bold text-[var(--text-main)] hover:text-amber-500 flex items-center gap-1 cursor-pointer ml-auto bg-[var(--card-subtle)] px-2 py-1 rounded-md border border-black/30"
             >
-              <HelpCircle className="w-3 h-3 text-amber-400" />
+              <HelpCircle className="w-3.5 h-3.5 text-amber-500" />
               <span>Гид</span>
             </button>
           </div>

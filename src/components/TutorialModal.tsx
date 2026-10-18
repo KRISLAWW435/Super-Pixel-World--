@@ -184,31 +184,31 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-transparent animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-4xl lg:max-w-5xl retro-modal overflow-hidden flex flex-col max-h-[92vh] text-[var(--text-main)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150 select-none">
+      <div className="w-full max-w-4xl lg:max-w-5xl retro-modal tutorial-modal overflow-hidden flex flex-col max-h-[92vh] bg-[var(--panel-bg)] text-[var(--text-main)] border-4 border-black shadow-[6px_6px_0px_#000000]">
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 sm:px-8 py-4 border-b-4 border-black"
           style={{ backgroundColor: 'var(--panel-header)' }}
         >
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border-2 border-[#1E293B] shadow-[2px_2px_0px_#000000] flex items-center justify-center text-amber-400 shrink-0">
-              <Icon className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl bg-amber-400/25 border-2 border-black shadow-[2px_2px_0px_#000000] flex items-center justify-center text-amber-500 shrink-0">
+              <Icon className="w-6 h-6 stroke-[2.5]" />
             </div>
             <div>
-              <div className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+              <div className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-500 flex items-center gap-2">
                 <span>Обучение как в играх</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                <span className="text-slate-300 font-semibold">{step.badge}</span>
+                <span className="text-[var(--text-muted)] font-semibold">{step.badge}</span>
               </div>
-              <h3 className="font-bold text-white text-xl sm:text-2xl leading-tight mt-0.5">
+              <h3 className="font-bold text-[var(--text-main)] text-xl sm:text-2xl leading-tight mt-0.5">
                 {step.title}
               </h3>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-rose-500 border-2 border-[#1E293B] shadow-[2px_2px_0px_#000000] active:translate-y-0.5 active:shadow-none flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-3"
+            className="w-10 h-10 rounded-xl bg-[var(--card-bg)] text-[var(--text-main)] hover:text-white hover:bg-rose-500 border-2 border-black shadow-[2px_2px_0px_#000000] active:translate-y-0.5 active:shadow-none flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-3"
             title="Закрыть"
           >
             <X className="w-5 h-5 stroke-[2.5]" />
@@ -216,15 +216,15 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
         </div>
 
         {/* Step Progress Pills */}
-        <div className="px-6 sm:px-8 py-3 bg-slate-950 border-b border-slate-800/80 flex items-center gap-2 overflow-x-auto scrollbar-none">
+        <div className="px-6 sm:px-8 py-3 bg-[var(--card-subtle)] border-b-2 border-black flex items-center gap-2 overflow-x-auto scrollbar-none">
           {TUTORIAL_STEPS.map((s, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentStep(idx)}
-              className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border-2 border-black ${
                 idx === currentStep
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 scale-102'
-                  : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300'
+                  ? 'bg-amber-400 text-slate-950 font-black shadow-[2px_2px_0px_#000] scale-102'
+                  : 'bg-[var(--card-bg)] hover:bg-[var(--slot-bg)] text-[var(--text-muted)] shadow-[1px_1px_0px_#000]'
               }`}
             >
               <span>{idx + 1}.</span>
@@ -242,69 +242,69 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
         </div>
 
         {/* Main Step Body */}
-        <div className="p-6 sm:p-8 overflow-y-auto space-y-5 text-slate-100">
+        <div className="p-6 sm:p-8 overflow-y-auto space-y-5 bg-[var(--panel-bg)] text-[var(--tutorial-text)]">
           {/* Card 1: ЧТО ВЗЯТЬ */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-slate-800/75 border border-slate-700/80 space-y-2.5 shadow-sm">
+          <div className="p-5 sm:p-6 rounded-2xl bg-[var(--card-subtle)] border-2 border-black shadow-[3px_3px_0px_#000000] space-y-2.5">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm sm:text-base font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+              <div className="text-sm sm:text-base font-black uppercase tracking-wider text-amber-500 flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
                 1. Что взять:
               </div>
               {step.tileId && (
                 <button
                   onClick={handleSelectTile}
-                  className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 border-2 border-black text-amber-500 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-[1px_1px_0px_#000]"
                 >
                   <Wand2 className="w-4 h-4" />
                   Взять этот предмет в руку
                 </button>
               )}
             </div>
-            <div className="text-[15px] sm:text-base text-white font-medium leading-relaxed">
+            <div className="text-[15px] sm:text-base text-[var(--tutorial-text)] font-semibold leading-relaxed">
               {step.whatToTake}
             </div>
           </div>
 
           {/* Card 2: ЧТО СДЕЛАТЬ / КАК ПОСТАВИТЬ */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-slate-800/75 border border-slate-700/80 space-y-3 shadow-sm">
-            <div className="text-sm sm:text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+          <div className="p-5 sm:p-6 rounded-2xl bg-[var(--card-subtle)] border-2 border-black shadow-[3px_3px_0px_#000000] space-y-3">
+            <div className="text-sm sm:text-base font-black uppercase tracking-wider text-emerald-500 flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
               2. Что сделать:
             </div>
-            <div className="text-[15px] sm:text-base text-slate-100 whitespace-pre-line leading-loose font-normal">
+            <div className="text-[15px] sm:text-base text-[var(--tutorial-text)] whitespace-pre-line leading-loose font-normal">
               {step.howToPlace}
             </div>
           </div>
 
           {/* Card 3: КУДА ПОСТАВИТЬ */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-slate-800/75 border border-slate-700/80 space-y-2 shadow-sm">
-            <div className="text-sm sm:text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+          <div className="p-5 sm:p-6 rounded-2xl bg-[var(--card-subtle)] border-2 border-black shadow-[3px_3px_0px_#000000] space-y-2">
+            <div className="text-sm sm:text-base font-black uppercase tracking-wider text-sky-500 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
               3. Куда поставить:
             </div>
-            <div className="text-[15px] sm:text-base text-slate-200 whitespace-pre-line leading-relaxed font-normal">
+            <div className="text-[15px] sm:text-base text-[var(--tutorial-text)] whitespace-pre-line leading-relaxed font-normal">
               {step.whereToPlace}
             </div>
           </div>
 
           {/* Extra Rule / Combat Rules with Clear Margins */}
           {step.extraRule && (
-            <div className="mt-5 p-5 sm:p-6 rounded-2xl bg-indigo-950/70 border-2 border-indigo-500/60 text-indigo-100 text-sm sm:text-[15px] whitespace-pre-line leading-relaxed shadow-lg">
+            <div className="mt-5 p-5 sm:p-6 rounded-2xl bg-[var(--pastel-blue)] border-2 border-[var(--border-color)] text-[var(--tutorial-text)] text-sm sm:text-[15px] whitespace-pre-line leading-relaxed shadow-[3px_3px_0px_#000000]">
               {step.extraRule}
             </div>
           )}
 
           {/* Sample Placement CTA */}
           {step.sampleActionName && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl bg-slate-950/80 border border-slate-800 text-sm">
-              <span className="text-slate-300 font-medium text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl bg-[var(--card-subtle)] border-2 border-black shadow-[2px_2px_0px_#000000] text-sm">
+              <span className="text-[var(--text-main)] font-medium text-center sm:text-left">
                 Хотите сразу увидеть как это выглядит на карте?
               </span>
               <button
                 onClick={handleApplySample}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 font-bold flex items-center gap-2 transition-all cursor-pointer active:scale-95 shrink-0"
+                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 border-2 border-black text-slate-950 font-bold flex items-center gap-2 transition-all cursor-pointer active:scale-95 shadow-[2px_2px_0px_#000] shrink-0"
               >
-                <Sparkles className="w-4 h-4 text-amber-400" />
+                <Sparkles className="w-4 h-4 text-slate-950" />
                 {step.sampleActionName}
               </button>
             </div>
@@ -312,12 +312,12 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
         </div>
 
         {/* Footer Navigation */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 sm:px-8 py-4 sm:py-5 bg-slate-800/90 border-t border-slate-700/80 shrink-0">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 sm:px-8 py-4 sm:py-5 bg-[var(--panel-header)] border-t-4 border-black shrink-0">
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
             <button
               disabled={currentStep === 0}
               onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer border border-slate-700"
+              className="px-4 py-2.5 rounded-xl bg-[var(--card-bg)] hover:bg-[var(--slot-bg)] disabled:opacity-40 disabled:pointer-events-none text-[var(--text-main)] text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer border-2 border-black shadow-[2px_2px_0px_#000]"
             >
               <ChevronLeft className="w-4 h-4" />
               Назад
@@ -326,7 +326,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
             {currentStep < TUTORIAL_STEPS.length - 1 ? (
               <button
                 onClick={() => setCurrentStep((s) => s + 1)}
-                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs sm:text-sm font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/25 active:scale-95"
+                className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-black flex items-center gap-1.5 transition-all cursor-pointer border-2 border-black shadow-[3px_3px_0px_#000] active:scale-95"
               >
                 Следующий этап
                 <ChevronRight className="w-4 h-4 stroke-[3]" />
@@ -337,7 +337,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
                   if (onStartPlay) onStartPlay();
                   onClose();
                 }}
-                className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-500/25 active:scale-95 animate-pulse"
+                className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer border-2 border-black shadow-[3px_3px_0px_#000] active:scale-95 animate-pulse"
               >
                 <Play className="w-4 h-4 fill-slate-950" />
                 Начать играть!
@@ -349,14 +349,14 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
             {step.tileId && (
               <button
                 onClick={handleSelectTile}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs sm:text-sm font-bold transition-all cursor-pointer border border-slate-700"
+                className="px-4 py-2.5 rounded-xl bg-[var(--card-bg)] hover:bg-[var(--slot-bg)] text-amber-500 text-xs sm:text-sm font-bold transition-all cursor-pointer border-2 border-black shadow-[2px_2px_0px_#000]"
               >
                 Выбрать блок и закрыть
               </button>
             )}
             <button
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs sm:text-sm font-bold transition-all cursor-pointer border border-slate-700"
+              className="px-4 py-2.5 rounded-xl bg-[var(--card-bg)] hover:bg-[var(--slot-bg)] text-[var(--text-main)] text-xs sm:text-sm font-bold transition-all cursor-pointer border-2 border-black shadow-[2px_2px_0px_#000]"
             >
               Понятно
             </button>

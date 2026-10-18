@@ -25,6 +25,7 @@ import {
   Minimize2,
   Palette,
   Sparkles,
+  Clock,
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 import { SettingsManager } from '../services/storageManager';
@@ -139,6 +140,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onSettingsChanged?.(updated);
   };
 
+  // Handle Show Timer Toggle
+  const handleToggleShowTimer = () => {
+    const next = !(settings.showTimer ?? true);
+    const updated = SettingsManager.setShowTimer(next);
+    setSettings(updated);
+    sound.playClick();
+    onSettingsChanged?.(updated);
+  };
+
   const volumePercent = Math.round((settings.volume ?? 0.4) * 100);
   const isMutedEffective = settings.isMuted || settings.volume === 0 || (!settings.sound && !settings.music);
   const currentTrack = sound.getCurrentTrack();
@@ -167,8 +177,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       title="НАСТРОЙКИ СИСТЕМЫ"
       subtitle="Звук, тема ретро-консоли и масштаб интерфейса"
       icon={<Settings className="w-5 h-5 text-amber-400" />}
-      badge="SPW-OS"
-      badgeColor="amber"
       maxWidth="lg"
     >
       {/* 3 Chunky Retro Tabs Switcher */}
@@ -358,86 +366,58 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       {/* ========================================================================= */}
       {activeTab === 'theme' && (
         <div className="space-y-3.5 animate-in fade-in duration-100">
-          <div className="text-xs text-[var(--text-muted)] flex items-center gap-1.5">
+          <div className="text-xs text-[var(--text-muted)] flex items-center gap-1.5 font-body">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Выберите стиль отображения интерфейса и консоли:</span>
+            <span>Выберите тему интерфейса:</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Theme 1: Dark Mode */}
             <div
               onClick={() => handleSelectTheme('dark')}
-              className={`retro-panel p-3.5 cursor-pointer transition-all relative ${
+              className={`retro-panel p-4 cursor-pointer transition-all rounded-[4px] border-4 flex items-center justify-between ${
                 settings.themeMode !== 'light'
-                  ? 'border-amber-400 shadow-[4px_4px_0px_#f59e0b]'
-                  : 'hover:border-slate-500'
+                  ? 'border-[var(--accent-amber)] shadow-[4px_4px_0px_var(--shadow-color)] bg-[var(--card-subtle)]'
+                  : 'border-[var(--border-color)] bg-[var(--card-bg)] hover:border-[var(--accent-amber)]'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-md bg-slate-950 border border-slate-700 flex items-center justify-center text-amber-400">
-                    <Moon className="w-4 h-4" />
-                  </div>
-                  <span className="font-pixel text-xs text-[var(--text-main)] font-bold">
-                    ТЁМНАЯ ТЕМА
-                  </span>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-[4px] bg-[var(--slot-bg)] border-2 border-[var(--border-color)] flex items-center justify-center text-[var(--accent-amber)]">
+                  <Moon className="w-4 h-4" />
                 </div>
-                {settings.themeMode !== 'light' && (
-                  <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-xs">
-                    ✓
-                  </span>
-                )}
+                <span className="font-pixel text-xs text-[var(--text-main)] font-bold tracking-wider">
+                  ТЁМНАЯ ТЕМА
+                </span>
               </div>
-
-              {/* Theme mini color palette preview */}
-              <div className="flex items-center gap-1.5 mb-2.5">
-                <div className="w-5 h-5 rounded-sm bg-[#0b0f19] border border-black" title="Фон #0b0f19" />
-                <div className="w-5 h-5 rounded-sm bg-[#131b2e] border border-black" title="Панель #131b2e" />
-                <div className="w-5 h-5 rounded-sm bg-[#f59e0b] border border-black" title="Акцент #f59e0b" />
-                <div className="w-5 h-5 rounded-sm bg-[#10b981] border border-black" title="Успех #10b981" />
-              </div>
-
-              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                Классическая атмосфера ретро-аркады и 16-битной консоли с глубоким контрастом.
-              </p>
+              {settings.themeMode !== 'light' && (
+                <div className="w-6 h-6 rounded-[2px] bg-[var(--accent-amber)] text-slate-950 flex items-center justify-center font-bold text-xs border border-[var(--border-color)] shadow-xs">
+                  ✓
+                </div>
+              )}
             </div>
 
             {/* Theme 2: Light Mode */}
             <div
               onClick={() => handleSelectTheme('light')}
-              className={`retro-panel p-3.5 cursor-pointer transition-all relative ${
+              className={`retro-panel p-4 cursor-pointer transition-all rounded-[4px] border-4 flex items-center justify-between ${
                 settings.themeMode === 'light'
-                  ? 'border-amber-500 shadow-[4px_4px_0px_#d97706]'
-                  : 'hover:border-slate-500'
+                  ? 'border-[var(--accent-amber)] shadow-[4px_4px_0px_var(--shadow-color)] bg-[var(--card-subtle)]'
+                  : 'border-[var(--border-color)] bg-[var(--card-bg)] hover:border-[var(--accent-amber)]'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-md bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-600">
-                    <Sun className="w-4 h-4" />
-                  </div>
-                  <span className="font-pixel text-xs text-[var(--text-main)] font-bold">
-                    СВЕТЛАЯ ТЕМА
-                  </span>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-[4px] bg-[var(--slot-bg)] border-2 border-[var(--border-color)] flex items-center justify-center text-[var(--accent-amber)]">
+                  <Sun className="w-4 h-4" />
                 </div>
-                {settings.themeMode === 'light' && (
-                  <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-xs">
-                    ✓
-                  </span>
-                )}
+                <span className="font-pixel text-xs text-[var(--text-main)] font-bold tracking-wider">
+                  СВЕТЛАЯ ТЕМА
+                </span>
               </div>
-
-              {/* Theme mini color palette preview */}
-              <div className="flex items-center gap-1.5 mb-2.5">
-                <div className="w-5 h-5 rounded-sm bg-[#e2e8f0] border border-black" title="Фон #e2e8f0" />
-                <div className="w-5 h-5 rounded-sm bg-[#ffffff] border border-black" title="Панель #ffffff" />
-                <div className="w-5 h-5 rounded-sm bg-[#d97706] border border-black" title="Акцент #d97706" />
-                <div className="w-5 h-5 rounded-sm bg-[#059669] border border-black" title="Успех #059669" />
-              </div>
-
-              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                Светлый дизайн в стиле карманных консолей Game Boy Pocket и классического Famicom.
-              </p>
+              {settings.themeMode === 'light' && (
+                <div className="w-6 h-6 rounded-[2px] bg-[var(--accent-amber)] text-slate-950 flex items-center justify-center font-bold text-xs border border-[var(--border-color)] shadow-xs">
+                  ✓
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -503,6 +483,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 БОЛЬШОЙ / 4K (120%)
               </button>
             </div>
+          </div>
+
+          {/* Show Timer in HUD Toggle (On/Off) */}
+          <div className="retro-panel p-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-9 h-9 rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] flex items-center justify-center ${
+                  (settings.showTimer ?? true)
+                    ? 'bg-[var(--accent-amber)] text-slate-950 font-bold'
+                    : 'bg-[var(--slot-bg)] text-[var(--text-muted)]'
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold font-pixel text-[var(--text-main)]">
+                  ТАЙМЕР В ИГРЕ
+                </div>
+                <div className="text-[11px] text-[var(--text-muted)]">
+                  Отображать таймер обратного отсчёта в HUD
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleToggleShowTimer}
+              className={`retro-btn-sm px-3.5 py-1.5 flex items-center gap-1.5 border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] ${
+                (settings.showTimer ?? true)
+                  ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold'
+                  : 'bg-[var(--card-subtle)] text-[var(--text-muted)]'
+              }`}
+            >
+              {(settings.showTimer ?? true) && <Check className="w-3 h-3 stroke-[3]" />}
+              <span>{(settings.showTimer ?? true) ? 'ВКЛ' : 'ВЫКЛ'}</span>
+            </button>
           </div>
 
           {/* Current Display & Resolution Status */}
