@@ -212,7 +212,7 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-[2px] bg-emerald-950/80 border-2 border-emerald-300/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <Wrench className="w-4 h-4 text-emerald-100" />
+                  <Wrench className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xs sm:text-sm font-bold tracking-wider uppercase truncate">
                   СОЗДАТЬ НОВУЮ ИГРУ
@@ -228,15 +228,15 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
               className="group relative cursor-pointer w-full py-3 sm:py-3.5 px-4 sm:px-5 rounded-[4px] bg-[var(--accent-amber)] hover:brightness-110 active:brightness-95 border-4 border-[var(--border-color)] text-slate-950 font-pixel flex items-center justify-between select-none shadow-[4px_4px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_var(--shadow-color)] active:shadow-[1px_1px_0px_var(--shadow-color)] hover:translate-x-[-1px] hover:translate-y-[-1px] active:translate-x-[2px] active:translate-y-[2px] transition-all"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-[2px] bg-amber-950/40 border-2 border-amber-900/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <FolderOpen className="w-4 h-4 text-amber-950" />
+                <div className="w-8 h-8 rounded-[2px] bg-slate-950/70 border-2 border-black/50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <FolderOpen className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xs sm:text-sm font-bold tracking-wider uppercase truncate text-slate-950">
                   МОИ ПРОЕКТЫ
                 </span>
               </div>
 
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-amber-950 group-hover:translate-x-1 transition-transform shrink-0 stroke-[3] ml-2" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950 group-hover:translate-x-1 transition-transform shrink-0 stroke-[3] ml-2" />
             </button>
 
             {/* Button 3: «СМЕНИТЬ ПРОФИЛЬ» (Console Panel Chunky Retro Button) */}
@@ -246,14 +246,14 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[2px] bg-[var(--slot-bg)] border-2 border-[var(--border-highlight)] flex items-center justify-center shrink-0">
-                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--accent-amber)]" />
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1E293B]" />
                 </div>
                 <span className="text-[10px] sm:text-xs font-bold tracking-wider uppercase truncate">
                   СМЕНИТЬ ПРОФИЛЬ
                 </span>
               </div>
 
-              <ChevronRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-white group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
+              <ChevronRight className="w-4 h-4 text-[#1E293B] group-hover:text-white group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
             </button>
           </div>
         </div>

@@ -133,10 +133,10 @@ export const LoadPresetModal: React.FC<LoadPresetModalProps> = ({
                     className="w-full h-full object-cover object-bottom transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
-                <div className="text-xs font-bold text-white leading-tight group-hover:text-amber-400 transition-colors">
+                <div className="text-xs font-bold text-[var(--text-main)] leading-tight group-hover:text-amber-500 transition-colors">
                   {preset.title}
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                <div className="text-[11px] text-[var(--text-muted)] mt-1 line-clamp-2">
                   {preset.desc}
                 </div>
               </button>
@@ -146,7 +146,7 @@ export const LoadPresetModal: React.FC<LoadPresetModalProps> = ({
       </div>
 
       {/* Import / Export JSON Section */}
-      <div className="pt-3 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="pt-3 border-t border-[var(--border-color)] grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <input
             ref={fileInputRef}

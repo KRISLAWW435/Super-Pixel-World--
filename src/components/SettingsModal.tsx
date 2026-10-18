@@ -293,7 +293,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className={`w-9 h-9 rounded-md border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center ${
                   settings.sound
                     ? 'bg-amber-400 text-slate-950 font-bold'
-                    : 'bg-slate-800 text-slate-500'
+                    : 'bg-[var(--card-subtle)] text-[var(--text-muted)]'
                 }`}
               >
                 <Bell className="w-4 h-4" />
@@ -313,7 +313,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               className={`retro-btn-sm px-3 py-1.5 flex items-center gap-1.5 ${
                 settings.sound
                   ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold'
-                  : 'bg-slate-700 text-slate-400'
+                  : 'bg-[var(--card-subtle)] text-[var(--text-muted)] border border-[var(--border-color)]'
               }`}
             >
               {settings.sound && <Check className="w-3 h-3 stroke-[3]" />}
@@ -328,7 +328,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className={`w-9 h-9 rounded-md border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center ${
                   settings.music
                     ? 'bg-indigo-500 text-white font-bold'
-                    : 'bg-slate-800 text-slate-500'
+                    : 'bg-[var(--card-subtle)] text-[var(--text-muted)]'
                 }`}
               >
                 <Music className="w-4 h-4" />
@@ -351,7 +351,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               className={`retro-btn-sm px-3 py-1.5 flex items-center gap-1.5 ${
                 settings.music
                   ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold'
-                  : 'bg-slate-700 text-slate-400'
+                  : 'bg-[var(--card-subtle)] text-[var(--text-muted)] border border-[var(--border-color)]'
               }`}
             >
               {settings.music && <Check className="w-3 h-3 stroke-[3]" />}

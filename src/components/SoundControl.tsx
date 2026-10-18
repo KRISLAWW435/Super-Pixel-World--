@@ -185,13 +185,13 @@ export const SoundControl: React.FC<SoundControlProps> = ({
           aria-expanded={isOpen}
           className={
             compact
-              ? 'h-full pr-1.5 pl-0.5 flex items-center justify-center text-slate-400 hover:text-amber-300 cursor-pointer transition-colors border-l border-slate-700/60'
+              ? 'h-full pr-1.5 pl-0.5 flex items-center justify-center text-[var(--text-muted)] hover:text-amber-400 cursor-pointer transition-colors border-l border-[var(--border-color)]'
               : 'pr-2 pl-0.5 flex items-center justify-center text-amber-400 hover:text-white cursor-pointer'
           }
         >
           <ChevronDown
             className={`w-3 h-3 transition-transform duration-200 ${
-              isOpen ? 'rotate-180 text-amber-300' : 'text-slate-400'
+              isOpen ? 'rotate-180 text-amber-400' : 'text-[var(--text-muted)]'
             }`}
           />
         </button>
@@ -201,7 +201,8 @@ export const SoundControl: React.FC<SoundControlProps> = ({
       {isOpen && (
         <div
           ref={popoverRef}
-          className={`absolute ${
+          data-dark-panel="true"
+          className={`dark-panel absolute ${
             direction === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'
           } ${
             align === 'left' ? 'left-0' : 'right-0'
@@ -211,13 +212,13 @@ export const SoundControl: React.FC<SoundControlProps> = ({
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-700/80">
             <div className="flex items-center gap-2">
               <span className="text-base">🔊</span>
-              <span className="font-pixel text-xs text-amber-300 tracking-wider font-bold">
+              <span className="font-pixel text-xs text-yellow-300 tracking-wider font-bold">
                 ЗВУК И МУЗЫКА
               </span>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
               title="Закрыть"
             >
               <X className="w-4 h-4" />
@@ -226,11 +227,11 @@ export const SoundControl: React.FC<SoundControlProps> = ({
 
           {/* Current BGM Track Badge */}
           <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 mb-3 text-xs">
-            <div className="flex items-center gap-1.5 text-slate-300">
-              <Music className="w-3.5 h-3.5 text-amber-400" />
+            <div className="flex items-center gap-1.5 text-white">
+              <Music className="w-3.5 h-3.5 text-yellow-300" />
               <span>Музыкальный трек:</span>
             </div>
-            <span className="font-bold text-amber-300 font-pixel text-[11px] truncate max-w-[120px]">
+            <span className="font-bold text-yellow-300 font-pixel text-[11px] truncate max-w-[120px]">
               {trackName}
             </span>
           </div>

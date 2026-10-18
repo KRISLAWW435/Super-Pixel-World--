@@ -689,33 +689,182 @@ export class SpriteRenderer {
 
   private static drawCoin(ctx: CanvasRenderingContext2D, s: number, animTime: number) {
     const floatY = Math.sin(animTime * 4) * 2;
-    const spinScale = Math.cos(animTime * 5); // spinning on vertical axis
+    const spinPhase = animTime * 4.5;
+    const spinScale = Math.cos(spinPhase);
+    const absScale = Math.max(0.08, Math.abs(spinScale));
+    const isEdgeOn = absScale < 0.22;
+    const coinR = s * 0.34;
 
+    ctx.save();
     ctx.translate(s * 0.5, s * 0.5 + floatY);
-    ctx.scale(Math.abs(spinScale) < 0.1 ? 0.1 : spinScale, 1);
 
-    // Outer coin rim
-    ctx.fillStyle = '#eab308';
+    // 1. Soft golden ambient glow behind the coin
+    const glowRadius = s * 0.44;
+    const glowGrad = ctx.createRadialGradient(0, 0, s * 0.12, 0, 0, glowRadius);
+    glowGrad.addColorStop(0, 'rgba(253, 224, 71, 0.4)');
+    glowGrad.addColorStop(0.6, 'rgba(245, 158, 11, 0.15)');
+    glowGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+    ctx.fillStyle = glowGrad;
     ctx.beginPath();
-    ctx.ellipse(0, 0, s * 0.35, s * 0.35, 0, 0, Math.PI * 2);
+    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Inner gold face
-    ctx.fillStyle = '#fde047';
+    // 2. 3D Side Rim Extrusion (reveals cylindrical edge as coin rotates)
+    const rimThickness = 3.5 * (1 - absScale * 0.6);
+    const rimDir = Math.sin(spinPhase) >= 0 ? 1 : -1;
+
+    if (!isEdgeOn) {
+      // Dark bronze rim drop shadow
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.ellipse(rimDir * rimThickness, 0, coinR * absScale, coinR, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Burnished gold side facet
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.ellipse(rimDir * (rimThickness * 0.5), 0, coinR * absScale, coinR, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 3. Front Face of the Coin
+    ctx.save();
+    ctx.scale(absScale, 1);
+
+    // Outer Dark Ridge (gives pixel-crisp separation)
+    ctx.fillStyle = '#78350f';
     ctx.beginPath();
-    ctx.ellipse(0, 0, s * 0.26, s * 0.26, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, coinR, coinR, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Center star / diamond
-    ctx.fillStyle = '#ca8a04';
-    ctx.fillRect(-2, -5, 4, 10);
-    ctx.fillRect(-5, -2, 10, 4);
-
-    // Sparkle dot
-    ctx.fillStyle = '#ffffff';
+    // Beveled Outer Golden Ring
+    const rimGrad = ctx.createLinearGradient(-coinR, -coinR, coinR, coinR);
+    rimGrad.addColorStop(0, '#fef08a'); // bright top-left specular
+    rimGrad.addColorStop(0.3, '#f59e0b');
+    rimGrad.addColorStop(0.7, '#d97706');
+    rimGrad.addColorStop(1, '#92400e'); // deep shadow bottom-right
+    ctx.fillStyle = rimGrad;
     ctx.beginPath();
-    ctx.arc(-s * 0.15, -s * 0.15, 2.5, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, coinR - 1.2, coinR - 1.2, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // Inner Recessed Gold Face
+    const faceR = coinR * 0.74;
+    const faceGrad = ctx.createLinearGradient(0, -faceR, 0, faceR);
+    faceGrad.addColorStop(0, '#fde047');
+    faceGrad.addColorStop(0.5, '#fbbf24');
+    faceGrad.addColorStop(1, '#f59e0b');
+    ctx.fillStyle = faceGrad;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, faceR, faceR, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Subtle Inner Ring Stroke for tactile depth
+    ctx.strokeStyle = '#b45309';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Embossed Star Emblem (iconic arcade collectible badge)
+    if (absScale > 0.2) {
+      // Embossed shadow
+      ctx.fillStyle = '#92400e';
+      ctx.beginPath();
+      const shadowOffset = 0.8;
+      const spikes = 4;
+      const outerStar = faceR * 0.52;
+      const innerStar = faceR * 0.22;
+      let starAngle = -Math.PI / 2;
+      const step = Math.PI / spikes;
+      for (let i = 0; i < spikes; i++) {
+        ctx.lineTo(Math.cos(starAngle) * outerStar, Math.sin(starAngle) * outerStar + shadowOffset);
+        starAngle += step;
+        ctx.lineTo(Math.cos(starAngle) * innerStar, Math.sin(starAngle) * innerStar + shadowOffset);
+        starAngle += step;
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // Gleaming star body
+      ctx.fillStyle = '#fef9c3';
+      ctx.beginPath();
+      starAngle = -Math.PI / 2;
+      for (let i = 0; i < spikes; i++) {
+        ctx.lineTo(Math.cos(starAngle) * outerStar, Math.sin(starAngle) * outerStar);
+        starAngle += step;
+        ctx.lineTo(Math.cos(starAngle) * innerStar, Math.sin(starAngle) * innerStar);
+        starAngle += step;
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // White center glint
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore(); // end face scaling
+
+    // 4. Edge-On Ribbed Profile (when coin is completely sideways)
+    if (isEdgeOn) {
+      const edgeW = Math.max(3.5, rimThickness * 1.5);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(-edgeW * 0.5 - 1, -coinR, edgeW + 2, coinR * 2);
+
+      const edgeGrad = ctx.createLinearGradient(-edgeW * 0.5, 0, edgeW * 0.5, 0);
+      edgeGrad.addColorStop(0, '#fde047');
+      edgeGrad.addColorStop(0.5, '#f59e0b');
+      edgeGrad.addColorStop(1, '#92400e');
+      ctx.fillStyle = edgeGrad;
+      ctx.fillRect(-edgeW * 0.5, -coinR + 1, edgeW, (coinR - 1) * 2);
+
+      // Ribbing detail notches
+      ctx.fillStyle = '#78350f';
+      for (let y = -coinR + 4; y < coinR - 3; y += 4) {
+        ctx.fillRect(-edgeW * 0.5, y, edgeW, 1.2);
+      }
+    }
+
+    // 5. Dynamic Corner Twinkle / Sparkle on coin rim
+    const sparklePhase = (animTime * 3) % (Math.PI * 2);
+    const sparkleAlpha = Math.max(0, Math.sin(sparklePhase));
+    if (sparkleAlpha > 0.08) {
+      const spX = -coinR * 0.62;
+      const spY = -coinR * 0.62;
+      const spSize = 3.5 * sparkleAlpha;
+      ctx.save();
+      ctx.translate(spX, spY);
+      ctx.rotate(animTime * 4);
+      ctx.globalAlpha = sparkleAlpha;
+
+      ctx.fillStyle = '#ffffff';
+      // Horizontal flare
+      ctx.beginPath();
+      ctx.moveTo(-spSize * 1.8, 0);
+      ctx.lineTo(0, -spSize * 0.35);
+      ctx.lineTo(spSize * 1.8, 0);
+      ctx.lineTo(0, spSize * 0.35);
+      ctx.closePath();
+      ctx.fill();
+
+      // Vertical flare
+      ctx.beginPath();
+      ctx.moveTo(0, -spSize * 1.8);
+      ctx.lineTo(-spSize * 0.35, 0);
+      ctx.lineTo(0, spSize * 1.8);
+      ctx.lineTo(spSize * 0.35, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Center white glint
+      ctx.beginPath();
+      ctx.arc(0, 0, spSize * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
   }
 
   private static drawStar(ctx: CanvasRenderingContext2D, s: number, animTime: number) {
@@ -1320,8 +1469,9 @@ export class SpriteRenderer {
       ctx.restore();
     }
 
-    const dw = 64;
-    const dh = 96;
+    const heroScale = isThumbnail ? 1 : height / 80;
+    const dw = 64 * heroScale;
+    const dh = 96 * heroScale;
 
     if (spriteImg && spriteImg.complete && spriteImg.naturalWidth > 0) {
       const sx = frameIndex * frameWidth;

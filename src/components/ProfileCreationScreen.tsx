@@ -96,9 +96,9 @@ export const ProfileCreationScreen: React.FC<ProfileCreationScreenProps> = ({
               onCancel();
             }}
             title="Закрыть"
-            className="retro-btn-sm absolute top-4 right-4 w-8 h-8 rounded-[4px] bg-[var(--accent-rose)] hover:brightness-110 text-white flex items-center justify-center cursor-pointer border-[3px] border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)]"
+            className="retro-btn-sm absolute top-4 right-4 w-8 h-8 rounded-[4px] bg-white hover:bg-slate-100 text-[#0F172A] flex items-center justify-center cursor-pointer border-[3px] border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 stroke-[2.5]" />
           </button>
         )}
 

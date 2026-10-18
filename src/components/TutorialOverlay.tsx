@@ -362,19 +362,19 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   if (step >= 12 && isVictory) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent select-none animate-in zoom-in-95 duration-200">
-        <div className="relative w-full max-w-md p-6 retro-modal text-center space-y-5 text-[var(--text-main)]">
+        <div className="relative w-full max-w-md p-6 retro-modal tutorial-modal text-center space-y-5 text-[var(--text-main)]">
           <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-emerald-500 to-green-400 flex items-center justify-center shadow-lg shadow-emerald-500/30">
             <Trophy className="w-10 h-10 text-slate-950" />
           </div>
 
           <div className="space-y-2">
-            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[11px] font-bold uppercase tracking-wider">
+            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 text-[11px] font-bold uppercase tracking-wider">
               Тур Завершён! 🏆
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-white">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#1E293B] dark:text-white">
               Поздравляю, Создатель!
             </h2>
-            <p className="text-sm text-slate-200 leading-relaxed">
+            <p className="text-sm text-[#1E293B] dark:text-slate-200 leading-relaxed font-medium">
               Ты создал и победоносно прошёл свой первый уровень! Теперь в твоих руках все инструменты студии — воплощай любые миры и делись ими!
             </p>
           </div>
@@ -713,7 +713,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                     <ArrowDown className="w-3.5 h-3.5 text-amber-300 absolute -bottom-1" />
                   </div>
                   <div className="text-xs sm:text-[13px] font-black text-amber-300 leading-tight">Колёсико мыши</div>
-                  <div className="text-xs text-slate-300 mt-0.5">Вверх / Вниз</div>
+                  <div className="text-xs text-white/90 font-medium mt-0.5">Вверх / Вниз</div>
                 </div>
 
                 {/* 2. Grab Hand holding Mouse with Left/Right arrows (horizontal pan) */}
@@ -727,7 +727,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                     <ArrowRight className="w-3.5 h-3.5 text-cyan-300 absolute -right-1" />
                   </div>
                   <div className="text-xs sm:text-[13px] font-black text-cyan-300 leading-tight">Зажать колёсико</div>
-                  <div className="text-xs text-slate-300 mt-0.5">или Пробел + тяни</div>
+                  <div className="text-xs text-white/90 font-medium mt-0.5">или Пробел + тяни</div>
                 </div>
               </div>
             )}
@@ -783,10 +783,11 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           {isGameplayToastExpanded ? (
             /* Expanded Compact Toast (Shows for 4s, or when reappearing after 10s idle) */
             <div
-              className={`tutorial-popup flex items-center gap-2.5 p-2 sm:p-2.5 pr-3.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_#000] transition-all duration-300 max-w-[calc(100vw-140px)] sm:max-w-md animate-in fade-in slide-in-from-top-2 ${
+              data-dark-panel="true"
+              className={`dark-panel flex items-center gap-2.5 p-2.5 sm:p-3 pr-4 rounded-2xl border-2 border-black shadow-[3px_3px_0px_#000] transition-all duration-300 max-w-[calc(100vw-140px)] sm:max-w-md animate-in fade-in slide-in-from-top-2 text-white ${
                 isSuccess
-                  ? 'bg-emerald-800 text-white'
-                  : 'bg-[var(--tutorial-bg)] text-[var(--tutorial-text)]'
+                  ? 'bg-emerald-900'
+                  : 'bg-slate-900'
               }`}
             >
               {/* Step Icon Badge */}
@@ -794,7 +795,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                 className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm shadow-inner border border-black ${
                   isSuccess
                     ? 'bg-emerald-500/20 text-emerald-300'
-                    : 'bg-amber-400/20 text-amber-500'
+                    : 'bg-amber-400/20 text-yellow-300'
                 }`}
               >
                 {step === 10 ? (
@@ -808,17 +809,17 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
               {/* Message Content */}
               <div className="flex-1 min-w-0 pr-1">
-                <div className="flex items-center gap-1.5 leading-none mb-0.5">
-                  <span className="text-[10px] font-mono font-black uppercase tracking-wider text-amber-400">
+                <div className="flex items-center gap-1.5 leading-none mb-1">
+                  <span className="text-[11px] font-mono font-black uppercase tracking-wider text-yellow-300">
                     Шаг {step} из {totalSteps}
                   </span>
                   {title && (
-                    <span className="text-[10px] text-slate-400 font-bold truncate">
+                    <span className="text-[11px] text-white font-bold truncate">
                       • {title}
                     </span>
                   )}
                 </div>
-                <div className="text-xs sm:text-[13px] font-bold text-slate-100 leading-snug">
+                <div className="text-xs sm:text-[13px] font-bold text-white leading-snug">
                   {isSuccess ? (successMessage || 'Отлично!') : message}
                 </div>
               </div>
@@ -832,7 +833,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                     onSkipStep();
                   }}
                   title="Пропустить этот шаг"
-                  className="p-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors shrink-0 cursor-pointer"
+                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-yellow-300 hover:text-white border border-slate-700 transition-colors shrink-0 cursor-pointer"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -841,6 +842,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           ) : (
             /* Collapsed Small Icon Badge (faded out to keep view 100% clean while playing) */
             <button
+              data-dark-panel="true"
               onClick={() => {
                 sound.playSelect();
                 setIsGameplayToastExpanded(true);
@@ -850,7 +852,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                 }, 4000);
               }}
               title="Нажми, чтобы развернуть подсказку"
-              className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 border border-amber-400/50 hover:border-amber-400 backdrop-blur-md shadow-lg transition-all duration-300 cursor-pointer active:scale-95 animate-in fade-in"
+              className="dark-panel group flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border-2 border-amber-400 text-white shadow-lg transition-all duration-300 cursor-pointer active:scale-95 animate-in fade-in"
             >
               <div className="relative flex items-center justify-center">
                 {step === 10 ? (
@@ -862,7 +864,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                 )}
                 <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 animate-ping opacity-75" />
               </div>
-              <span className="text-[11px] font-mono font-bold text-amber-300">
+              <span className="text-[11px] font-mono font-bold text-yellow-300">
                 Шаг {step}
               </span>
             </button>

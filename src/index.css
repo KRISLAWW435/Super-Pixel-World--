@@ -105,86 +105,160 @@ body.theme-light,
   --pixel-panel-header: #E0F2FE;
   --pixel-card-bg: #FFFFFF;
 
-  /* Tutorial Tokens - In Light Mode Text is Crisp Light Blue */
+  /* Tutorial Tokens - High Contrast in Light Theme */
   --tutorial-bg: #FFFFFF;
   --tutorial-card-bg: #F0F9FF;
-  --tutorial-text: #0284C7;
-  --tutorial-text-muted: #0369A1;
-  --tutorial-border: #38BDF8;
+  --tutorial-text: #0F172A;
+  --tutorial-text-muted: #334155;
+  --tutorial-border: #2563EB;
 }
 
-/* Light Theme High Contrast & Clean Pastel Accents (No Dark Brown / Muddy Yellow) */
-body.theme-light .bg-amber-400,
-body.theme-light .bg-amber-500,
-body.theme-light .bg-yellow-400,
-body.theme-light .bg-yellow-300 {
+/* Light Theme High Contrast & Clean Pastel Accents */
+body.theme-light .bg-amber-400:not(.dark-panel *):not([data-dark-panel="true"] *),
+body.theme-light .bg-amber-500:not(.dark-panel *):not([data-dark-panel="true"] *),
+body.theme-light .bg-yellow-400:not(.dark-panel *):not([data-dark-panel="true"] *),
+body.theme-light .bg-yellow-300:not(.dark-panel *):not([data-dark-panel="true"] *) {
   background-color: #FDE047 !important;
   color: #0F172A !important;
 }
 
-body.theme-light .text-amber-400,
-body.theme-light .text-amber-300,
-body.theme-light .text-yellow-400,
-body.theme-light .text-yellow-300 {
+body.theme-light .text-amber-400:not(.dark-panel *):not([data-dark-panel="true"] *),
+body.theme-light .text-amber-300:not(.dark-panel *):not([data-dark-panel="true"] *),
+body.theme-light .text-yellow-400:not(.dark-panel *):not([data-dark-panel="true"] *),
+body.theme-light .text-yellow-300:not(.dark-panel *):not([data-dark-panel="true"] *) {
   color: #0284C7 !important;
 }
 
-body.theme-light .text-cyan-400,
-body.theme-light .text-sky-300 {
+body.theme-light .text-cyan-400:not(.dark-panel *):not([data-dark-panel="true"] *),
+body.theme-light .text-sky-300:not(.dark-panel *):not([data-dark-panel="true"] *) {
   color: #0284C7 !important;
 }
 
-body.theme-light .text-emerald-300,
-body.theme-light .text-emerald-400 {
+body.theme-light .text-emerald-300:not(.dark-panel *):not([data-dark-panel="true"] *),
+body.theme-light .text-emerald-400:not(.dark-panel *):not([data-dark-panel="true"] *) {
   color: #059669 !important;
 }
 
-/* Ensure no dark gray / black panels in light mode */
-body.theme-light .bg-slate-900\/70,
-body.theme-light .bg-slate-900\/80,
-body.theme-light .bg-slate-900\/90,
-body.theme-light .bg-slate-900,
-body.theme-light .bg-slate-950\/80,
-body.theme-light .bg-slate-950\/90,
-body.theme-light .bg-slate-950,
-body.theme-light .bg-slate-800,
-body.theme-light .bg-slate-800\/70,
-body.theme-light .bg-slate-800\/75,
-body.theme-light .bg-slate-800\/80,
-body.theme-light .bg-slate-800\/90,
-body.theme-light .bg-indigo-950\/70,
-body.theme-light .bg-indigo-950\/90,
-body.theme-light .bg-\[\#0B0F19\],
-body.theme-light .bg-\[\#0F172A\],
-body.theme-light .bg-\[\#131B2E\],
-body.theme-light .bg-\[\#162032\],
-body.theme-light .bg-\[\#1E293B\] {
+/* Ensure no dark gray / black panels in light mode (except explicitly marked dark panels) */
+body.theme-light .bg-slate-900\/70:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-900\/80:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-900\/90:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-900:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-950\/80:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-950\/90:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-950:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-800:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-800\/70:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-800\/75:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-800\/80:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-slate-800\/90:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-indigo-950\/70:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-indigo-950\/90:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-\[\#0B0F19\]:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-\[\#0F172A\]:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-\[\#131B2E\]:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-\[\#162032\]:not(.dark-panel):not([data-dark-panel="true"]),
+body.theme-light .bg-\[\#1E293B\]:not(.dark-panel):not([data-dark-panel="true"]) {
   background-color: var(--panel-bg) !important;
 }
 
-/* Ensure Tutorial Guide & Popups in Light Theme use Light Blue Text and theme background */
-body.theme-light .tutorial-card,
+/* Modals & Popups in Light Theme: strictly dark readable text (#0F172A / #1E293B) on light background */
+body.theme-light .retro-modal,
 body.theme-light .tutorial-modal,
-body.theme-light .tutorial-popup,
-body.theme-light [id^="tutorial-"],
-body.theme-light .retro-modal {
+body.theme-light .tutorial-card {
   background-color: var(--panel-bg) !important;
-  color: var(--text-main) !important;
+  color: #0F172A !important;
 }
 
-body.theme-light .tutorial-card .text-white,
-body.theme-light .tutorial-card .text-slate-100,
-body.theme-light .tutorial-card .text-slate-200,
-body.theme-light .tutorial-card .text-slate-300,
+body.theme-light .retro-modal h1,
+body.theme-light .retro-modal h2,
+body.theme-light .retro-modal h3,
+body.theme-light .retro-modal h4,
+body.theme-light .retro-modal .text-white,
+body.theme-light .retro-modal .text-slate-100,
+body.theme-light .tutorial-modal h1,
+body.theme-light .tutorial-modal h2,
+body.theme-light .tutorial-modal h3,
+body.theme-light .tutorial-modal h4,
 body.theme-light .tutorial-modal .text-white,
 body.theme-light .tutorial-modal .text-slate-100,
+body.theme-light .tutorial-card .text-white,
+body.theme-light .tutorial-card .text-slate-100 {
+  color: #0F172A !important;
+}
+
+body.theme-light .retro-modal p,
+body.theme-light .retro-modal .text-slate-200,
+body.theme-light .retro-modal .text-slate-300,
+body.theme-light .retro-modal .text-slate-400,
+body.theme-light .tutorial-modal p,
 body.theme-light .tutorial-modal .text-slate-200,
 body.theme-light .tutorial-modal .text-slate-300,
-body.theme-light .tutorial-popup .text-white,
-body.theme-light .tutorial-popup .text-slate-100,
-body.theme-light .tutorial-popup .text-slate-200,
-body.theme-light .tutorial-popup .text-slate-300 {
-  color: #0284C7 !important;
+body.theme-light .tutorial-modal .text-slate-400,
+body.theme-light .tutorial-card p,
+body.theme-light .tutorial-card .text-slate-200,
+body.theme-light .tutorial-card .text-slate-300,
+body.theme-light .tutorial-card .text-slate-400 {
+  color: #1E293B !important;
+}
+
+/* Dark Panels & Banners (HUD, in-game tutorial banner, bottom control bar):
+   MUST strictly preserve pure white or bright yellow text across all themes */
+.dark-panel,
+[data-dark-panel="true"],
+body.theme-light .dark-panel,
+body.theme-light [data-dark-panel="true"] {
+  background-color: rgba(15, 23, 42, 0.96) !important;
+  color: #FFFFFF !important;
+}
+
+.dark-panel *,
+[data-dark-panel="true"] *,
+body.theme-light .dark-panel *,
+body.theme-light [data-dark-panel="true"] * {
+  /* Default to readable light text */
+}
+
+.dark-panel .text-white,
+[data-dark-panel="true"] .text-white,
+body.theme-light .dark-panel .text-white,
+body.theme-light [data-dark-panel="true"] .text-white,
+.dark-panel .text-slate-100,
+[data-dark-panel="true"] .text-slate-100,
+body.theme-light .dark-panel .text-slate-100,
+body.theme-light [data-dark-panel="true"] .text-slate-100,
+.dark-panel .text-slate-200,
+[data-dark-panel="true"] .text-slate-200,
+body.theme-light .dark-panel .text-slate-200,
+body.theme-light [data-dark-panel="true"] .text-slate-200,
+.dark-panel .text-slate-300,
+[data-dark-panel="true"] .text-slate-300,
+body.theme-light .dark-panel .text-slate-300,
+body.theme-light [data-dark-panel="true"] .text-slate-300,
+.dark-panel .text-slate-400,
+[data-dark-panel="true"] .text-slate-400,
+body.theme-light .dark-panel .text-slate-400,
+body.theme-light [data-dark-panel="true"] .text-slate-400 {
+  color: #FFFFFF !important;
+}
+
+.dark-panel .text-yellow-300,
+[data-dark-panel="true"] .text-yellow-300,
+body.theme-light .dark-panel .text-yellow-300,
+body.theme-light [data-dark-panel="true"] .text-yellow-300,
+.dark-panel .text-amber-300,
+[data-dark-panel="true"] .text-amber-300,
+body.theme-light .dark-panel .text-amber-300,
+body.theme-light [data-dark-panel="true"] .text-amber-300,
+.dark-panel .text-amber-400,
+[data-dark-panel="true"] .text-amber-400,
+body.theme-light .dark-panel .text-amber-400,
+body.theme-light [data-dark-panel="true"] .text-amber-400,
+.dark-panel .text-yellow-400,
+[data-dark-panel="true"] .text-yellow-400,
+body.theme-light .dark-panel .text-yellow-400,
+body.theme-light [data-dark-panel="true"] .text-yellow-400 {
+  color: #FDE047 !important;
 }
 
 body.theme-light .border-slate-700\/80,

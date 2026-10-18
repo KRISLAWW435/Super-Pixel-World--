@@ -89,11 +89,11 @@ export class PhysicsEngine {
     const startCellX = spawnItem ? spawnItem.x : 3;
     const startCellY = spawnItem ? spawnItem.y : 12;
 
-    // Playable hero physical hitbox dimensions ("Big Mario" 1:2 ratio: height 80px, slim width 24px)
+    // Playable hero physical hitbox dimensions (height 110px [2.75 tiles] to pass under 3-tile gaps [120px] with 10px clearance, slim width 24px)
     const playerWidth = 24;
-    const playerHeight = 80;
+    const playerHeight = 110;
     const startPx = startCellX * CELL_SIZE + Math.floor((CELL_SIZE - playerWidth) * 0.5);
-    const startPy = (startCellY - 1) * CELL_SIZE;
+    const startPy = (startCellY + 1) * CELL_SIZE - playerHeight;
 
     this.player = {
       x: startPx,
@@ -807,7 +807,7 @@ export class PhysicsEngine {
         item.variant = 'active';
         sound.playCheckpoint();
         this.player.checkpointX = col * CELL_SIZE + Math.floor((CELL_SIZE - this.player.width) * 0.5);
-        this.player.checkpointY = (row - 1) * CELL_SIZE;
+        this.player.checkpointY = (row + 1) * CELL_SIZE - this.player.height;
         this.stats.score += 300;
         this.emitStars(col * CELL_SIZE + CELL_SIZE * 0.5, row * CELL_SIZE);
       }
@@ -1291,18 +1291,19 @@ export class PhysicsEngine {
   }
 
   public emitCoinPop(x: number, y: number) {
-    for (let i = 0; i < 8; i++) {
+    const coinColors = ['#fde047', '#facc15', '#fbbf24', '#ffffff'];
+    for (let i = 0; i < 10; i++) {
       this.particles.push({
         x,
         y,
-        vx: (Math.random() - 0.5) * 6,
-        vy: -Math.random() * 5 - 3,
-        color: '#facc15',
-        size: Math.random() * 3 + 3,
+        vx: (Math.random() - 0.5) * 7,
+        vy: -Math.random() * 6 - 2.5,
+        color: coinColors[i % coinColors.length],
+        size: Math.random() * 3 + 2.5,
         alpha: 1,
         life: 0,
-        maxLife: 0.5,
-        shape: 'sparkle',
+        maxLife: 0.55,
+        shape: i % 2 === 0 ? 'star' : 'sparkle',
       });
     }
   }

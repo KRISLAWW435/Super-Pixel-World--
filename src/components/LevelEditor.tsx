@@ -1560,8 +1560,8 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             <span className="font-bold text-amber-400 truncate max-w-[140px]">
               {levelData.name || 'Новый уровень'}
             </span>
-            <span className="text-[10px] text-slate-500">•</span>
-            <span className="text-slate-400">{themeConfig.name}</span>
+            <span className="text-[10px] text-[var(--text-muted)]">•</span>
+            <span className="text-[var(--text-muted)]">{themeConfig.name}</span>
           </div>
 
           {/* Undo / Redo */}
@@ -1571,7 +1571,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
                 onClick={onUndo}
                 disabled={!canUndo}
                 title="Отменить действие (Ctrl+Z)"
-                className="h-8.5 w-8 rounded-xl bg-slate-800/70 hover:bg-slate-700 text-slate-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center border border-slate-700/80 transition-colors cursor-pointer"
+                className="h-8.5 w-8 rounded-xl bg-[var(--card-subtle)] hover:bg-[var(--card-bg)] text-[var(--text-main)] disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center border border-[var(--border-color)] transition-colors cursor-pointer"
               >
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
@@ -1579,7 +1579,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
                 onClick={onRedo}
                 disabled={!canRedo}
                 title="Повторить действие (Ctrl+Y)"
-                className="h-8.5 w-8 rounded-xl bg-slate-800/70 hover:bg-slate-700 text-slate-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center border border-slate-700/80 transition-colors cursor-pointer"
+                className="h-8.5 w-8 rounded-xl bg-[var(--card-subtle)] hover:bg-[var(--card-bg)] text-[var(--text-main)] disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center border border-[var(--border-color)] transition-colors cursor-pointer"
               >
                 <Redo2 className="w-3.5 h-3.5" />
               </button>
@@ -1621,11 +1621,11 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         {/* Right: Viewport Controls, Sound & Permanently Fixed Green ▶ ТЕСТ Action */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Jump to Start / Finish */}
-          <div className="hidden md:flex items-center bg-slate-800/70 border border-slate-700/80 rounded-xl p-0.5">
+          <div className="hidden md:flex items-center bg-[var(--card-subtle)] border border-[var(--border-color)] rounded-xl p-0.5">
             <button
               onClick={() => setCameraX(0)}
               title="Перейти к старту уровня"
-              className="px-2 py-1 rounded-lg text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-0.5"
+              className="px-2 py-1 rounded-lg text-[var(--text-main)] hover:text-amber-400 text-xs font-bold transition-colors cursor-pointer flex items-center gap-0.5"
             >
               <ChevronLeft className="w-3.5 h-3.5 text-amber-400" />
               <span>Старт</span>
@@ -1633,7 +1633,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             <button
               onClick={() => setCameraX(getMaxCameraX())}
               title="Перейти к финишу уровня"
-              className="px-2 py-1 rounded-lg text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-0.5"
+              className="px-2 py-1 rounded-lg text-[var(--text-main)] hover:text-amber-400 text-xs font-bold transition-colors cursor-pointer flex items-center gap-0.5"
             >
               <span>Финиш</span>
               <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
@@ -1647,28 +1647,28 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             className={`h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-colors cursor-pointer ${
               showGrid
                 ? 'text-amber-400 bg-amber-500/20 border-amber-400/40'
-                : 'text-slate-400 bg-slate-800/70 border-slate-700 hover:bg-slate-700'
+                : 'text-[var(--text-muted)] bg-[var(--card-subtle)] border-[var(--border-color)] hover:bg-[var(--card-bg)] hover:text-[var(--text-main)]'
             }`}
           >
             <Grid className="w-4 h-4" />
           </button>
 
           {/* Zoom In / Out */}
-          <div className="hidden sm:flex items-center bg-slate-800/70 border border-slate-700/80 rounded-xl p-0.5">
+          <div className="hidden sm:flex items-center bg-[var(--card-subtle)] border border-[var(--border-color)] rounded-xl p-0.5">
             <button
               onClick={() => setZoom((z) => Math.max(0.7, Number((z - 0.15).toFixed(2))))}
               title="Отдалить (Ctrl + колесико)"
-              className="p-1 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="text-[11px] font-mono text-slate-300 px-1 font-bold">
+            <span className="text-[11px] font-mono text-[var(--text-main)] px-1 font-bold">
               {Math.round(zoom * 100)}%
             </span>
             <button
               onClick={() => setZoom((z) => Math.min(1.4, Number((z + 0.15).toFixed(2))))}
               title="Приблизить (Ctrl + колесико)"
-              className="p-1 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
@@ -1749,7 +1749,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
         />
 
         {/* Small floating tool tip when hovering */}
-        <div className="absolute bottom-2 left-4 pointer-events-none text-[11px] font-mono text-slate-400 bg-slate-900/85 px-3 py-1.5 rounded-lg border border-slate-800 backdrop-blur-xs flex items-center gap-2 shadow-lg">
+        <div data-dark-panel="true" className="dark-panel absolute bottom-2 left-4 pointer-events-none text-[11px] font-mono text-white bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-700/80 backdrop-blur-xs flex items-center gap-2 shadow-lg">
           <span className="flex items-center gap-1 font-bold">
             {activeTool === 'erase' ? (
               <>
@@ -1773,8 +1773,8 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
               </>
             )}
           </span>
-          <span className="text-slate-600">|</span>
-          <span className="text-slate-300">
+          <span className="text-[var(--text-muted)]">|</span>
+          <span className="text-[var(--text-main)] font-medium">
             {activeTool === 'move'
               ? 'ЛКМ — схватить и переместить объект | Отпустите — зафиксировать'
               : 'ЛКМ — ставить, ПКМ — удалить | Пробел+тянуть — обзор | G — сетка'}
@@ -1783,15 +1783,15 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
       </div>
 
       {/* 4. BOTTOM MINIMAP & STATUS BAR (48px height) */}
-      <div className="h-12 bg-[#0F172A] border-t border-slate-800 flex items-center px-4 gap-3 shrink-0 z-20">
-        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+      <div className="h-12 bg-[var(--panel-bg)] border-t border-[var(--border-color)] flex items-center px-4 gap-3 shrink-0 z-20">
+        <div className="text-[11px] font-bold text-[var(--text-main)] uppercase tracking-wider shrink-0 flex items-center gap-1.5">
           <Move className="w-3.5 h-3.5 text-amber-400" />
           <span className="hidden sm:inline">Карта уровня:</span>
         </div>
 
         {/* Minimap Canvas Container */}
         <div
-          className="flex-1 h-8 sm:h-9 rounded-lg overflow-hidden border border-slate-700 bg-[#0B0F19] relative cursor-move select-none"
+          className="flex-1 h-8 sm:h-9 rounded-lg overflow-hidden border border-[var(--border-color)] bg-[var(--slot-bg)] relative cursor-move select-none"
           onMouseDown={(e) => handleMinimapInteraction(e.clientX, e.clientY)}
           onMouseMove={(e) => {
             if (e.buttons === 1) handleMinimapInteraction(e.clientX, e.clientY);
@@ -1811,7 +1811,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
           />
         </div>
 
-        <div className="text-[11px] font-mono text-slate-400 shrink-0 font-bold">
+        <div className="text-[11px] font-mono text-[var(--text-muted)] shrink-0 font-bold">
           {hoverCell ? `X: ${hoverCell.col} Y: ${hoverCell.row}` : `${levelData.width} блоков`}
         </div>
       </div>

@@ -127,7 +127,7 @@ export const StudioModal: React.FC<StudioModalProps> = ({
           <button
             onClick={handleClose}
             title="Закрыть (Esc)"
-            className="retro-btn-sm bg-[var(--accent-rose)] hover:brightness-110 text-white w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center cursor-pointer shrink-0 ml-2 rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)]"
+            className="retro-btn-sm bg-white hover:bg-slate-100 text-[#0F172A] w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center cursor-pointer shrink-0 ml-2 rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] transition-colors"
           >
             <X className="w-4 h-4 stroke-[3]" />
           </button>

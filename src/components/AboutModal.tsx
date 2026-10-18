@@ -95,7 +95,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
         {/* Chunky Retro Close Button */}
         <button
           onClick={handleClose}
-          className="retro-btn-sm absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 rounded-md bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center cursor-pointer z-30"
+          className="retro-btn-sm absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 rounded-md bg-white hover:bg-slate-100 text-[#0F172A] border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center cursor-pointer z-30 transition-colors"
           title="Закрыть"
         >
           <X className="w-4 h-4 stroke-[3]" />
@@ -109,8 +109,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
               PIXEL WORLD
             </h1>
 
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--card-subtle)] border border-[var(--border-color)] text-[var(--accent-amber)] font-pixel text-[10px] sm:text-xs mb-6 shadow-sm">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#FDE047] border border-amber-500/40 text-[#0F172A] font-pixel text-[10px] sm:text-xs mb-6 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 fill-[#0F172A] text-[#0F172A]" />
               <span>ТВОЯ СТУДИЯ СОЗДАНИЯ ИГР</span>
             </div>
           </div>
@@ -121,7 +121,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
               🎮
             </div>
             <p className="text-[var(--text-main)] text-sm sm:text-base leading-relaxed font-normal text-center sm:text-left">
-              <strong className="text-[var(--accent-amber)] font-bold">Pixel World</strong> — это не просто игра, а творческая мастерская! Здесь ты не просто проходишь уровни, а сам придумываешь, строишь и оживляешь свои собственные миры.
+              <strong className="text-amber-400 [body.theme-light_&]:text-[#1E293B] [.theme-light_&]:text-[#1E293B] font-bold">Pixel World</strong> — это не просто игра, а творческая мастерская! Здесь ты не просто проходишь уровни, а сам придумываешь, строишь и оживляешь свои собственные миры.
             </p>
           </div>
 

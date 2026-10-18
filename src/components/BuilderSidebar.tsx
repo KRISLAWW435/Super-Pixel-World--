@@ -255,14 +255,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           <button
             onClick={onToggleFullscreen}
             title={isFullscreen ? 'Оконный режим' : 'Во весь экран'}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--card-subtle)] transition-colors cursor-pointer"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
           <button
             onClick={onOpenTutorial}
             title="Инструкция геймдизайнера"
-            className="p-1.5 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-[var(--card-subtle)] transition-colors cursor-pointer"
           >
             <HelpCircle className="w-4 h-4" />
           </button>
@@ -331,7 +331,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
         {/* TAB 1: PLATFORMS */}
         {activeTab === 'platforms' && (
           <div className="space-y-2">
-            <div className="text-[11px] font-semibold text-slate-400">
+            <div className="text-[11px] font-semibold text-[var(--text-muted)]">
               Строительные блоки и платформы:
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -413,7 +413,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                   <Swords className="w-3.5 h-3.5" />
                   <span>Противники:</span>
                 </div>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[10px] text-[var(--text-muted)]">
                   Наземные / Летающие
                 </span>
               </div>
@@ -482,7 +482,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
       {/* 4. Tools & Actions Bottom Panel with Hotkey Badges */}
       <div className="p-3 bg-[#0F172A] border-t-2 border-black space-y-2 shrink-0">
         {/* Tool Mode Buttons (Brush [B], Move [V], Area [R], Eraser [E], Clear) */}
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-5 gap-1">
           {/* Freehand Brush */}
           <button
             id="tour-tool-brush"
@@ -491,14 +491,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playSelect();
             }}
             title="Свободная кисть (B) — рисование блоков в любом направлении"
-            className={`py-2 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative ${
+            className={`py-1.5 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative overflow-hidden ${
               activeTool === 'brush'
                 ? 'bg-amber-400 text-slate-950 font-bold shadow-[2px_2px_0px_#000]'
                 : 'bg-[var(--card-subtle)] text-[var(--text-main)] hover:bg-slate-700'
             }`}
           >
             <PenTool className="w-3.5 h-3.5" />
-            <span className="text-[9px] font-pixel">Кисть</span>
+            <span className="text-[11px] font-body leading-none whitespace-nowrap">Кисть</span>
             <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-black border border-slate-700 rounded text-[8px] font-mono text-amber-400">
               B
             </kbd>
@@ -511,14 +511,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playSelect();
             }}
             title="Перемещение объектов (V или H) — перетаскивание блоков и врагов"
-            className={`py-2 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative ${
+            className={`py-1.5 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative overflow-hidden ${
               activeTool === 'move'
                 ? 'bg-amber-400 text-slate-950 font-bold shadow-[2px_2px_0px_#000]'
                 : 'bg-[var(--card-subtle)] text-[var(--text-main)] hover:bg-slate-700'
             }`}
           >
             <Hand className="w-3.5 h-3.5" />
-            <span className="text-[9px] font-pixel">Рука</span>
+            <span className="text-[11px] font-body leading-none whitespace-nowrap">Рука</span>
             <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-black border border-slate-700 rounded text-[8px] font-mono text-amber-400">
               V
             </kbd>
@@ -532,14 +532,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playSelect();
             }}
             title="Область (R) — прямоугольное заполнение стен или ям"
-            className={`py-2 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative ${
+            className={`py-1.5 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative overflow-hidden ${
               activeTool === 'line'
                 ? 'bg-amber-400 text-slate-950 font-bold shadow-[2px_2px_0px_#000]'
                 : 'bg-[var(--card-subtle)] text-[var(--text-main)] hover:bg-slate-700'
             }`}
           >
             <Move className="w-3.5 h-3.5" />
-            <span className="text-[9px] font-pixel">Зона</span>
+            <span className="text-[11px] font-body leading-none whitespace-nowrap">Зона</span>
             <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-black border border-slate-700 rounded text-[8px] font-mono text-amber-400">
               R
             </kbd>
@@ -553,14 +553,14 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               sound.playErase();
             }}
             title="Ластик (E) — удаление блоков кликом или протяжкой"
-            className={`py-2 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative ${
+            className={`py-1.5 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black transition-all cursor-pointer relative overflow-hidden ${
               activeTool === 'erase'
                 ? 'bg-rose-500 text-white font-bold shadow-[2px_2px_0px_#000]'
                 : 'bg-[var(--card-subtle)] text-rose-400 hover:bg-slate-700'
             }`}
           >
             <Eraser className="w-3.5 h-3.5" />
-            <span className="text-[9px] font-pixel">Ластик</span>
+            <span className="text-[11px] font-body leading-none whitespace-nowrap">Ластик</span>
             <kbd className="absolute top-0.5 right-0.5 px-0.5 py-0.2 bg-black border border-slate-700 rounded text-[8px] font-mono text-rose-300">
               E
             </kbd>
@@ -570,36 +570,27 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           <button
             onClick={() => setConfirmClearOpen(true)}
             title="Очистить уровень"
-            className="py-2 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black bg-[var(--card-subtle)] text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-950/30 transition-all cursor-pointer shadow-[1px_1px_0px_#000]"
+            className="py-1.5 px-0.5 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border-2 border-black bg-[var(--card-subtle)] text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-950/30 transition-all cursor-pointer shadow-[1px_1px_0px_#000] overflow-hidden"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span className="text-[9px] font-pixel">Сброс</span>
+            <span className="text-[11px] font-body leading-none whitespace-nowrap">Сброс</span>
           </button>
         </div>
 
-        {/* Save / Presets Row with Hotkey badge Ctrl+S */}
-        <div className="grid grid-cols-2 gap-2 pt-1">
+        {/* Save Row with Hotkey badge Ctrl+S */}
+        <div className="pt-1">
           <button
             onClick={onSave}
             title="Сохранить уровень в библиотеку проектов студии (Ctrl+S)"
-            className="retro-btn-sm py-2 px-2 text-xs font-bold flex items-center justify-between bg-emerald-600 hover:bg-emerald-500 text-slate-950"
+            className="retro-btn-sm w-full py-2 px-3 text-xs font-bold flex items-center justify-between bg-emerald-600 hover:bg-emerald-500 text-slate-950"
           >
             <div className="flex items-center gap-1.5">
               <Download className="w-3.5 h-3.5 stroke-[2.5]" />
               <span className="font-pixel text-[9px]">Сохранить</span>
             </div>
-            <kbd className="px-1 py-0.2 bg-black border border-emerald-400/50 rounded text-[8px] font-mono text-emerald-300">
+            <kbd className="px-1.5 py-0.5 bg-black border border-emerald-400/50 rounded text-[8px] font-mono text-emerald-300">
               Ctrl+S
             </kbd>
-          </button>
-
-          <button
-            onClick={onLoad}
-            title="Готовые уровни студии и импорт JSON"
-            className="retro-btn-sm py-2 px-2 text-xs font-bold flex items-center justify-center gap-1.5 bg-[var(--card-subtle)] text-[var(--text-main)]"
-          >
-            <Upload className="w-3.5 h-3.5 text-purple-400" />
-            <span className="font-pixel text-[9px]">Готовые миры</span>
           </button>
         </div>
       </div>

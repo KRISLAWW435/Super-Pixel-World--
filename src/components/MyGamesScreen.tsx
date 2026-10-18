@@ -28,12 +28,11 @@ import {
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 import { THEMES } from '../game/constants';
-import { SaveManager } from '../services/storageManager';
+import { ProfileManager, SaveManager } from '../services/storageManager';
 import { LevelData } from '../types/game';
 import { PRESET_AVATARS, SavedGame, UserProfile } from '../types/storage';
 import { SettingsModal } from './SettingsModal';
-import archiveBgImg from '../assets/images/pixel_archive_sky_bg_1792309583036.jpg';
-import bgGreenIslands from '../assets/images/bg_green_islands.webp';
+import archiveWebp from '../assets/images/archive.webp';
 
 interface MyGamesScreenProps {
   onBackToMenu: () => void;
@@ -53,8 +52,9 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
   onCreateNewGame,
   profile,
 }) => {
+  const currentProfile = profile || ProfileManager.getActiveProfile();
   const [games, setGames] = useState<SavedGame[]>(() =>
-    SaveManager.getSavedGamesForProfile(profile?.id)
+    SaveManager.getSavedGamesForProfile(currentProfile?.id)
   );
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
@@ -65,10 +65,10 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
   const [sortOption, setSortOption] = useState<SortOption>('newest');
 
   React.useEffect(() => {
-    setGames(SaveManager.getSavedGamesForProfile(profile?.id));
-  }, [profile?.id]);
+    setGames(SaveManager.getSavedGamesForProfile(currentProfile?.id));
+  }, [currentProfile?.id]);
 
-  const avatar = PRESET_AVATARS.find((a) => a.id === profile?.avatarId) || PRESET_AVATARS[0];
+  const avatar = PRESET_AVATARS.find((a) => a.id === currentProfile?.avatarId) || PRESET_AVATARS[0];
 
   const handlePlay = (game: SavedGame) => {
     sound.playCoin();
@@ -145,21 +145,16 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
 
   return (
     <div className="relative w-full h-full min-h-screen flex flex-col p-3 sm:p-5 lg:p-7 overflow-y-auto select-none text-[var(--text-main)]">
-      {/* 1. Dynamic Game Backgrounds: Light Mode shows lush Green Islands with sunny pastel glow, Dark Mode shows Archive Sky */}
+      {/* 1. Dynamic Game Backgrounds: archive.webp with light/dark overlays ensuring text contrast */}
       <div className="fixed inset-0 pointer-events-none select-none -z-10 overflow-hidden">
         <img
-          src={bgGreenIslands}
-          alt="Солнечные острова"
-          className="w-full h-full object-cover object-center light-theme-bg"
+          src={archiveWebp}
+          alt="Архив проектов"
+          className="w-full h-full object-cover object-center"
         />
-        <img
-          src={archiveBgImg}
-          alt="Солнечный мир пиксельных игр"
-          className="w-full h-full object-cover object-center dark-theme-bg"
-        />
-        {/* Soft pastel wash in light mode, retro pixel grid in dark mode */}
-        <div className="absolute inset-0 bg-sky-100/35 backdrop-blur-[1px] light-theme-bg" />
-        <div className="absolute inset-0 bg-slate-950/60 retro-grid-pattern dark-theme-bg" />
+        {/* Soft pastel wash in light mode, retro dark overlay in dark mode */}
+        <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] light-theme-bg" />
+        <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-[1px] dark-theme-bg" />
       </div>
 
       {/* ========================================================================= */}
@@ -179,23 +174,22 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
         </button>
 
         {/* Creator Identity Centerpiece */}
-        <div className="retro-panel px-3 py-1.5 flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded border-2 border-black overflow-hidden bg-amber-400 shrink-0">
+        <div className="retro-panel px-3.5 py-2 flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-md border-2 border-[var(--border-color)] overflow-hidden bg-amber-400 shrink-0 flex items-center justify-center shadow-sm">
             <img
               src={avatar.imageUrl}
               alt={avatar.name}
-              referrerPolicy="no-referrer"
               className="w-full h-full object-cover"
               style={{ imageRendering: 'pixelated' }}
             />
           </div>
           <div className="min-w-0">
-            <div className="text-[9px] font-pixel uppercase tracking-wider text-amber-400 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>Архив картриджей</span>
+            <div className="text-[10px] font-pixel uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>АРХИВ ПРОЕКТОВ</span>
             </div>
             <h1 className="text-xs sm:text-sm font-bold text-[var(--text-main)] truncate font-pixel">
-              {profile?.name || 'Игры автора'}
+              {currentProfile?.name || 'Игры автора'}
             </h1>
           </div>
         </div>
@@ -437,14 +431,14 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                         className={`retro-btn-sm absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center cursor-pointer rounded-[2px] border border-[var(--border-color)] ${
                           isFav
                             ? 'bg-amber-400 text-slate-950'
-                            : 'bg-black/80 text-slate-400 hover:text-amber-400'
+                            : 'bg-black/80 text-amber-300 hover:text-amber-400'
                         }`}
                       >
                         <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
                       </button>
 
                       {/* Block count badge */}
-                      <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-[2px] bg-black/85 border border-slate-700 text-[9px] font-pixel text-slate-300">
+                      <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-[2px] bg-black/85 border border-slate-700 text-[9px] font-pixel text-yellow-300">
                         {itemCount} БЛОКОВ
                       </div>
                     </div>

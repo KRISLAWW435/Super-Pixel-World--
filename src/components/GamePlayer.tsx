@@ -601,21 +601,21 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       {/* Interactive In-Game Tutorial Mission Guide (Step 8) */}
       {isTutorialMode && !isVictory && !isGameOver && (
         <div className="absolute top-16 left-4 right-4 z-40 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-3">
-          <div className="max-w-2xl bg-gradient-to-r from-slate-900/95 via-slate-950/95 to-slate-900/95 border-2 border-amber-400 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-amber-500/20 pointer-events-auto backdrop-blur-md flex items-center justify-between gap-3 text-white">
+          <div data-dark-panel="true" className="dark-panel max-w-2xl bg-slate-950/95 border-2 border-amber-400 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-amber-500/20 pointer-events-auto backdrop-blur-md flex items-center justify-between gap-3 text-white">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-400 flex items-center justify-center shrink-0 text-2xl animate-bounce">
                 {!hasMoved ? '🏃' : !hasJumped ? '🦘' : stats.coinsCollected === 0 ? '🪙' : '🚩'}
               </div>
               <div className="text-xs sm:text-sm">
-                <div className="font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                <div className="font-black text-yellow-300 uppercase tracking-wider flex items-center gap-2">
                   <span>Обучение: Шаг 8 из 8 — Проверь игру в действии!</span>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/30 text-[10px] font-mono">Плейтест</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/30 text-yellow-200 text-[10px] font-mono">Плейтест</span>
                 </div>
-                <div className="text-slate-100 font-bold mt-0.5">
+                <div className="text-white font-bold mt-0.5">
                   {!hasMoved ? (
-                    <span>Нажимай стрелочки <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono border border-slate-700">⬅ ➡</kbd> или <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono border border-slate-700">A / D</kbd>, чтобы побежать!</span>
+                    <span>Нажимай стрелочки <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono border border-slate-700">⬅ ➡</kbd> или <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono border border-slate-700">A / D</kbd>, чтобы побежать!</span>
                   ) : !hasJumped ? (
-                    <span>Отлично! Теперь нажми <kbd className="px-2 py-0.5 rounded bg-emerald-900 text-emerald-300 font-mono border border-emerald-500">Пробел</kbd> или <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-300 font-mono border border-slate-700">W</kbd>, чтобы прыгнуть!</span>
+                    <span>Отлично! Теперь нажми <kbd className="px-2 py-0.5 rounded bg-emerald-900 text-yellow-300 font-mono border border-emerald-500">Пробел</kbd> или <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono border border-slate-700">W</kbd>, чтобы прыгнуть!</span>
                   ) : stats.coinsCollected === 0 ? (
                     <span>Супер! Теперь собери сияющую золотую монетку!</span>
                   ) : (
@@ -631,19 +631,19 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       {/* Intro Controls & Battle Guide Banner */}
       {showControlsBanner && !isTutorialMode && !isVictory && !isGameOver && (
         <div className="absolute top-16 left-4 right-4 z-40 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-3 duration-300">
-          <div className="max-w-xl bg-slate-900/95 border-2 border-emerald-500/60 rounded-2xl p-3.5 shadow-2xl shadow-emerald-500/15 pointer-events-auto backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div data-dark-panel="true" className="dark-panel max-w-xl bg-slate-900/95 border-2 border-emerald-500/60 rounded-2xl p-3.5 shadow-2xl shadow-emerald-500/15 pointer-events-auto backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 text-xl font-bold">
                 🎮
               </div>
               <div className="text-xs">
-                <div className="font-bold text-emerald-400 uppercase tracking-wider mb-0.5">
+                <div className="font-bold text-yellow-300 uppercase tracking-wider mb-0.5">
                   Обучение: Управление и битва
                 </div>
-                <div className="text-slate-200">
-                  <span className="font-semibold text-white">Бег:</span> ⬅ / ➡ или A, D ·{' '}
-                  <span className="font-semibold text-white">Прыжок:</span> Пробел или W (удерживайте для высоты) ·{' '}
-                  <span className="font-bold text-amber-300">Врагов побеждайте прыжком СВЕРХУ!</span>
+                <div className="text-white">
+                  <span className="font-semibold text-yellow-300">Бег:</span> ⬅ / ➡ или A, D ·{' '}
+                  <span className="font-semibold text-yellow-300">Прыжок:</span> Пробел или W (удерживайте для высоты) ·{' '}
+                  <span className="font-bold text-yellow-300">Врагов побеждайте прыжком СВЕРХУ!</span>
                 </div>
               </div>
             </div>
@@ -659,33 +659,33 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
       {/* Desktop / Tablet Persistent Controls Bar at Bottom */}
       <div className="hidden md:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-        <div className="px-4 py-2 rounded-2xl bg-slate-950/85 border border-slate-700/80 shadow-xl backdrop-blur-md flex items-center gap-4 text-xs font-medium text-slate-300">
+        <div data-dark-panel="true" className="dark-panel px-4 py-2 rounded-2xl bg-slate-950/90 border border-slate-700/80 shadow-xl backdrop-blur-md flex items-center gap-4 text-xs font-semibold text-white">
           <div className="flex items-center gap-1.5">
-            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono font-bold text-[11px] border border-slate-700">A / D</span>
-            <span className="text-slate-400">или</span>
-            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono font-bold text-[11px] border border-slate-700">⬅ ➡</span>
-            <span className="text-slate-200 ml-1">Бег</span>
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono font-bold text-[11px] border border-slate-700">A / D</span>
+            <span className="text-white/90">или</span>
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono font-bold text-[11px] border border-slate-700">⬅ ➡</span>
+            <span className="text-white ml-1">Бег</span>
           </div>
 
-          <div className="w-[1px] h-3.5 bg-slate-700" />
+          <div className="w-[1px] h-3.5 bg-slate-600" />
 
           <div className="flex items-center gap-1.5">
-            <span className="px-2 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono font-bold text-[11px] border border-slate-700">Пробел / W</span>
-            <span className="text-slate-200 ml-1">Прыжок (удержание = выше)</span>
+            <span className="px-2 py-0.5 rounded bg-slate-800 text-yellow-300 font-mono font-bold text-[11px] border border-slate-700">Пробел / W</span>
+            <span className="text-white ml-1">Прыжок (удержание = выше)</span>
           </div>
 
-          <div className="w-[1px] h-3.5 bg-slate-700" />
+          <div className="w-[1px] h-3.5 bg-slate-600" />
 
           <div className="flex items-center gap-1.5">
-            <span className="text-rose-400 font-bold">⚔️ Прыжок сверху:</span>
-            <span className="text-slate-200">Убить врага</span>
+            <span className="text-yellow-300 font-bold">⚔️ Прыжок сверху:</span>
+            <span className="text-white">Убить врага</span>
           </div>
 
-          <div className="w-[1px] h-3.5 bg-slate-700" />
+          <div className="w-[1px] h-3.5 bg-slate-600" />
 
           <div className="flex items-center gap-1.5">
-            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono font-bold text-[11px] border border-slate-700">Esc</span>
-            <span className="text-slate-300">Пауза / В редактор</span>
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono font-bold text-[11px] border border-slate-700">Esc</span>
+            <span className="text-white">Пауза / В редактор</span>
           </div>
         </div>
       </div>
@@ -824,48 +824,48 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       {/* CELEBRATORY VICTORY MODAL */}
       {isVictory && !isGuidedTour && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent select-none animate-in zoom-in-95 duration-200">
-          <div className="w-full max-w-md retro-modal p-6 shadow-[6px_6px_0px_#000] text-center space-y-4 text-[var(--text-main)]">
+          <div className="w-full max-w-md retro-modal tutorial-modal p-6 shadow-[6px_6px_0px_#000] text-center space-y-4 text-[var(--text-main)]">
             <div className="w-16 h-16 rounded-md bg-amber-400 border-2 border-black mx-auto flex items-center justify-center text-slate-950 shadow-[3px_3px_0px_#000]">
               <Trophy className="w-8 h-8 animate-bounce" />
             </div>
 
             <div>
-              <div className="text-xs font-black uppercase tracking-widest text-amber-400">
+              <div className="text-xs font-black uppercase tracking-widest text-amber-500 dark:text-amber-400">
                 {isTutorialMode ? 'Обучение успешно завершено! 🎓' : 'Уровень пройден!'}
               </div>
-              <h2 className="font-black text-2xl sm:text-3xl text-white mt-1">
+              <h2 className="font-black text-2xl sm:text-3xl text-[#1E293B] dark:text-white mt-1">
                 {isTutorialMode ? 'ПОЗДРАВЛЯЕМ, ГЕЙМДИЗАЙНЕР!' : 'ГРАНДИОЗНАЯ ПОБЕДА!'}
               </h2>
               {isTutorialMode && (
-                <p className="text-xs sm:text-sm text-slate-200 mt-2 leading-relaxed">
-                  Ты создал свой первый уровень в <span className="text-amber-300 font-bold">Super Pixel World</span> и победоносно прошёл его! Теперь у тебя есть все необходимые навыки — строй любые миры, делись ими и удивляй друзей!
+                <p className="text-xs sm:text-sm text-[#1E293B] dark:text-slate-200 mt-2 leading-relaxed font-medium">
+                  Ты создал свой первый уровень в <span className="text-amber-500 dark:text-amber-300 font-bold">Super Pixel World</span> и победоносно прошёл его! Теперь у тебя есть все необходимые навыки — строй любые миры, делись ими и удивляй друзей!
                 </p>
               )}
             </div>
 
             {/* Victory Statistics */}
-            <div className="grid grid-cols-2 gap-2.5 p-3.5 bg-slate-800/80 rounded-2xl border border-slate-700 text-left text-xs">
+            <div className="grid grid-cols-2 gap-2.5 p-3.5 bg-[var(--card-subtle)] rounded-2xl border border-[var(--border-color)] text-left text-xs">
               <div>
-                <span className="text-slate-400">Время прохождения:</span>
-                <div className="text-base font-bold text-cyan-400 font-mono">
+                <span className="text-[var(--text-muted)] font-medium">Время прохождения:</span>
+                <div className="text-base font-bold text-sky-500 dark:text-cyan-400 font-mono">
                   {Math.round(stats.timeTaken)} сек.
                 </div>
               </div>
               <div>
-                <span className="text-slate-400">Итоговый счёт:</span>
-                <div className="text-base font-bold text-emerald-400 font-mono">
+                <span className="text-[var(--text-muted)] font-medium">Итоговый счёт:</span>
+                <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono">
                   {stats.score}
                 </div>
               </div>
               <div>
-                <span className="text-slate-400">Собрано монет:</span>
-                <div className="text-base font-bold text-amber-400 font-mono">
+                <span className="text-[var(--text-muted)] font-medium">Собрано монет:</span>
+                <div className="text-base font-bold text-amber-500 dark:text-amber-400 font-mono">
                   {stats.coinsCollected}
                 </div>
               </div>
               <div>
-                <span className="text-slate-400">Найдено звёзд:</span>
-                <div className="text-base font-bold text-yellow-300 font-mono">
+                <span className="text-[var(--text-muted)] font-medium">Найдено звёзд:</span>
+                <div className="text-base font-bold text-yellow-500 dark:text-yellow-300 font-mono">
                   {stats.starsCollected}
                 </div>
               </div>
