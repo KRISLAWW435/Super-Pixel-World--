@@ -27,7 +27,7 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
-import { CELL_SIZE, GRID_ROWS, THEMES } from '../game/constants';
+import { CELL_SIZE, FIXED_DELTA_TIME, GRID_ROWS, MAX_ACCUMULATOR, THEMES } from '../game/constants';
 import { PhysicsEngine } from '../game/physics';
 import { SpriteRenderer } from '../graphics/spriteRenderer';
 import { SettingsManager } from '../services/storageManager';
@@ -156,6 +156,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
     jump: false,
     start: false,
   });
+  const padJumpJustPressedRef = useRef<boolean>(false);
 
   const triggerGamepadToast = (message: string, sub?: string) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -298,7 +299,6 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       }
       if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp') {
         keysRef.current.jump = false;
-        keysRef.current.jumpJustPressed = false;
       }
     };
 
@@ -319,10 +319,19 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
     let animFrame: number;
     let lastTime = performance.now();
+    let accumulator = 0;
 
     const loop = (now: number) => {
-      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      // Calculate real delta time in seconds, clamped to 100ms to avoid spiral of death
+      const rawDt = (now - lastTime) / 1000;
       lastTime = now;
+      const frameTime = Math.min(Math.max(0, rawDt), 0.1);
+
+      if (!isPaused) {
+        accumulator = Math.min(accumulator + frameTime, MAX_ACCUMULATOR);
+      } else {
+        accumulator = 0;
+      }
 
       // -------------------------------------------------------------
       // GAMEPAD POLLING (HTML5 Gamepad API)
@@ -387,6 +396,10 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       }
 
       const engine = physicsRef.current;
+      let renderPlayerX = engine ? engine.player.x : 0;
+      let renderPlayerY = engine ? engine.player.y : 0;
+      let alpha = 1;
+
       if (engine && !isPaused) {
         // Track actions for tutorial if controlled via gamepad
         if (padLeft || padRight) {
@@ -402,18 +415,34 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
         const isMovingLeft = keysRef.current.left || padLeft;
         const isMovingRight = keysRef.current.right || padRight;
         const isJumping = keysRef.current.jump || padJump;
-        const isJumpJustPressed = keysRef.current.jumpJustPressed || padJumpJustPressed;
+        if (padJumpJustPressed) {
+          padJumpJustPressedRef.current = true;
+        }
 
-        // Run physics tick
-        engine.update(dt, {
-          left: isMovingLeft,
-          right: isMovingRight,
-          jump: isJumping,
-          jumpJustPressed: isJumpJustPressed,
-        });
+        // FIXED TIMESTEP (60Hz physics accumulator loop)
+        // Guarantees identical gravity, jump impulse, and jump-cut curve across 60Hz, 144Hz, 240Hz monitors
+        let maxSubSteps = 5;
+        while (accumulator >= FIXED_DELTA_TIME && maxSubSteps > 0) {
+          const isJumpJustPressed = keysRef.current.jumpJustPressed || padJumpJustPressedRef.current;
 
-        // Reset single-frame jump triggers
-        keysRef.current.jumpJustPressed = false;
+          engine.update(FIXED_DELTA_TIME, {
+            left: isMovingLeft,
+            right: isMovingRight,
+            jump: isJumping,
+            jumpJustPressed: isJumpJustPressed,
+          });
+
+          // Single-frame jump triggers are consumed by the fixed physics step
+          keysRef.current.jumpJustPressed = false;
+          padJumpJustPressedRef.current = false;
+
+          accumulator -= FIXED_DELTA_TIME;
+          maxSubSteps--;
+        }
+
+        if (maxSubSteps === 0) {
+          accumulator = 0; // discard residual time on severe hitch
+        }
 
         // Sync React HUD state only when visible values change
         const currentSec = Math.ceil(engine.stats.timeRemaining);
@@ -490,10 +519,19 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           setIsGameOver(true);
         }
 
-        // Camera Follow Logic (smooth lerp in X & Y with lookahead)
+        // Visual interpolation alpha: fraction between previous and current physics state (0..1)
+        alpha = Math.max(0, Math.min(1, accumulator / FIXED_DELTA_TIME));
+        renderPlayerX = engine.player.prevX !== undefined
+          ? engine.player.prevX + (engine.player.x - engine.player.prevX) * alpha
+          : engine.player.x;
+        renderPlayerY = engine.player.prevY !== undefined
+          ? engine.player.prevY + (engine.player.y - engine.player.prevY) * alpha
+          : engine.player.y;
+
+        // Camera Follow Logic (smooth lerp targeting interpolated player coordinates)
         const canvasW = canvas.width;
         const canvasH = canvas.height;
-        const targetCamX = engine.player.x - canvasW * 0.38;
+        const targetCamX = renderPlayerX - canvasW * 0.38;
         const maxCamX = Math.max(0, engine.levelData.width * CELL_SIZE - canvasW);
         const clampedTargetX = Math.max(0, Math.min(maxCamX, targetCamX));
         cameraRef.current.x += (clampedTargetX - cameraRef.current.x) * 0.12;
@@ -501,7 +539,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
         const totalLevelHeightPx = (engine.levelData.height || GRID_ROWS) * CELL_SIZE;
         const maxCamY = Math.max(0, totalLevelHeightPx - canvasH);
         if (maxCamY > 0) {
-          const targetCamY = Math.max(0, Math.min(maxCamY, engine.player.y - canvasH * 0.55));
+          const targetCamY = Math.max(0, Math.min(maxCamY, renderPlayerY - canvasH * 0.55));
           cameraRef.current.y += (targetCamY - cameraRef.current.y) * 0.12;
         } else {
           cameraRef.current.y = 0;
@@ -626,12 +664,14 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           });
         }
 
-        // 2b. Render Floating Cloud Islands (merged rigid bodies moving together)
+        // 2b. Render Floating Cloud Islands (merged rigid bodies moving together, interpolated)
         engine.cloudIslands.forEach((island) => {
           const islandTilesMap = new Set(island.tiles.map((t) => `${t.x},${t.y}`));
+          const renderOffsetX = island.prevOffsetX + (island.offsetX - island.prevOffsetX) * alpha;
+          const renderOffsetY = island.prevOffsetY + (island.offsetY - island.prevOffsetY) * alpha;
           island.tiles.forEach((tile) => {
-            const tx = tile.x * CELL_SIZE + island.offsetX;
-            const ty = tile.y * CELL_SIZE + island.offsetY;
+            const tx = tile.x * CELL_SIZE + renderOffsetX;
+            const ty = tile.y * CELL_SIZE + renderOffsetY;
 
             const hasLeft = islandTilesMap.has(`${tile.x - 1},${tile.y}`);
             const hasRight = islandTilesMap.has(`${tile.x + 1},${tile.y}`);
@@ -648,18 +688,25 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           });
         });
 
-        // 3. Render Enemies
+        // 3. Render Enemies (with visual interpolation for 144Hz+)
         engine.enemies.forEach((enemy) => {
           ctx.save();
+          const enemyRenderX = enemy.prevX !== undefined
+            ? enemy.prevX + (enemy.x - enemy.prevX) * alpha
+            : enemy.x;
+          const enemyRenderY = enemy.prevY !== undefined
+            ? enemy.prevY + (enemy.y - enemy.prevY) * alpha
+            : enemy.y;
+
           if (enemy.isSquashed) {
             // Squashed flat pose
-            ctx.translate(enemy.x + CELL_SIZE * 0.5, enemy.y + CELL_SIZE * 0.7);
+            ctx.translate(enemyRenderX + CELL_SIZE * 0.5, enemyRenderY + CELL_SIZE * 0.7);
             ctx.scale(1.3, 0.25);
             SpriteRenderer.drawTile(ctx, enemy.tileId, -CELL_SIZE * 0.5, -CELL_SIZE * 0.5, CELL_SIZE, {
               animTime: enemy.animTimer,
             });
           } else {
-            ctx.translate(enemy.x + CELL_SIZE * 0.5, enemy.y + CELL_SIZE * 0.5);
+            ctx.translate(enemyRenderX + CELL_SIZE * 0.5, enemyRenderY + CELL_SIZE * 0.5);
 
             // Flip horizontally according to movement direction
             const flip = enemy.direction > 0 ? -1 : 1;
@@ -708,12 +755,12 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
           SpriteRenderer.drawParticle(ctx, p);
         });
 
-        // 5. Render Hero
+        // 5. Render Hero (interpolated for smooth 144Hz/240Hz visual motion)
         SpriteRenderer.drawHero(
           ctx,
           engine.heroId,
-          engine.player.x,
-          engine.player.y,
+          renderPlayerX,
+          renderPlayerY,
           engine.player.width,
           engine.player.height,
           {
@@ -1060,7 +1107,6 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
             }}
             onTouchEnd={() => {
               keysRef.current.jump = false;
-              keysRef.current.jumpJustPressed = false;
             }}
             className={`w-20 h-20 rounded-full bg-emerald-600/90 active:bg-emerald-400 border-4 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center shadow-2xl backdrop-blur-md ${
               isTutorialMode && hasMoved && !hasJumped ? 'border-amber-300 ring-4 ring-amber-400/60 animate-bounce' : 'border-emerald-400'

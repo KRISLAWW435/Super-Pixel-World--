@@ -3,7 +3,7 @@
  * Robust sub-pixel continuous collision, coyote time, jump buffering, and hazard mechanics.
  */
 
-import { CELL_SIZE, GRID_ROWS, HEROES, PALETTE_ITEMS, findGroundRowBelow, isGroundEnemy } from './constants';
+import { CELL_SIZE, GRID_ROWS, HEROES, PALETTE_ITEMS, PLAYER_FOOT_INSET, findGroundRowBelow, isGroundEnemy } from './constants';
 import { sound } from '../audio/soundEngine';
 import {
   ActiveBlockBump,
@@ -23,6 +23,8 @@ import { JuiceActionType } from '../components/GameJuicePopup';
 export interface PlayerState {
   x: number;
   y: number;
+  prevX: number;
+  prevY: number;
   vx: number;
   vy: number;
   width: number;
@@ -102,6 +104,8 @@ export class PhysicsEngine {
     this.player = {
       x: startPx,
       y: startPy,
+      prevX: startPx,
+      prevY: startPy,
       vx: 0,
       vy: 0,
       width: playerWidth,
@@ -347,6 +351,8 @@ export class PhysicsEngine {
           tileId: tId,
           x: item.x * CELL_SIZE + 4,
           y: spawnY,
+          prevX: item.x * CELL_SIZE + 4,
+          prevY: spawnY,
           vx: tId === 'enemy_jumper' ? 0 : -speed,
           vy: 0,
           width: 32,
@@ -389,6 +395,10 @@ export class PhysicsEngine {
     const heroConfig = HEROES[this.heroId] || HEROES.leo;
     const clampedDt = Math.min(dt, 0.05);
 
+    // Save previous player position for visual interpolation on high refresh rate displays (144Hz+)
+    this.player.prevX = this.player.x;
+    this.player.prevY = this.player.y;
+
     // Timers
     this.stats.timeTaken += clampedDt;
     this.stats.timeRemaining = Math.max(0, this.stats.timeRemaining - clampedDt);
@@ -418,6 +428,8 @@ export class PhysicsEngine {
       if (this.player.pipeWarpTimer <= 0) {
         this.player.x = this.player.pipeTargetX ?? this.player.x;
         this.player.y = (this.player.pipeTargetY ?? this.player.y) + 40;
+        this.player.prevX = this.player.x;
+        this.player.prevY = this.player.y;
         this.player.pipeWarpState = 'exiting';
         this.player.pipeWarpTimer = 0.35;
         sound.playPipe();
@@ -435,6 +447,8 @@ export class PhysicsEngine {
       if (this.player.pipeWarpTimer <= 0) {
         this.player.pipeWarpState = 'none';
         this.player.y = this.player.pipeTargetY ?? this.player.y;
+        this.player.prevX = this.player.x;
+        this.player.prevY = this.player.y;
         this.player.pipeCooldown = 1.0; // 1s safe cooldown
         this.player.vy = -3.5; // gentle jump pop out
       }
@@ -461,9 +475,9 @@ export class PhysicsEngine {
     const normalAccel = 32.0;
     const maxSpeed = heroConfig.speed;
 
-    // Check if standing on Ice (ice or ice_block)
-    const footColLeft = Math.floor((this.player.x + 4) / CELL_SIZE);
-    const footColRight = Math.floor((this.player.x + this.player.width - 4) / CELL_SIZE);
+    // Check if standing on Ice using narrow foot sensor (ice or ice_block)
+    const footColLeft = Math.floor((this.player.x + PLAYER_FOOT_INSET) / CELL_SIZE);
+    const footColRight = Math.floor((this.player.x + this.player.width - PLAYER_FOOT_INSET) / CELL_SIZE);
     const standingCellY = Math.floor((this.player.y + this.player.height + 2) / CELL_SIZE);
     const tileL = this.solidGrid.get(`${footColLeft},${standingCellY}`);
     const tileR = this.solidGrid.get(`${footColRight},${standingCellY}`);
@@ -551,8 +565,9 @@ export class PhysicsEngine {
 
     // --- Sub-pixel Collision Resolution (X first, then Y) ---
     // Horizontal Movement Pass
+    const playerPreX = this.player.x;
     this.player.x += this.player.vx;
-    this.resolveHorizontalCollision();
+    this.resolveHorizontalCollision(playerPreX);
 
     // Capture vertical falling velocity and position before vertical landing resolution
     const fallingVy = this.player.vy;
@@ -606,7 +621,7 @@ export class PhysicsEngine {
     this.updateFloatingTexts(clampedDt);
   }
 
-  private resolveHorizontalCollision() {
+  private resolveHorizontalCollision(preX: number) {
     const minCol = Math.floor(this.player.x / CELL_SIZE);
     const maxCol = Math.floor((this.player.x + this.player.width) / CELL_SIZE);
     const minRow = Math.floor(this.player.y / CELL_SIZE);
@@ -621,19 +636,32 @@ export class PhysicsEngine {
         const tileRight = tileLeft + CELL_SIZE;
 
         if (this.player.vx > 0) {
-          // Moving right
-          this.player.x = tileLeft - this.player.width;
-          this.player.vx = 0;
+          // Moving right: true wall collision occurs if player was to the left of the tile before this step
+          if (preX + this.player.width <= tileLeft + Math.max(1, this.player.vx + 0.5)) {
+            this.player.x = tileLeft - this.player.width;
+            this.player.vx = 0;
+          }
         } else if (this.player.vx < 0) {
-          // Moving left
-          this.player.x = tileRight;
-          this.player.vx = 0;
+          // Moving left: true wall collision occurs if player was to the right of the tile before this step
+          if (preX >= tileRight - Math.max(1, -this.player.vx + 0.5)) {
+            this.player.x = tileRight;
+            this.player.vx = 0;
+          }
         }
       }
     }
   }
 
   private resolveVerticalCollision() {
+    // Narrow Foot Sensor:
+    // Inset by PLAYER_FOOT_INSET (8px) on both left and right edges.
+    // The player's physical hitbox is 24px wide, so the foot sensor is 8px wide centered horizontally.
+    // The player is ONLY grounded if this narrow foot sensor intersects with a solid block surface.
+    // If the hero walks off an edge and only 5-8px of his hitbox are over the block,
+    // the foot sensor is in the air, so he falls down naturally without floating or corner snagging.
+    const footSensorLeft = this.player.x + PLAYER_FOOT_INSET;
+    const footSensorRight = this.player.x + this.player.width - PLAYER_FOOT_INSET;
+
     const minCol = Math.floor(this.player.x / CELL_SIZE);
     const maxCol = Math.floor((this.player.x + this.player.width) / CELL_SIZE);
     const minRow = Math.floor(this.player.y / CELL_SIZE);
@@ -646,20 +674,31 @@ export class PhysicsEngine {
 
         const tileTop = row * CELL_SIZE;
         const tileBottom = tileTop + CELL_SIZE;
+        const tileLeft = col * CELL_SIZE;
+        const tileRight = tileLeft + CELL_SIZE;
 
         if (this.player.vy > 0) {
-          // Falling down onto solid platform
-          if (this.player.y + this.player.height - this.player.vy <= tileTop + 6) {
-            this.player.y = tileTop - this.player.height;
-            this.player.vy = 0;
-            this.player.isGrounded = true;
+          // Falling down onto solid platform:
+          // Check if the narrower foot sensor intersects with this solid block horizontally
+          const footIntersects = footSensorRight > tileLeft && footSensorLeft < tileRight;
+
+          if (footIntersects) {
+            if (this.player.y + this.player.height - this.player.vy <= tileTop + 6) {
+              this.player.y = tileTop - this.player.height;
+              this.player.vy = 0;
+              this.player.isGrounded = true;
+            }
           }
         } else if (this.player.vy < 0) {
           // Jumping up into solid block from underneath!
-          if (this.player.y - this.player.vy >= tileBottom - 8) {
-            this.player.y = tileBottom;
-            this.player.vy = 0;
-            this.onHeadBumpBlock(col, row, item);
+          // Use slight 2px margin to allow clean clearance on overhead corners
+          const headIntersects = (this.player.x + this.player.width - 2 > tileLeft) && (this.player.x + 2 < tileRight);
+          if (headIntersects) {
+            if (this.player.y - this.player.vy >= tileBottom - 8) {
+              this.player.y = tileBottom;
+              this.player.vy = 0;
+              this.onHeadBumpBlock(col, row, item);
+            }
           }
         }
       }
@@ -876,6 +915,8 @@ export class PhysicsEngine {
         continue;
       }
 
+      enemy.prevX = enemy.x;
+      enemy.prevY = enemy.y;
       enemy.animTimer += dt;
       const dx = playerCenterX - (enemy.x + enemy.width * 0.5);
       const dy = playerCenterY - (enemy.y + enemy.height * 0.5);
@@ -1271,6 +1312,8 @@ export class PhysicsEngine {
     // Respawn at checkpoint (только при падении в пропасть или тайм-ауте)
     this.player.x = this.player.checkpointX;
     this.player.y = this.player.checkpointY;
+    this.player.prevX = this.player.checkpointX;
+    this.player.prevY = this.player.checkpointY;
     this.player.vx = 0;
     this.player.vy = 0;
     this.player.isHurt = true;
@@ -1607,10 +1650,10 @@ export class PhysicsEngine {
         const cloudLeft = tile.x * CELL_SIZE + island.offsetX;
         const cloudRight = cloudLeft + CELL_SIZE;
 
-        // Check horizontal overlap with cloud tile
-        const overlapX =
-          this.player.x + this.player.width > cloudLeft + 2 &&
-          this.player.x < cloudRight - 2;
+        // Check horizontal overlap with cloud tile using narrow foot sensor
+        const footSensorLeft = this.player.x + PLAYER_FOOT_INSET;
+        const footSensorRight = this.player.x + this.player.width - PLAYER_FOOT_INSET;
+        const overlapX = footSensorRight > cloudLeft && footSensorLeft < cloudRight;
 
         if (overlapX) {
           // One-way platform criteria:

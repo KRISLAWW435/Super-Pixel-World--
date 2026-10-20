@@ -12,6 +12,11 @@ export const CELL_SIZE = 40; // 40px per tile
 export const GRID_ROWS = 24; // 24 cells high (expanded from 16 to allow building 8 rows below)
 export const DEFAULT_GRID_COLS = 160; // 160 cells long world (~6400px)
 
+// Fixed timestep physics engine constants (deterministic 60Hz physics across 60Hz, 144Hz, 240Hz monitors)
+export const FIXED_DELTA_TIME = 1 / 60; // 0.016666666666666666s per physics tick
+export const MAX_ACCUMULATOR = 0.2; // 200ms spiral-of-death accumulator safeguard
+export const PLAYER_FOOT_INSET = 8; // Inset (8px) for narrow foot sensor to prevent edge-clinging
+
 // High-resolution generated panoramic background images
 export const THEMES: Record<ThemeId, ThemeConfig> = {
   green_islands: {

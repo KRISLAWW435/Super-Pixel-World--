@@ -140,6 +140,8 @@ export interface ActiveEnemy {
   tileId: EnemyTileId;
   x: number;
   y: number;
+  prevX?: number;
+  prevY?: number;
   vx: number;
   vy: number;
   width: number;
