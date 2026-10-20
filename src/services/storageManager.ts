@@ -429,6 +429,76 @@ export class SaveManager {
       { ...existing.levelData, name: `${existing.name} (Копия)` }
     );
   }
+
+  /**
+   * Validates imported JSON data to ensure it is a valid LevelData object
+   */
+  public static validateLevelData(data: unknown): { valid: boolean; error?: string; levelData?: LevelData } {
+    if (!data || typeof data !== 'object') {
+      return { valid: false, error: 'Файл не содержит корректный объект JSON' };
+    }
+    const obj = data as Partial<LevelData>;
+    if (!Array.isArray(obj.items)) {
+      return { valid: false, error: 'В файле отсутствует список блоков (поле items)' };
+    }
+    if (typeof obj.width !== 'number' || obj.width <= 0) {
+      return { valid: false, error: 'В файле некорректная ширина уровня (поле width)' };
+    }
+    if (typeof obj.height !== 'number' || obj.height <= 0) {
+      return { valid: false, error: 'В файле некорректная высота уровня (поле height)' };
+    }
+
+    const normalizedLevel: LevelData = {
+      version: typeof obj.version === 'number' ? obj.version : 1,
+      name: (obj.name || 'Импортированный уровень').trim().slice(0, 40),
+      author: (obj.author || 'Неизвестный автор').trim().slice(0, 20),
+      width: Math.min(Math.max(obj.width, 20), 500),
+      height: Math.max(obj.height, 24),
+      bgTheme: obj.bgTheme || 'green_islands',
+      heroId: obj.heroId || 'leo',
+      items: obj.items.filter((it: any) => it && typeof it.x === 'number' && typeof it.y === 'number' && it.tileId),
+      timeLimit: typeof obj.timeLimit === 'number' && obj.timeLimit > 0 ? obj.timeLimit : 300,
+      goalType: obj.goalType || 'none',
+      targetTime: obj.targetTime,
+    };
+
+    return { valid: true, levelData: normalizedLevel };
+  }
+
+  /**
+   * Saves an imported level with a new unique ID and active profile metadata
+   */
+  public static importGame(levelData: LevelData): SavedGame {
+    const data = storageService.getRawData();
+    const activeProfile = ProfileManager.getActiveProfile();
+    const cleanName = (levelData.name || 'Импортированный уровень').trim();
+    const author = activeProfile?.name || 'Юный архитектор';
+    const authorAvatarId = activeProfile?.avatarId || 'avatar_1';
+    const profileId = activeProfile?.id || undefined;
+    const dateStr = new Date().toISOString().split('T')[0];
+
+    const targetLevel: LevelData = {
+      ...levelData,
+      name: cleanName,
+      author,
+    };
+
+    const newGame: SavedGame = {
+      id: `game_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      name: cleanName,
+      date: dateStr,
+      levelData: targetLevel,
+      authorName: author,
+      authorAvatarId,
+      profileId,
+      thumbnailTheme: targetLevel.bgTheme,
+      isFavorite: false,
+    };
+
+    data.savedGames.unshift(newGame);
+    storageService.saveRawData(data);
+    return newGame;
+  }
 }
 
 /**

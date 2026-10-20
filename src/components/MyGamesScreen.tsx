@@ -9,10 +9,12 @@
  * - Favorites star toggle, search by name/author, and sorting
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowLeft,
   Calendar,
+  CheckCircle2,
   Hammer,
   Play,
   Plus,
@@ -25,6 +27,8 @@ import {
   X,
   Layers,
   Settings,
+  Share2,
+  Upload,
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 import { THEMES } from '../game/constants';
@@ -58,6 +62,9 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
   );
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -67,6 +74,20 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
   React.useEffect(() => {
     setGames(SaveManager.getSavedGamesForProfile(currentProfile?.id));
   }, [currentProfile?.id]);
+
+  React.useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToast({ type, message });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
 
   const avatar = PRESET_AVATARS.find((a) => a.id === currentProfile?.avatarId) || PRESET_AVATARS[0];
 
@@ -83,13 +104,13 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
   const handleDuplicate = (game: SavedGame) => {
     sound.playPlaceTile();
     SaveManager.duplicateGame(game.id);
-    setGames(SaveManager.getSavedGamesForProfile(profile?.id));
+    setGames(SaveManager.getSavedGamesForProfile(currentProfile?.id));
   };
 
   const handleDelete = (id: string) => {
     sound.playBump();
     SaveManager.deleteGame(id);
-    setGames(SaveManager.getSavedGamesForProfile(profile?.id));
+    setGames(SaveManager.getSavedGamesForProfile(currentProfile?.id));
     setDeleteConfirmId(null);
   };
 
@@ -97,7 +118,90 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
     e.stopPropagation();
     sound.playCheckpoint();
     SaveManager.toggleFavorite(id);
-    setGames(SaveManager.getSavedGamesForProfile(profile?.id));
+    setGames(SaveManager.getSavedGamesForProfile(currentProfile?.id));
+  };
+
+  // Export Level to JSON File
+  const handleExport = (game: SavedGame) => {
+    sound.playSelect();
+    try {
+      const dataStr = JSON.stringify(game.levelData, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const cleanFileName = (game.name || 'Level').replace(/[/\\?%*:|"<>]/g, '_');
+      a.href = url;
+      a.download = `${cleanFileName}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('success', `Файл «${cleanFileName}.json» успешно скачан!`);
+    } catch (err) {
+      console.error('Export error:', err);
+      sound.playBump();
+      showToast('error', 'Не удалось экспортировать уровень');
+    }
+  };
+
+  // Trigger file picker for importing JSON
+  const triggerImportFile = () => {
+    sound.playClick();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  // Handle uploaded JSON file with validation & unique ID assignment
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (!text || text.trim().length === 0) {
+          throw new Error('Выбранный файл пуст');
+        }
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          throw new Error('Файл не является корректным JSON');
+        }
+
+        const validation = SaveManager.validateLevelData(parsed);
+        if (!validation.valid || !validation.levelData) {
+          sound.playBump();
+          showToast('error', validation.error || 'Файл не содержит корректных данных уровня');
+          return;
+        }
+
+        const importedGame = SaveManager.importGame(validation.levelData);
+        sound.playVictory();
+        setGames(SaveManager.getSavedGamesForProfile(currentProfile?.id));
+        showToast('success', 'Уровень успешно импортирован!');
+      } catch (err: any) {
+        sound.playBump();
+        showToast('error', err?.message || 'Ошибка при чтении файла');
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    };
+
+    reader.onerror = () => {
+      sound.playBump();
+      showToast('error', 'Ошибка чтения файла с диска');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+
+    reader.readAsText(file);
   };
 
   // Filtered & Sorted Games list
@@ -217,8 +321,17 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
           </div>
         </div>
 
-        {/* Right Header Actions: Settings & Create Level */}
+        {/* Right Header Actions: Settings, Import & Create Level */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Hidden File Input for Level Import */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
           <button
             onClick={() => {
               sound.playClick();
@@ -229,6 +342,17 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
           >
             <Settings className="w-3.5 h-3.5 stroke-[2.5]" />
             <span className="hidden sm:inline text-[9px] font-pixel font-bold">НАСТРОЙКИ</span>
+          </button>
+
+          {/* Import Level Button */}
+          <button
+            onClick={triggerImportFile}
+            title="Импортировать уровень из файла JSON"
+            className="retro-btn bg-sky-500 hover:bg-sky-400 text-slate-950 px-3 py-2 flex items-center gap-1.5 shrink-0"
+          >
+            <Upload className="w-4 h-4 stroke-[3]" />
+            <span className="hidden sm:inline text-xs font-pixel font-bold">ИМПОРТ</span>
+            <span className="sm:hidden text-xs font-pixel font-bold">⬇</span>
           </button>
 
           <button
@@ -428,7 +552,7 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
 
                   {/* Physical Cartridge Label Sticker */}
                   <div
-                    className="m-2.5 p-2.5 border-2 border-[var(--border-color)] rounded-[2px] shadow-inner flex flex-col gap-2.5 flex-1 justify-between"
+                    className="m-2 sm:m-2.5 p-2.5 sm:p-3 pb-3 sm:pb-3.5 border-2 border-[var(--border-color)] rounded-[2px] shadow-inner flex flex-col gap-2.5 flex-1 justify-between overflow-hidden"
                     style={{ backgroundColor: 'var(--cartridge-label-bg)' }}
                   >
                     {/* Artwork Preview Window with Retro Badge */}
@@ -475,9 +599,9 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                         {game.name}
                       </h3>
 
-                      <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]/20 font-body">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-4 h-4 rounded-[2px] overflow-hidden border border-[var(--border-color)] bg-amber-400 shrink-0">
+                      <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1.5 border-t border-[var(--border-color)]/20 font-body">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[3px] overflow-hidden border-2 border-[var(--border-color)] bg-amber-400 shrink-0 shadow-[1px_1px_0px_var(--shadow-color)] flex items-center justify-center">
                             <img
                               src={authorAvatar.imageUrl}
                               alt={authorName}
@@ -485,53 +609,67 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
                               style={{ imageRendering: 'pixelated' }}
                             />
                           </div>
-                          <span className="font-semibold truncate max-w-[120px]">{authorName}</span>
+                          <span className="font-semibold text-xs text-[var(--text-main)] truncate max-w-[110px] sm:max-w-[130px]">
+                            {authorName}
+                          </span>
                         </div>
-                        <span className="flex items-center gap-1 text-[10px]">
-                          <Calendar className="w-3 h-3" />
+                        <span className="flex items-center gap-1 text-[10px] shrink-0 font-medium text-[var(--text-muted)]">
+                          <Calendar className="w-3.5 h-3.5" />
                           {game.date}
                         </span>
                       </div>
                     </div>
 
                     {/* Cartridge Chunky Retro Action Buttons */}
-                    <div className="flex items-center gap-2 pt-2 border-t-2 border-[var(--border-color)]/30">
-                      {/* Play Button */}
+                    <div className="flex flex-col gap-2 pt-2 border-t-2 border-[var(--border-color)]/30">
+                      {/* Play Button - Full Width Primary Action */}
                       <button
                         onClick={() => handlePlay(game)}
-                        className="retro-btn flex-1 py-2 bg-[var(--accent-emerald)] hover:brightness-110 active:brightness-95 text-white flex items-center justify-center gap-1.5 text-xs font-pixel rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)]"
+                        className="retro-btn w-full py-2 px-3 bg-[var(--accent-emerald)] hover:brightness-110 active:brightness-95 text-white flex items-center justify-center gap-2 text-xs font-pixel rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] cursor-pointer"
                       >
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>ИГРАТЬ</span>
+                        <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                        <span className="whitespace-nowrap tracking-wider">ИГРАТЬ</span>
                       </button>
 
-                      {/* Edit Button */}
-                      <button
-                        onClick={() => handleEdit(game)}
-                        title="Открыть в конструкторе"
-                        className="retro-btn-sm py-1.5 px-2.5 bg-[var(--accent-amber)] hover:brightness-110 text-slate-950 flex items-center justify-center gap-1 rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] text-[10px]"
-                      >
-                        <Hammer className="w-3 h-3" />
-                        <span>ИЗМЕНИТЬ</span>
-                      </button>
+                      {/* Secondary Management Row */}
+                      <div className="flex items-center gap-1.5 w-full">
+                        {/* Edit Button */}
+                        <button
+                          onClick={() => handleEdit(game)}
+                          title="Открыть в конструкторе"
+                          className="retro-btn-sm flex-1 py-1.5 px-2 bg-[var(--accent-amber)] hover:brightness-110 text-slate-950 flex items-center justify-center gap-1.5 rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] text-[10px] font-pixel shrink-0 min-w-0"
+                        >
+                          <Hammer className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">ИЗМЕНИТЬ</span>
+                        </button>
 
-                      {/* Duplicate Button */}
-                      <button
-                        onClick={() => handleDuplicate(game)}
-                        title="Создать копию картриджа"
-                        className="retro-btn-sm p-1.5 bg-[var(--card-subtle)] hover:bg-[var(--accent-amber)] hover:text-slate-950 text-[var(--text-main)] rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)]"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
+                        {/* Share / Export Button */}
+                        <button
+                          onClick={() => handleExport(game)}
+                          title="Поделиться (скачать JSON файла уровня)"
+                          className="retro-btn-sm w-7.5 h-7.5 sm:w-8 sm:h-8 p-0 bg-sky-500 hover:bg-sky-400 text-slate-950 flex items-center justify-center rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] shrink-0"
+                        >
+                          <Share2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </button>
 
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => setDeleteConfirmId(game.id)}
-                        title="Удалить картридж"
-                        className="retro-btn-sm p-1.5 bg-[var(--accent-rose)] hover:brightness-110 text-white rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)]"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                        {/* Duplicate Button */}
+                        <button
+                          onClick={() => handleDuplicate(game)}
+                          title="Создать копию картриджа"
+                          className="retro-btn-sm w-7.5 h-7.5 sm:w-8 sm:h-8 p-0 bg-[var(--card-subtle)] hover:bg-[var(--accent-amber)] hover:text-slate-950 text-[var(--text-main)] flex items-center justify-center rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] shrink-0"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Delete Button */}
+                        <button
+                          onClick={() => setDeleteConfirmId(game.id)}
+                          title="Удалить картридж"
+                          className="retro-btn-sm w-7.5 h-7.5 sm:w-8 sm:h-8 p-0 bg-[var(--accent-rose)] hover:brightness-110 text-white flex items-center justify-center rounded-[4px] border-2 border-[var(--border-color)] shadow-[2px_2px_0px_var(--shadow-color)] shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -590,6 +728,35 @@ export const MyGamesScreen: React.FC<MyGamesScreenProps> = ({
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />
+
+      {/* Retro Chunky Toast Notification */}
+      {toast && (
+        <div
+          role="status"
+          className="fixed bottom-6 right-6 z-50 max-w-md animate-in slide-in-from-bottom-5 duration-200"
+        >
+          <div
+            className={`flex items-center gap-3 px-4 py-3 rounded-[4px] border-4 border-[var(--border-color)] shadow-[4px_4px_0px_var(--shadow-color)] font-medium text-xs sm:text-sm ${
+              toast.type === 'success'
+                ? 'bg-emerald-500 text-slate-950'
+                : 'bg-rose-500 text-white'
+            }`}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 shrink-0 stroke-[2.5]" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 shrink-0 stroke-[2.5]" />
+            )}
+            <span className="flex-1 font-bold">{toast.message}</span>
+            <button
+              onClick={() => setToast(null)}
+              className="p-1 hover:bg-black/20 rounded cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
