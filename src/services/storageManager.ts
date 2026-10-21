@@ -456,6 +456,7 @@ export class SaveManager {
       height: Math.max(obj.height, 24),
       bgTheme: obj.bgTheme || 'green_islands',
       heroId: obj.heroId || 'leo',
+      customHeroData: typeof obj.customHeroData === 'string' && obj.customHeroData.startsWith('data:image/') ? obj.customHeroData : undefined,
       items: obj.items.filter((it: any) => it && typeof it.x === 'number' && typeof it.y === 'number' && it.tileId),
       timeLimit: typeof obj.timeLimit === 'number' && obj.timeLimit > 0 ? obj.timeLimit : 300,
       goalType: obj.goalType || 'none',

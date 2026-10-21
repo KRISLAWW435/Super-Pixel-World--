@@ -31,8 +31,24 @@ if (heroFallImg) {
   heroFallImg.src = heroFallImgSrc;
 }
 
-// Helper colors and gradients
+// In-memory cache for processed custom heroes (keyed by base64 string)
+const customHeroImageCache = new Map<string, HTMLImageElement>();
+
 export class SpriteRenderer {
+  /**
+   * Retrieves or creates a cached HTMLImageElement from a Base64 data string
+   */
+  public static getOrCreateCustomHeroImage(base64: string): HTMLImageElement | null {
+    if (typeof window === 'undefined' || !base64) return null;
+    let img = customHeroImageCache.get(base64);
+    if (!img) {
+      img = new Image();
+      img.src = base64;
+      customHeroImageCache.set(base64, img);
+    }
+    return img;
+  }
+
   /**
    * Draw a single tile or object at given grid position or pixel position
    */
@@ -1414,6 +1430,8 @@ export class SpriteRenderer {
       vx?: number;
       vy?: number;
       jumpTime?: number;
+      customHeroData?: string | null;
+      customHeroImg?: HTMLImageElement | null;
     }
   ) {
     const isThumbnail = width <= 48 && height <= 48;
@@ -1427,40 +1445,6 @@ export class SpriteRenderer {
     const vy = state.vy !== undefined ? state.vy : (state.isInAir ? 1 : 0);
     const inAir = state.isInAir || Math.abs(vy) > 0.05;
     const isMoving = Math.abs(vx) > 0.05 || state.isWalking;
-
-    let spriteImg: HTMLImageElement | null = null;
-    let frameIndex = 0;
-    let frameWidth = 64;
-    let sourceHeight = 96;
-
-    if (inAir) {
-      if (vy < 0) {
-        // Jumping up (vy < 0) -> Play hero_jump.png (frames 0-1 at 6 FPS, do not loop, hold last frame)
-        spriteImg = heroJumpImg;
-        sourceHeight = 96;
-        frameWidth = heroJumpImg && heroJumpImg.naturalWidth > 0 ? (heroJumpImg.naturalWidth / 2) : 64;
-        const jumpTime = state.jumpTime !== undefined ? state.jumpTime : state.animTime;
-        frameIndex = Math.min(1, Math.max(0, Math.floor(jumpTime * 6)));
-      } else {
-        // Moving down (vy > 0 or apex descent) -> Draw hero_fall.png (frame 0, static)
-        spriteImg = heroFallImg;
-        sourceHeight = 96;
-        frameWidth = 64;
-        frameIndex = 0;
-      }
-    } else if (isMoving) {
-      // Moving state: hero_run.png (6 frames)
-      spriteImg = heroRunImg;
-      sourceHeight = 96;
-      frameWidth = 64;
-      frameIndex = Math.floor(state.animTime * 10) % 6;
-    } else {
-      // Standing still (vx === 0 and vy === 0): hero_idle.png (3 frames at 3 FPS)
-      spriteImg = heroIdleImg;
-      sourceHeight = 96;
-      frameWidth = 64;
-      frameIndex = Math.floor(state.animTime * 3) % 3;
-    }
 
     ctx.save();
 
@@ -1500,6 +1484,77 @@ export class SpriteRenderer {
       ctx.fillRect(-30, -1, 2, 2);
       ctx.fillRect(-12, 1, 2, 2);
       ctx.restore();
+    }
+
+    // --- CUSTOM HERO RENDERING WITH PUPPET ANIMATION ---
+    const customImg = state.customHeroImg || (state.customHeroData ? SpriteRenderer.getOrCreateCustomHeroImage(state.customHeroData) : null);
+
+    if (customImg && customImg.complete && customImg.naturalWidth > 0) {
+      // Puppet Animation:
+      // - IDLE: Static crisp pixel-art, strictly grounded on feet with no distortion or pixel shimmering
+      // - RUNNING: Faster bobbing (Math.sin(animTime * 15) * 3px) and slight forward tilt (rotate 0.1 rad)
+      // - JUMP/FALL: Tilt backward (-0.1 rad) / forward (+0.1 rad)
+      let bobY = 0;
+      let tiltAngle = 0;
+
+      if (inAir) {
+        tiltAngle = vy < 0 ? -0.1 : 0.1;
+      } else if (isMoving) {
+        bobY = Math.sin(state.animTime * 15) * 3;
+        tiltAngle = 0.1;
+      } else {
+        // IDLE: completely static to prevent pixel ripple/shimmering
+        bobY = 0;
+        tiltAngle = 0;
+      }
+
+      if (bobY !== 0) {
+        ctx.translate(0, bobY);
+      }
+      if (tiltAngle !== 0) {
+        ctx.rotate(tiltAngle);
+      }
+
+      const aspect = customImg.naturalWidth / customImg.naturalHeight;
+      const renderH = height;
+      const renderW = height * aspect;
+
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(customImg, -renderW * 0.5, -renderH, renderW, renderH);
+
+      ctx.restore();
+      return;
+    }
+
+    // Default Hero Animation State Machine:
+    let spriteImg: HTMLImageElement | null = null;
+    let frameIndex = 0;
+    let frameWidth = 64;
+    let sourceHeight = 96;
+
+    if (inAir) {
+      if (vy < 0) {
+        spriteImg = heroJumpImg;
+        sourceHeight = 96;
+        frameWidth = heroJumpImg && heroJumpImg.naturalWidth > 0 ? (heroJumpImg.naturalWidth / 2) : 64;
+        const jumpTime = state.jumpTime !== undefined ? state.jumpTime : state.animTime;
+        frameIndex = Math.min(1, Math.max(0, Math.floor(jumpTime * 6)));
+      } else {
+        spriteImg = heroFallImg;
+        sourceHeight = 96;
+        frameWidth = 64;
+        frameIndex = 0;
+      }
+    } else if (isMoving) {
+      spriteImg = heroRunImg;
+      sourceHeight = 96;
+      frameWidth = 64;
+      frameIndex = Math.floor(state.animTime * 10) % 6;
+    } else {
+      spriteImg = heroIdleImg;
+      sourceHeight = 96;
+      frameWidth = 64;
+      frameIndex = Math.floor(state.animTime * 3) % 3;
     }
 
     // Scale sprite so that rendered height matches player height (105px) exactly while keeping bottom-center alignment

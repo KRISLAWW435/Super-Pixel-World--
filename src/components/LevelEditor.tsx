@@ -501,6 +501,33 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
             animTime,
             variant: item.variant,
           });
+
+          // Draw custom / active hero preview standing at spawn point
+          if (item.tileId === 'player_spawn') {
+            const scale = effectiveCellSize / CELL_SIZE;
+            const playerW = Math.round(24 * scale);
+            const playerH = Math.round(105 * scale);
+            const startPx = px + Math.floor((effectiveCellSize - playerW) * 0.5);
+            const startPy = py + effectiveCellSize - playerH;
+            ctx.save();
+            ctx.globalAlpha = 0.9;
+            SpriteRenderer.drawHero(
+              ctx,
+              levelData.heroId || 'leo',
+              startPx,
+              startPy,
+              playerW,
+              playerH,
+              {
+                isWalking: false,
+                isInAir: false,
+                facingRight: true,
+                animTime,
+                customHeroData: levelData.customHeroData,
+              }
+            );
+            ctx.restore();
+          }
         }
       });
 

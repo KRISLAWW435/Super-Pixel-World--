@@ -91,6 +91,16 @@ export default function App() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false);
   const [isLoadModalOpen, setIsLoadModalOpen] = useState<boolean>(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState<boolean>(false);
+  const [editorToast, setEditorToast] = useState<string | null>(null);
+  const editorToastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showEditorToast = (msg: string) => {
+    if (editorToastTimerRef.current) clearTimeout(editorToastTimerRef.current);
+    setEditorToast(msg);
+    editorToastTimerRef.current = setTimeout(() => {
+      setEditorToast(null);
+    }, 3500);
+  };
 
   // Fullscreen Container Ref
   const appContainerRef = useRef<HTMLDivElement | null>(null);
@@ -814,6 +824,9 @@ export default function App() {
               selectedTile={selectedTile}
               selectedTheme={selectedTheme}
               selectedHero={selectedHero}
+              customHeroData={levelData.customHeroData}
+              onUpdateCustomHero={(dataUrl) => handleUpdateLevelData({ customHeroData: dataUrl })}
+              onShowToast={showEditorToast}
               canUndo={historyIndex > 0}
               canRedo={historyIndex < history.length - 1}
               isFullscreen={isFullscreen}
@@ -1057,6 +1070,14 @@ export default function App() {
           setHistoryIndex(0);
         }}
       />
+
+      {/* Custom Hero / Studio Toast Notification */}
+      {editorToast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-slate-900 border-2 border-amber-400 text-amber-200 shadow-[4px_4px_0px_#000000] text-xs font-pixel rounded flex items-center gap-2 pointer-events-none animate-bounce">
+          <span>✨</span>
+          <span>{editorToast}</span>
+        </div>
+      )}
     </div>
   );
 }

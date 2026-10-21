@@ -773,6 +773,7 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
             vx: engine.player.vx,
             vy: engine.player.vy,
             jumpTime: engine.player.jumpTime,
+            customHeroData: levelData.customHeroData,
           }
         );
 

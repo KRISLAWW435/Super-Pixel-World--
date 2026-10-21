@@ -87,6 +87,7 @@ export interface LevelData {
   height: number; // grid rows, default 24
   bgTheme: ThemeId;
   heroId: HeroId;
+  customHeroData?: string; // Processed Base64 PNG data URL of custom hero
   items: LevelItem[];
   timeLimit: number; // seconds
   goalType?: LevelGoalType;

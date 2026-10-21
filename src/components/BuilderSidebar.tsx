@@ -9,7 +9,7 @@
  * - Collapsible sidebar rail
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -32,14 +32,17 @@ import {
   User,
   Volume2,
   VolumeX,
+  RotateCcw,
 } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
 import { HEROES, PALETTE_ITEMS, THEMES } from '../game/constants';
 import { TutorialManager } from '../services/TutorialManager';
 import { HeroId, LevelGoalType, ThemeId, TileId, ToolMode } from '../types/game';
 import { PaletteTilePreview } from './PaletteTilePreview';
+import { processCustomHeroImage } from '../utils/customHeroProcessor';
+import heroIdleImgSrc from '../assets/animate/hero_idle.png';
 
-export type StudioSidebarTab = 'platforms' | 'interactive' | 'enemies' | 'world';
+export type StudioSidebarTab = 'platforms' | 'interactive' | 'enemies' | 'world' | 'hero';
 
 interface BuilderSidebarProps {
   activeTab?: StudioSidebarTab;
@@ -48,6 +51,9 @@ interface BuilderSidebarProps {
   selectedTile: TileId;
   selectedTheme: ThemeId;
   selectedHero: HeroId;
+  customHeroData?: string;
+  onUpdateCustomHero?: (dataUrl?: string) => void;
+  onShowToast?: (message: string) => void;
   canUndo: boolean;
   canRedo: boolean;
   isFullscreen: boolean;
@@ -78,6 +84,9 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   selectedTile,
   selectedTheme,
   selectedHero,
+  customHeroData,
+  onUpdateCustomHero,
+  onShowToast,
   canUndo,
   canRedo,
   isFullscreen,
@@ -103,10 +112,46 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   const [internalTab, setInternalTab] = useState<StudioSidebarTab>('platforms');
   const activeTab = activeTabProp !== undefined ? activeTabProp : internalTab;
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploadingHero, setIsUploadingHero] = useState<boolean>(false);
+  const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
+
   const handleSelectTab = (tab: StudioSidebarTab) => {
     setInternalTab(tab);
     onTabChange?.(tab);
     TutorialManager.emitTabChanged(tab);
+  };
+
+  const handleUploadCustomHero = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHeroUploadError(null);
+    setIsUploadingHero(true);
+    sound.playClick();
+    try {
+      const result = await processCustomHeroImage(file);
+      onUpdateCustomHero?.(result.base64);
+      sound.playVictory();
+      onShowToast?.('Свой герой успешно загружен и откалиброван (105px)!');
+    } catch (err: any) {
+      console.error('Custom hero processing error:', err);
+      sound.playBump();
+      const msg = err?.message || 'Не удалось обработать изображение героя.';
+      setHeroUploadError(msg);
+      onShowToast?.(msg);
+    } finally {
+      setIsUploadingHero(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRevertDefaultHero = () => {
+    sound.playClick();
+    onUpdateCustomHero?.(undefined);
+    setHeroUploadError(null);
+    onShowToast?.('Возвращён стандартный герой.');
   };
 
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
@@ -330,22 +375,26 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           <span className="truncate font-pixel text-[9px]">Враги</span>
         </button>
 
+        {/* 4th Tab: ГЕРОЙ (Hero) */}
         <button
-          id="tour-tab-goal"
+          id="tour-tab-hero"
           onClick={() => {
-            sound.playSelect();
-            onOpenGoalSettings?.();
+            handleSelectTab('hero');
+            sound.playClick();
           }}
-          title="Настройка цели уровня"
+          title="Свой герой: загрузка и настройка персонажа"
           style={{ pointerEvents: 'auto' }}
-          className={`tutorial-target py-2 px-1 text-[11px] font-bold rounded-md transition-all text-center flex flex-col items-center gap-1 cursor-pointer border-2 ${
-            currentGoal && currentGoal !== 'none'
-              ? 'bg-emerald-500 text-slate-950 border-black shadow-[2px_2px_0px_#000]'
+          className={`tutorial-target py-2 px-1 text-[11px] font-bold rounded-md transition-all text-center flex flex-col items-center gap-1 cursor-pointer border-2 relative ${
+            activeTab === 'hero'
+              ? 'bg-sky-400 text-slate-950 border-black shadow-[2px_2px_0px_#000]'
               : 'bg-[var(--card-subtle)] text-[var(--text-muted)] border-black hover:text-[var(--text-main)] hover:bg-slate-800'
           }`}
         >
-          <Target className={`w-4 h-4 ${currentGoal && currentGoal !== 'none' ? 'text-slate-950' : 'text-emerald-400'}`} />
-          <span className="truncate font-pixel text-[9px]">Цель</span>
+          <User className="w-4 h-4 text-sky-400 group-hover:text-sky-300" />
+          <span className="truncate font-pixel text-[9px]">Герой</span>
+          {customHeroData && (
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 border border-black animate-pulse" />
+          )}
         </button>
       </div>
 
@@ -499,7 +548,129 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           </div>
         )}
 
+        {/* TAB 4: HERO & CUSTOM CHARACTER */}
+        {activeTab === 'hero' && (
+          <div className="space-y-3.5">
+            {/* Hidden File Picker for Custom Hero Image */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              className="hidden"
+              onChange={handleUploadCustomHero}
+            />
 
+            {/* Error Banner */}
+            {heroUploadError && (
+              <div className="p-2.5 rounded bg-rose-950/80 border-2 border-rose-500 text-rose-200 text-xs font-medium space-y-1">
+                <div className="font-bold font-pixel text-[10px] text-rose-400">⚠️ Ошибка загрузки:</div>
+                <div className="text-[11px] leading-tight">{heroUploadError}</div>
+              </div>
+            )}
+
+            {/* Active Character Status & Live Preview Card */}
+            <div className="retro-panel p-3 bg-black/40 border-2 border-black space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-pixel text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  <span>{customHeroData ? 'Кастомный герой' : 'Стандартный герой'}</span>
+                </span>
+                <span
+                  className={`text-[8px] font-pixel px-2 py-0.5 rounded border border-black ${
+                    customHeroData
+                      ? 'bg-emerald-500 text-slate-950'
+                      : 'bg-amber-400 text-slate-950'
+                  }`}
+                >
+                  {customHeroData ? 'АКТИВЕН' : 'АЛЕКС'}
+                </span>
+              </div>
+
+              {/* Preview Display Window */}
+              <div className="relative h-36 rounded border-2 border-black bg-slate-950/90 overflow-hidden flex items-center justify-center p-2 shadow-inner retro-grid-pattern">
+                {customHeroData ? (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <img
+                      src={customHeroData}
+                      alt="Свой герой"
+                      className="max-h-28 object-contain transition-transform duration-200 hover:scale-105"
+                      style={{
+                        imageRendering: 'pixelated',
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center space-y-1">
+                    <div className="w-16 h-24 overflow-hidden flex items-center justify-center relative">
+                      <div
+                        style={{
+                          width: '64px',
+                          height: '96px',
+                          backgroundImage: `url(${heroIdleImgSrc})`,
+                          backgroundPosition: '0px 0px',
+                          backgroundSize: '192px 96px',
+                          backgroundRepeat: 'no-repeat',
+                          imageRendering: 'pixelated',
+                          transform: 'scale(0.92)',
+                        }}
+                        aria-label="Алекс"
+                      />
+                    </div>
+                    <span className="text-[10px] font-pixel text-amber-400 tracking-wider">
+                      Алекс
+                    </span>
+                  </div>
+                )}
+
+                {/* Hitbox Dimension Badge */}
+                <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 border border-slate-700 text-[8px] font-mono text-emerald-400 font-bold">
+                  105px хитбокс
+                </div>
+              </div>
+
+              {/* Primary Actions: Upload Custom Hero or Revert */}
+              <div className="space-y-2 pt-1">
+                {/* Upload Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingHero}
+                  title="Загрузить изображение 2D персонажа с диска"
+                  className="retro-btn w-full py-2.5 px-3 bg-[var(--accent-emerald)] hover:bg-emerald-400 active:brightness-95 text-slate-950 flex items-center justify-center gap-2 text-xs font-pixel rounded-[4px] border-2 border-black shadow-[2px_2px_0px_#000] cursor-pointer disabled:opacity-50"
+                >
+                  <Upload className="w-4 h-4 stroke-[2.5]" />
+                  <span>{isUploadingHero ? 'ОБРАБОТКА...' : customHeroData ? 'ЗАМЕНИТЬ ГЕРОЯ' : 'ЗАГРУЗИТЬ СВОЕГО ГЕРОЯ'}</span>
+                </button>
+
+                {/* Revert to Default Hero Button - only visible if custom hero is active */}
+                {customHeroData && (
+                  <button
+                    type="button"
+                    onClick={handleRevertDefaultHero}
+                    title="Удалить кастомного героя и вернуть стандартный спрайт"
+                    className="retro-btn-sm w-full py-2 px-3 bg-rose-500 hover:bg-rose-400 text-white flex items-center justify-center gap-1.5 text-[9px] font-pixel rounded-[4px] border-2 border-black shadow-[2px_2px_0px_#000] cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>ВЕРНУТЬ СТАНДАРТНОГО ГЕРОЯ</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* School Demo Lesson Educational Guide Box */}
+            <div className="p-3 rounded bg-amber-400/10 border-2 border-amber-400/40 text-[var(--text-main)] space-y-1.5 text-xs font-body">
+              <div className="font-bold font-pixel text-[10px] text-amber-400 flex items-center gap-1">
+                <span>🎓</span>
+                <span>КАК ЗАГРУЗИТЬ ГЕРОЯ:</span>
+              </div>
+              <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[var(--text-muted)] leading-relaxed">
+                <li>Подготовь картинку героя.</li>
+                <li>Удали задний фон (формат PNG).</li>
+                <li>Нажми кнопку «Загрузить своего героя».</li>
+              </ol>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 4. Tools & Actions Bottom Panel with Hotkey Badges */}
