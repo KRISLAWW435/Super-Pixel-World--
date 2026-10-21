@@ -92,6 +92,7 @@ export interface LevelData {
   timeLimit: number; // seconds
   goalType?: LevelGoalType;
   targetTime?: number;
+  hasTimer?: boolean; // Independent level timer toggle (On/Off)
 }
 
 export interface ThemeConfig {

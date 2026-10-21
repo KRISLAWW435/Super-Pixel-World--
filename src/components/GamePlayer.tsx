@@ -30,6 +30,7 @@ import { sound } from '../audio/soundEngine';
 import { CELL_SIZE, FIXED_DELTA_TIME, GRID_ROWS, MAX_ACCUMULATOR, THEMES } from '../game/constants';
 import { PhysicsEngine } from '../game/physics';
 import { SpriteRenderer } from '../graphics/spriteRenderer';
+import { setHapticsSuspended } from '../services/HapticsManager';
 import { SettingsManager } from '../services/storageManager';
 import { TutorialManager } from '../services/TutorialManager';
 import { HeroId, LevelData, ThemeId } from '../types/game';
@@ -201,6 +202,18 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
       window.removeEventListener('gamepadconnected', handleGamepadConnected);
       window.removeEventListener('gamepaddisconnected', handleGamepadDisconnected);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  // Suspend haptic vibration if game is paused, victory, or game over
+  useEffect(() => {
+    setHapticsSuspended(isPaused || isGameOver || isVictory);
+  }, [isPaused, isGameOver, isVictory]);
+
+  // Reset haptics state on component unmount
+  useEffect(() => {
+    return () => {
+      setHapticsSuspended(false);
     };
   }, []);
 
@@ -937,8 +950,8 @@ export const GamePlayer: React.FC<GamePlayerProps> = ({
 
         {/* Right Stats Cluster: Time, Score, Audio & Controls */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Timer in HUD: Conditionally rendered based on Show Timer setting */}
-          {(SettingsManager.getSettings().showTimer ?? true) && (
+          {/* Timer in HUD: Conditionally rendered based on level-specific hasTimer */}
+          {(levelData.hasTimer ?? (levelData.goalType === 'time')) && (
             <div className="px-2.5 py-1.5 rounded-md bg-[#0F172A] border-4 border-black shadow-[3px_3px_0px_#000000] flex items-center gap-1.5 text-sky-300">
               <Clock className="w-4 h-4 text-sky-400 shrink-0" />
               <span className="font-pixel text-[11px] tracking-wider font-bold">

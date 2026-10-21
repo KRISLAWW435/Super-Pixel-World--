@@ -108,13 +108,14 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({
     }
   };
 
-  const handleSaveGoal = (goalType: LevelGoalType, timeLimit: number) => {
+  const handleSaveGoal = (goalType: LevelGoalType, timeLimit: number, hasTimer?: boolean) => {
     onUpdateLevelData?.({
       goalType,
       timeLimit,
       targetTime: timeLimit,
+      hasTimer,
     });
-    showToast('Цель уровня успешно сохранена!');
+    showToast('Цель и таймер уровня успешно сохранены!');
   };
 
   const containerRef = useRef<HTMLDivElement | null>(null);

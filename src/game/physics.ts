@@ -3,8 +3,20 @@
  * Robust sub-pixel continuous collision, coyote time, jump buffering, and hazard mechanics.
  */
 
-import { CELL_SIZE, GRID_ROWS, HEROES, PALETTE_ITEMS, PLAYER_FOOT_INSET, findGroundRowBelow, isGroundEnemy } from './constants';
+import {
+  BASE_JUMP_POWER,
+  CELL_SIZE,
+  FIXED_DELTA_TIME,
+  GRID_ROWS,
+  HEROES,
+  JUMP_GRAVITY,
+  PALETTE_ITEMS,
+  PLAYER_FOOT_INSET,
+  findGroundRowBelow,
+  isGroundEnemy,
+} from './constants';
 import { sound } from '../audio/soundEngine';
+import { triggerVibration } from '../services/HapticsManager';
 import {
   ActiveBlockBump,
   ActiveEnemy,
@@ -401,9 +413,12 @@ export class PhysicsEngine {
 
     // Timers
     this.stats.timeTaken += clampedDt;
-    this.stats.timeRemaining = Math.max(0, this.stats.timeRemaining - clampedDt);
-    if (this.stats.timeRemaining <= 0 && this.stats.lives > 0) {
-      this.loseLife('Время вышло!');
+    const hasTimer = this.levelData.hasTimer ?? (this.levelData.goalType === 'time');
+    if (hasTimer) {
+      this.stats.timeRemaining = Math.max(0, this.stats.timeRemaining - clampedDt);
+      if (this.stats.timeRemaining <= 0 && this.stats.lives > 0) {
+        this.loseLife('Время вышло!');
+      }
     }
 
     this.player.animTime += clampedDt;
@@ -530,11 +545,12 @@ export class PhysicsEngine {
     this.player.isWalking = Math.abs(this.player.vx) > 0.4;
 
     // --- Vertical Jump & Gravity ---
-    // Calibrated so that default hero jump apex is exactly 5 grid tiles high (200px = 5 * CELL_SIZE)
-    // At 60fps (dt = 1/60), gravity = 25.4 and base jumpPower = 12.8 achieves exactly 200px jump peak
-    // Allows comfortably clearing a 5-block gap (clearing up to ~8.6 blocks at full run speed)
-    const gravity = 25.4;
-    this.player.vy += gravity * clampedDt;
+    // Strictly locked to 60Hz Fixed Timestep (FIXED_DELTA_TIME = 1/60)
+    // Calibration: BASE_JUMP_POWER = 12.8, JUMP_GRAVITY = 32.0 gives an absolute apex of exactly 160px (4 tiles: 4 * 40px)
+    // Mathematical proof:
+    // Apex reached in 24 frames: v0 = 12.8, g_step = 32.0 * (1/60) = 8/15 px/frame^2
+    // Height = 24 * 12.8 - (8/15) * (23 * 24 / 2) = 307.2 - 147.2 = 160.000px
+    this.player.vy += JUMP_GRAVITY * FIXED_DELTA_TIME;
 
     // Variable jump height & bot glide
     if (this.player.jumpBufferTimer > 0 && this.player.coyoteTimer > 0) {
@@ -684,9 +700,14 @@ export class PhysicsEngine {
 
           if (footIntersects) {
             if (this.player.y + this.player.height - this.player.vy <= tileTop + 6) {
+              const impactVy = this.player.vy;
               this.player.y = tileTop - this.player.height;
               this.player.vy = 0;
               this.player.isGrounded = true;
+              if (impactVy > 11.5) {
+                // Light tactile rumble on landing from a high fall / jump
+                triggerVibration(50, 0.25, 0.25);
+              }
             }
           }
         } else if (this.player.vy < 0) {
@@ -710,6 +731,7 @@ export class PhysicsEngine {
       // Mark as spent
       item.variant = 'spent';
       sound.playBump();
+      triggerVibration(60, 0.4, 0.5);
       this.onJuiceTrigger?.('block_bump');
 
       // Add bumping block animation
@@ -1239,6 +1261,7 @@ export class PhysicsEngine {
           this.player.isInAir = true;
 
           sound.playStomp();
+          triggerVibration(60, 0.4, 0.4);
           this.onJuiceTrigger?.('enemy');
           this.stats.enemiesDefeated++;
           this.stats.score += 250;
@@ -1278,6 +1301,7 @@ export class PhysicsEngine {
     if (this.player.isHurt || this.player.hurtTimer > 0) return;
 
     sound.playHurt();
+    triggerVibration(200, 1.0, 0.8);
     this.stats.lives--;
 
     if (this.stats.lives <= 0) {
@@ -1302,6 +1326,7 @@ export class PhysicsEngine {
 
   public loseLife(_reason: string) {
     sound.playHurt();
+    triggerVibration(200, 1.0, 0.8);
     this.stats.lives--;
 
     if (this.stats.lives <= 0) {

@@ -8,12 +8,14 @@ import bgIceWorld from '../assets/images/bg_ice_world_1792080624384.jpg';
 import bgAlienJungle from '../assets/images/bg_alien_jungle_1792080637269.jpg';
 import { HeroConfig, HeroId, PaletteCategory, ThemeConfig, ThemeId, TileId } from '../types/game';
 
-export const CELL_SIZE = 40; // 40px per tile
+export const CELL_SIZE = 40; // Strictly locked 40px per tile across all physics and level coordinates
 export const GRID_ROWS = 24; // 24 cells high (expanded from 16 to allow building 8 rows below)
 export const DEFAULT_GRID_COLS = 160; // 160 cells long world (~6400px)
 
-// Fixed timestep physics engine constants (deterministic 60Hz physics across 60Hz, 144Hz, 240Hz monitors)
+// Fixed timestep physics engine constants (deterministic 60Hz physics across all displays & hardware)
 export const FIXED_DELTA_TIME = 1 / 60; // 0.016666666666666666s per physics tick
+export const BASE_JUMP_POWER = 12.8; // Calibrated for exact 160px apex (4 tiles = 4 * 40px)
+export const JUMP_GRAVITY = 32.0; // Exactly 32.0 * (1/60) = 0.53333333 px/frame^2; reaches apex in 24 frames (0.4s)
 export const MAX_ACCUMULATOR = 0.2; // 200ms spiral-of-death accumulator safeguard
 export const PLAYER_FOOT_INSET = 8; // Inset (8px) for narrow foot sensor to prevent edge-clinging
 
@@ -64,7 +66,7 @@ export const HEROES: Record<HeroId, HeroConfig> = {
     title: 'Отважный исследователь',
     description: 'Классический пиксельный герой в жёлтой толстовке. Сбалансированная скорость и прыгучесть.',
     primaryColor: '#e53e3e',
-    jumpPower: 12.8,
+    jumpPower: BASE_JUMP_POWER,
     speed: 5.6,
     perk: 'Сбалансированный герой',
   },
@@ -74,7 +76,7 @@ export const HEROES: Record<HeroId, HeroConfig> = {
     title: 'Отважный исследователь',
     description: 'Классический пиксельный герой в жёлтой толстовке.',
     primaryColor: '#3182ce',
-    jumpPower: 12.8,
+    jumpPower: BASE_JUMP_POWER,
     speed: 5.6,
     perk: 'Сбалансированный герой',
   },
@@ -84,7 +86,7 @@ export const HEROES: Record<HeroId, HeroConfig> = {
     title: 'Отважный исследователь',
     description: 'Классический пиксельный герой в жёлтой толстовке.',
     primaryColor: '#dd6b20',
-    jumpPower: 12.8,
+    jumpPower: BASE_JUMP_POWER,
     speed: 5.6,
     perk: 'Сбалансированный герой',
   },
@@ -94,7 +96,7 @@ export const HEROES: Record<HeroId, HeroConfig> = {
     title: 'Отважный исследователь',
     description: 'Классический пиксельный герой в жёлтой толстовке.',
     primaryColor: '#805ad5',
-    jumpPower: 12.8,
+    jumpPower: BASE_JUMP_POWER,
     speed: 5.6,
     perk: 'Сбалансированный герой',
   },

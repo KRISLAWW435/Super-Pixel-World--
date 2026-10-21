@@ -23,7 +23,7 @@ interface GoalSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   levelData: LevelData;
-  onSaveGoal: (goalType: LevelGoalType, timeLimit: number) => void;
+  onSaveGoal: (goalType: LevelGoalType, timeLimit: number, hasTimer?: boolean) => void;
 }
 
 interface GoalOptionConfig {
@@ -96,6 +96,11 @@ export const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
     return levelData.goalType || 'none';
   });
 
+  const [hasTimer, setHasTimer] = useState<boolean>(() => {
+    if (levelData.hasTimer !== undefined) return levelData.hasTimer;
+    return levelData.goalType === 'time';
+  });
+
   const [timeSeconds, setTimeSeconds] = useState<number>(() => {
     return levelData.targetTime || levelData.timeLimit || 60;
   });
@@ -107,9 +112,10 @@ export const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
     if (isOpen) {
       setSelectedGoal(levelData.goalType || 'none');
       setTimeSeconds(levelData.targetTime || levelData.timeLimit || 60);
+      setHasTimer(levelData.hasTimer !== undefined ? levelData.hasTimer : (levelData.goalType === 'time'));
       setIsSavedSuccess(false);
     }
-  }, [isOpen, levelData.goalType, levelData.targetTime, levelData.timeLimit]);
+  }, [isOpen, levelData.goalType, levelData.targetTime, levelData.timeLimit, levelData.hasTimer]);
 
   // Count items on the level
   const coinCount = levelData.items.filter((it) => it.tileId === 'coin').length;
@@ -121,7 +127,7 @@ export const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
 
   const handleApply = () => {
     sound.playCoin();
-    onSaveGoal(selectedGoal, timeSeconds);
+    onSaveGoal(selectedGoal, timeSeconds, hasTimer);
     setIsSavedSuccess(true);
     setTimeout(() => {
       setIsSavedSuccess(false);
@@ -156,7 +162,11 @@ export const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
               value={selectedGoal}
               onChange={(e) => {
                 sound.playSelect();
-                setSelectedGoal(e.target.value as LevelGoalType);
+                const nextGoal = e.target.value as LevelGoalType;
+                setSelectedGoal(nextGoal);
+                if (nextGoal === 'time') {
+                  setHasTimer(true);
+                }
               }}
               className="w-full px-3 py-2.5 bg-[#0B0F19] border-2 border-black rounded-xl text-white font-bold text-xs sm:text-sm outline-none focus:border-amber-400 transition-all cursor-pointer shadow-inner appearance-none pr-8"
             >
@@ -183,8 +193,47 @@ export const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
           </div>
         </div>
 
-        {/* Time-Based Input Field (Shown when 'time' goal is selected) */}
-        {selectedGoal === 'time' && (
+        {/* Level Timer Toggle (On/Off) */}
+        <div className="p-3.5 rounded-xl bg-[#0B0F19] border-2 border-black flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-9 h-9 rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center ${
+                hasTimer
+                  ? 'bg-amber-400 text-slate-950 font-bold'
+                  : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold font-pixel text-white">
+                ТАЙМЕР В ИГРЕ
+              </div>
+              <div className="text-[11px] text-slate-400">
+                {hasTimer ? 'Обратный отсчёт времени включен для этого уровня' : 'Без ограничения по времени (таймер выключен)'}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              setHasTimer((prev) => !prev);
+            }}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-pixel font-bold flex items-center gap-1.5 border-2 border-black shadow-[2px_2px_0px_#000] cursor-pointer transition-all ${
+              hasTimer
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+            }`}
+          >
+            {hasTimer && <Check className="w-3 h-3 stroke-[3]" />}
+            <span>{hasTimer ? 'ВКЛ' : 'ВЫКЛ'}</span>
+          </button>
+        </div>
+
+        {/* Time-Based Input Field (Shown when hasTimer is ON or 'time' goal is selected) */}
+        {(hasTimer || selectedGoal === 'time') && (
           <div className="p-3.5 rounded-xl bg-[#0B0F19] border-2 border-black space-y-2 animate-in fade-in duration-200">
             <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-sky-400">
@@ -211,7 +260,7 @@ export const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
             {/* Quick Presets */}
             <div className="flex flex-wrap items-center gap-1.5 pt-1">
               <span className="text-[10px] text-slate-400 mr-1">Быстрый выбор:</span>
-              {[30, 45, 60, 90, 120, 180].map((s) => (
+              {[30, 45, 60, 90, 120, 180, 300].map((s) => (
                 <button
                   key={s}
                   type="button"

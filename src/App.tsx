@@ -355,27 +355,8 @@ export default function App() {
       document.body.classList.remove('theme-light');
     }
 
-    // Apply Responsive Desktop UI Scaling
-    const updateScaling = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const currentSettings = SettingsManager.getSettings();
-      const userScale = currentSettings.uiScale ?? 1.0;
-      let autoFactor = 1.0;
-      if (w >= 3400) {
-        autoFactor = 1.3; // 4K Display
-      } else if (w >= 2400) {
-        autoFactor = 1.15; // QHD / 2K
-      } else if (w <= 1280 || h <= 720) {
-        autoFactor = 0.9; // Compact laptop
-      }
-      const finalScale = Number((autoFactor * userScale).toFixed(2));
-      document.documentElement.style.setProperty('--ui-scale', String(finalScale));
-    };
-
-    updateScaling();
-    window.addEventListener('resize', updateScaling);
-    return () => window.removeEventListener('resize', updateScaling);
+    // Keep UI Scale locked at standard 1:1 to guarantee pixel-identical physics and layout across PC and laptop
+    document.documentElement.style.setProperty('--ui-scale', '1');
   }, []);
 
   // Sync theme/hero to levelData

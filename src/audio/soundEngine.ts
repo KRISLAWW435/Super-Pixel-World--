@@ -950,3 +950,6 @@ class SoundEngine {
 }
 
 export const sound = new SoundEngine();
+
+// Gamepad Haptic Vibration export
+export { triggerVibration, setHapticsSuspended } from '../services/HapticsManager';
